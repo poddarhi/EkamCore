@@ -53,6 +53,7 @@ The backend does not yet have a committed Python package manager. That choice is
 - Add environment variable documentation before introducing new runtime configuration.
 - Prefer shared contract types over hand-maintained duplicate client models.
 - Capture repository-level decisions in `docs/adr` once the ADR workflow is added.
+- Follow the engineering workflow in `docs/engineering-workflow.md` for branches, pull requests, merge rules, and foundational artifact changes.
 
 ## Current Status
 
