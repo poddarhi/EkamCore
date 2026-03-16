@@ -9,7 +9,7 @@
   },
   "scripts": {
     "bootstrap": "pnpm install",
-    "dev:manager": "pnpm --filter @ekamcore/manager-app dev",
+    "dev:manager": "pnpm --filter @ekamcore/manager-app tauri:dev",
     "dev:mobile": "pnpm --filter @ekamcore/mobile dev",
     "generate:shared-types": "pnpm --filter @ekamcore/shared-types generate",
     "runtime:start": "./infra/runtime/start.sh",

@@ -2,3 +2,6 @@ packages:
   - "apps/manager-app"
   - "apps/mobile"
   - "packages/*"
+
+onlyBuiltDependencies:
+  - esbuild

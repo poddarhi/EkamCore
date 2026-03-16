@@ -29,6 +29,7 @@ logs/
 # Tauri / Rust
 target/
 Cargo.lock
+!apps/manager-app/src-tauri/Cargo.lock
 
 # IDE
 .idea/

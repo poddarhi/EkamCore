@@ -28,6 +28,7 @@ This repository is currently in Sprint 0. The goal of `S0-001` is to establish t
 - Node.js `24.14.0` (LTS)
 - `pnpm` `10.x` or newer
 - Python `3.13.x`
+- Rust stable toolchain with `cargo` on `PATH`
 - Docker Desktop for the upcoming runtime substrate spike
 
 ## Bootstrap
@@ -38,7 +39,15 @@ Install the baseline toolchain:
 brew install node@24 pnpm python@3.13
 brew link --overwrite --force node@24
 brew pin node@24
+brew install rustup-init
 brew install --cask docker-desktop
+```
+
+Initialize Rust if it is not already configured:
+
+```sh
+export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$PATH"
+rustup default stable
 ```
 
 Install workspace dependencies:
@@ -56,7 +65,8 @@ The backend does not yet have a committed Python package manager. That choice is
 - Prefer shared contract types over hand-maintained duplicate client models.
 - Capture repository-level decisions in `docs/adr` once the ADR workflow is added.
 - Follow the engineering workflow in `docs/engineering-workflow.md` for branches, pull requests, merge rules, and foundational artifact changes.
+- Use `pnpm dev:manager` to launch the desktop manager app shell once the manager app dependencies are installed.
 
 ## Current Status
 
-The repository currently contains structure and placeholders only. Framework bootstrap, runtime orchestration, API contracts, and runnable services will be added in later Sprint 0 tasks.
+The repository now includes a runnable Sprint 0 manager app shell plus runtime bootstrap groundwork. Backend implementation, API contracts, service supervision, and richer operational features will be added in later Sprint 0 tasks.
