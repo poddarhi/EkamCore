@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # EkamCore
 
 EkamCore is a private local life assistant for your knowledge, memory, and daily operations.
@@ -26,7 +25,7 @@ This repository is currently in Sprint 0. The goal of `S0-001` is to establish t
 
 - macOS on Apple silicon
 - [Homebrew](https://brew.sh/)
-- Node.js `22.x`
+- Node.js `24.14.0` (LTS)
 - `pnpm` `10.x` or newer
 - Python `3.13.x`
 - Docker Desktop for the upcoming runtime substrate spike
@@ -36,7 +35,9 @@ This repository is currently in Sprint 0. The goal of `S0-001` is to establish t
 Install the baseline toolchain:
 
 ```sh
-brew install node pnpm python@3.13
+brew install node@24 pnpm python@3.13
+brew link --overwrite --force node@24
+brew pin node@24
 brew install --cask docker-desktop
 ```
 
@@ -59,6 +60,3 @@ The backend does not yet have a committed Python package manager. That choice is
 ## Current Status
 
 The repository currently contains structure and placeholders only. Framework bootstrap, runtime orchestration, API contracts, and runnable services will be added in later Sprint 0 tasks.
-=======
-# EkamCore
->>>>>>> origin/main
