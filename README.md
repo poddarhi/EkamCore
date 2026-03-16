@@ -67,6 +67,13 @@ pnpm lint:api
 pnpm generate:shared-types
 ```
 
+For the live Sprint 0 thin slice, run the backend on the contract port before launching the manager app:
+
+```sh
+pnpm dev:backend
+pnpm dev:manager
+```
+
 ## Development Expectations
 
 - Keep app-specific notes in each app directory `README.md`.
@@ -79,4 +86,4 @@ pnpm generate:shared-types
 
 ## Current Status
 
-The repository now includes a runnable Sprint 0 manager app shell, a service supervision adapter, the canonical OpenAPI contract, generated shared TypeScript types, and a FastAPI stub backend. Real source adapters, storage, auth enforcement, and richer operational features will be added in later Sprint 0 tasks.
+The repository now includes a runnable Sprint 0 manager app shell, live backend health/version/Today wiring for the first thin vertical slice, the canonical OpenAPI contract, generated shared TypeScript types, and a FastAPI stub backend. Real source adapters, storage, auth enforcement, and richer operational features will be added in later Sprint 0 tasks.

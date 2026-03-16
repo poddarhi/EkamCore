@@ -1,5 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
+import type {
+  HealthResponse,
+  TodayResponse,
+  VersionResponse,
+} from "@ekamcore/shared-types";
 import { backendHealthBaseline, backendVersionBaseline } from "./backendBaseline";
+
+const DEFAULT_BACKEND_BASE_URL = "http://127.0.0.1:8808";
+const DEMO_WORKSPACE_ID = "personal";
 
 export type StatusTone =
   | "healthy"
@@ -55,7 +63,18 @@ export type RuntimeSnapshot = {
   detail: string;
 };
 
-export type SupervisionSnapshot = {
+export type BackendSlice = {
+  baseUrl: string;
+  workspaceId: string;
+  status: StatusTone;
+  connectionLabel: string;
+  health?: HealthResponse;
+  version?: VersionResponse;
+  today?: TodayResponse;
+  error?: string;
+};
+
+export type BaseSupervisionSnapshot = {
   source: string;
   collectedAtMs: number;
   summary: string;
@@ -69,6 +88,10 @@ export type SupervisionSnapshot = {
   activity: string[];
 };
 
+export type SupervisionSnapshot = BaseSupervisionSnapshot & {
+  backend: BackendSlice;
+};
+
 export interface ServiceSupervisor {
   getSnapshot(): Promise<SupervisionSnapshot>;
 }
@@ -77,7 +100,243 @@ function isTauriRuntime() {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
-function buildFallbackSnapshot(message?: string): SupervisionSnapshot {
+function managerBackendBaseUrl() {
+  const configured = import.meta.env.VITE_EKAMCORE_BACKEND_BASE_URL?.trim();
+  if (!configured) {
+    return DEFAULT_BACKEND_BASE_URL;
+  }
+
+  return configured.replace(/\/+$/, "");
+}
+
+function makeUrl(baseUrl: string, path: string) {
+  return new URL(path.replace(/^\//, ""), `${baseUrl}/`).toString();
+}
+
+async function fetchJson<T>(url: string) {
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+function upsertDiagnostic(
+  diagnostics: DiagnosticFact[],
+  nextDiagnostic: DiagnosticFact,
+) {
+  return [
+    ...diagnostics.filter((diagnostic) => diagnostic.label !== nextDiagnostic.label),
+    nextDiagnostic,
+  ];
+}
+
+function upsertSetting(settings: SettingFact[], nextSetting: SettingFact) {
+  return [
+    ...settings.filter((setting) => setting.label !== nextSetting.label),
+    nextSetting,
+  ];
+}
+
+async function fetchBackendSlice(): Promise<BackendSlice> {
+  const baseUrl = managerBackendBaseUrl();
+
+  const [healthResult, versionResult, todayResult] = await Promise.allSettled([
+    fetchJson<HealthResponse>(makeUrl(baseUrl, "/v1/health")),
+    fetchJson<VersionResponse>(makeUrl(baseUrl, "/v1/version")),
+    fetchJson<TodayResponse>(
+      makeUrl(baseUrl, `/v1/workspaces/${DEMO_WORKSPACE_ID}/today`),
+    ),
+  ]);
+
+  const health =
+    healthResult.status === "fulfilled" ? healthResult.value : undefined;
+  const version =
+    versionResult.status === "fulfilled" ? versionResult.value : undefined;
+  const today = todayResult.status === "fulfilled" ? todayResult.value : undefined;
+
+  const errors = [healthResult, versionResult, todayResult]
+    .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+    .map((result) =>
+      result.reason instanceof Error ? result.reason.message : String(result.reason),
+    );
+
+  const status: StatusTone =
+    health && version && today
+      ? "healthy"
+      : health || version || today
+        ? "warning"
+        : "attention";
+
+  return {
+    baseUrl,
+    workspaceId: DEMO_WORKSPACE_ID,
+    status,
+    connectionLabel:
+      status === "healthy"
+        ? "Live backend slice connected"
+        : status === "warning"
+          ? "Partial backend connectivity"
+          : "Backend unavailable",
+    health,
+    version,
+    today,
+    error: errors.length > 0 ? errors.join(" | ") : undefined,
+  };
+}
+
+function withBackendSlice(
+  baseSnapshot: BaseSupervisionSnapshot,
+  backend: BackendSlice,
+): SupervisionSnapshot {
+  const isLive = backend.status === "healthy";
+  const isPartial = backend.status === "warning";
+
+  const setupChecks = baseSnapshot.setupChecks.map((check) => {
+    if (check.id !== "backend-stub") {
+      return check;
+    }
+
+    if (isLive && backend.today) {
+      return {
+        ...check,
+        status: "healthy" as const,
+        detail: `FastAPI stub responded from ${backend.baseUrl} and returned the ${backend.workspaceId} workspace Today payload.`,
+        nextStep: `Live demo loaded ${backend.today.data.cards.length} Today cards from the backend stub.`,
+      };
+    }
+
+    if (isPartial) {
+      return {
+        ...check,
+        status: "warning" as const,
+        detail: `Manager app reached part of the backend slice at ${backend.baseUrl}, but not every expected endpoint responded.`,
+        nextStep: backend.error ?? "Verify the backend is running and the Today stub route is reachable.",
+      };
+    }
+
+    return {
+      ...check,
+      status: "attention" as const,
+      detail: `Manager app could not reach the backend at ${backend.baseUrl}.`,
+      nextStep: `Run pnpm dev:backend and keep the stub service listening on ${backend.baseUrl}.`,
+    };
+  });
+
+  const services = baseSnapshot.services.map((service) => {
+    if (service.id !== "backend" && service.id !== "service-backend") {
+      return service;
+    }
+
+    if (isLive && backend.health) {
+      return {
+        ...service,
+        status: "healthy" as const,
+        detail: backend.health.data.summary,
+        actionHint: `Live demo workspace '${backend.workspaceId}' returned ${backend.today?.data.cards.length ?? 0} Today cards from ${backend.baseUrl}.`,
+      };
+    }
+
+    if (isPartial) {
+      return {
+        ...service,
+        status: "warning" as const,
+        detail: `Partial backend connectivity at ${backend.baseUrl}.`,
+        actionHint:
+          backend.error ??
+          "Check the backend process and confirm every stub endpoint is reachable.",
+      };
+    }
+
+    return {
+      ...service,
+      status: "attention" as const,
+      detail: `Backend is not reachable at ${backend.baseUrl}.`,
+      actionHint: `Start pnpm dev:backend so the manager app can load the live slice.`,
+    };
+  });
+
+  let diagnostics = upsertDiagnostic(baseSnapshot.diagnostics, {
+    label: "Backend base URL",
+    value: backend.baseUrl,
+    tone: isLive ? "healthy" : isPartial ? "warning" : "attention",
+  });
+
+  diagnostics = upsertDiagnostic(diagnostics, {
+    label: "Backend API version",
+    value: backend.version?.data.apiVersion ?? backendVersionBaseline.data.apiVersion,
+    tone: backend.version ? "healthy" : "warning",
+  });
+
+  diagnostics = upsertDiagnostic(diagnostics, {
+    label: "Contract version",
+    value:
+      backend.version?.data.contractVersion ??
+      backendVersionBaseline.data.contractVersion,
+    tone: backend.version ? "healthy" : "warning",
+  });
+
+  let settings = upsertSetting(baseSnapshot.settings, {
+    label: "Backend base URL",
+    value: backend.baseUrl,
+    detail:
+      "Manager-app live polling target for Sprint 0 health, version, and Today requests.",
+  });
+
+  settings = upsertSetting(settings, {
+    label: "Demo workspace",
+    value: backend.workspaceId,
+    detail:
+      "The thin vertical slice uses the personal workspace route so clients can exercise explicit workspace scoping early.",
+  });
+
+  const logs = [
+    ...baseSnapshot.logs,
+    {
+      id: "backend-live-slice",
+      level: isLive ? "info" : isPartial ? "warning" : "error",
+      source: "backend",
+      message: isLive
+        ? `Live stub endpoints responded from ${backend.baseUrl}.`
+        : `Live backend slice is not fully reachable at ${backend.baseUrl}. ${backend.error ?? "Start pnpm dev:backend."}`,
+    },
+  ] as LogEntry[];
+
+  const activity = [...baseSnapshot.activity];
+  const liveSliceMessage = isLive
+    ? "Thin end-to-end slice is live: manager app -> FastAPI stub -> generated contract types."
+    : "Thin end-to-end slice is ready, but the manager app still needs the backend process to stay running.";
+
+  if (!activity.includes(liveSliceMessage)) {
+    activity.unshift(liveSliceMessage);
+  }
+
+  return {
+    ...baseSnapshot,
+    source: `${baseSnapshot.source}${isLive ? " + backend-live" : isPartial ? " + backend-partial" : " + backend-unreachable"}`,
+    summary: isLive
+      ? `Thin end-to-end slice is live across the manager app, contract types, and FastAPI stubs at ${backend.baseUrl}.`
+      : baseSnapshot.summary,
+    nextIntegration: isLive
+      ? "Add auth/session enforcement and workspace-aware request context on top of this live slice."
+      : "Start the FastAPI stub backend so the manager app can switch from structural supervision to the live demo path.",
+    setupChecks,
+    services,
+    diagnostics,
+    settings,
+    logs,
+    activity,
+    backend,
+  };
+}
+
+function buildFallbackSnapshot(message?: string): BaseSupervisionSnapshot {
   const now = Date.now();
   const logs: LogEntry[] = [
     {
@@ -231,18 +490,38 @@ function buildFallbackSnapshot(message?: string): SupervisionSnapshot {
 
 class DesktopSupervisor implements ServiceSupervisor {
   async getSnapshot() {
+    let baseSnapshot: BaseSupervisionSnapshot;
+
     if (!isTauriRuntime()) {
-      return buildFallbackSnapshot();
+      baseSnapshot = buildFallbackSnapshot();
+    } else {
+      try {
+        baseSnapshot = await invoke<BaseSupervisionSnapshot>(
+          "get_supervision_snapshot",
+        );
+      } catch (error) {
+        const detail =
+          error instanceof Error ? error.message : "Unknown Tauri invoke failure.";
+        baseSnapshot = buildFallbackSnapshot(
+          `Live Tauri supervision failed, so the manager app fell back to static data. ${detail}`,
+        );
+      }
     }
 
     try {
-      return await invoke<SupervisionSnapshot>("get_supervision_snapshot");
+      const backend = await fetchBackendSlice();
+      return withBackendSlice(baseSnapshot, backend);
     } catch (error) {
       const detail =
-        error instanceof Error ? error.message : "Unknown Tauri invoke failure.";
-      return buildFallbackSnapshot(
-        `Live Tauri supervision failed, so the manager app fell back to static data. ${detail}`,
-      );
+        error instanceof Error ? error.message : "Unknown backend fetch failure.";
+
+      return withBackendSlice(baseSnapshot, {
+        baseUrl: managerBackendBaseUrl(),
+        workspaceId: DEMO_WORKSPACE_ID,
+        status: "attention",
+        connectionLabel: "Backend unavailable",
+        error: detail,
+      });
     }
   }
 }

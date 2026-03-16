@@ -6,13 +6,15 @@ Current Sprint 0 direction:
 
 - platform: `Tauri`
 - UI: `React + TypeScript`
-- milestone: `S0-007` project skeleton implemented
+- milestone: `S0-026` thin end-to-end live slice implemented
 
-## Included in the S0-007 Shell
+## Included in the Current Sprint 0 Shell
 
 - Tauri desktop shell
 - React + TypeScript frontend
-- placeholder navigation and content for:
+- service supervision snapshot with Tauri-first runtime checks
+- live backend health, version, and Today polling with fallback behavior
+- navigation and content for:
   - Setup
   - Service Status
   - Logs
@@ -37,6 +39,24 @@ The package scripts already include the common macOS `rustup` paths, so after th
 
 ## Commands
 
+Set the backend URL if you are not using the default contract address:
+
+```sh
+cp .env.example .env.local
+```
+
+Default value:
+
+```sh
+VITE_EKAMCORE_BACKEND_BASE_URL=http://127.0.0.1:8808
+```
+
+Start the FastAPI stub backend first:
+
+```sh
+pnpm dev:backend
+```
+
 Run the desktop app in development mode:
 
 ```sh
@@ -55,4 +75,4 @@ Build the frontend bundle:
 pnpm --filter @ekamcore/manager-app build
 ```
 
-The manager app is currently a Sprint 0 shell. Real runtime supervision, health polling, logs, and diagnostics behavior will be layered in later tasks.
+The manager app is currently a Sprint 0 shell plus the first live manager-to-backend demo path. Auth enforcement, richer actions, and deeper source integration will be layered in later tasks.

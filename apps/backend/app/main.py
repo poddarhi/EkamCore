@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .models import (
@@ -25,6 +26,23 @@ app = FastAPI(
     title="EkamCore Backend",
     version=APPLICATION_VERSION,
     description="Sprint 0 FastAPI skeleton with contract-shaped stub responses.",
+)
+
+LOCAL_APP_ORIGINS = [
+    "http://localhost:1420",
+    "http://127.0.0.1:1420",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "tauri://localhost",
+    "https://tauri.localhost",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=LOCAL_APP_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

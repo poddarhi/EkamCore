@@ -1,6 +1,8 @@
+import type { TodayCard } from "@ekamcore/shared-types";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import {
   createServiceSupervisor,
+  type BackendSlice,
   type LogEntry,
   type ServiceRecord,
   type SetupCheck,
@@ -30,7 +32,7 @@ const screens: Screen[] = [
     eyebrow: "First Run",
     title: "Guide the hub from blank Mac to ready local stack.",
     description:
-      "The manager app now exposes concrete prerequisite checks for Docker Desktop, generated contract types, and the backend stub baseline.",
+      "The manager app now exposes concrete prerequisite checks for Docker Desktop, generated contract types, and the live backend stub path.",
   },
   {
     id: "service-status",
@@ -38,7 +40,7 @@ const screens: Screen[] = [
     eyebrow: "Control Plane",
     title: "One place to see whether the hub is healthy.",
     description:
-      "This screen is now backed by a real supervision snapshot model with Tauri-first runtime checks and a safe web fallback path.",
+      "The service-status screen now blends local runtime supervision with live FastAPI stub polling for the first real end-to-end demo path.",
   },
   {
     id: "logs",
@@ -46,7 +48,7 @@ const screens: Screen[] = [
     eyebrow: "Troubleshooting",
     title: "Recent errors and useful context without terminal spelunking.",
     description:
-      "The current log surface is intentionally small, but it already reads from the supervision snapshot instead of hard-coded copy.",
+      "The current log surface stays intentionally small, but it now reports both supervision facts and backend connectivity.",
   },
   {
     id: "settings",
@@ -54,7 +56,7 @@ const screens: Screen[] = [
     eyebrow: "Configuration",
     title: "Surface the controls that shape how the hub runs.",
     description:
-      "Sprint 0 settings focus on the decisions already locked in: runtime substrate, contract source of truth, and API boundary rules.",
+      "Sprint 0 settings focus on the decisions already locked in: runtime substrate, contract source of truth, backend base URL, and API boundary rules.",
   },
   {
     id: "diagnostics",
@@ -62,7 +64,7 @@ const screens: Screen[] = [
     eyebrow: "Support",
     title: "Prepare the product for supportability from the beginning.",
     description:
-      "Diagnostics now reads from the same supervision snapshot as the rest of the app, so versions and runtime facts stay coherent.",
+      "Diagnostics now reads from the same supervision snapshot as the rest of the app, including live backend details when the stub service is running.",
   },
 ];
 
@@ -91,6 +93,21 @@ function statusLabel(status: StatusTone) {
 
 function renderStatusBadge(status: StatusTone) {
   return <span className={`badge badge-${status}`}>{statusLabel(status)}</span>;
+}
+
+function describeTodayCard(card: TodayCard) {
+  switch (card.type) {
+    case "agenda":
+      return `${card.title} · ${card.items.length} scheduled item${
+        card.items.length === 1 ? "" : "s"
+      }`;
+    case "focus":
+      return `${card.title} · ${card.actionLabel}`;
+    case "system":
+      return `${card.title} · ${card.status}`;
+    default:
+      return "Unknown card";
+  }
 }
 
 function renderSetupChecks(checks: SetupCheck[]) {
@@ -145,13 +162,91 @@ function renderLogs(logs: LogEntry[]) {
               <h3>{entry.level.toUpperCase()}</h3>
               <p>{entry.message}</p>
             </div>
-            <span className={`badge badge-${entry.level === "error" ? "blocked" : entry.level === "warning" ? "warning" : "healthy"}`}>
+            <span
+              className={`badge badge-${
+                entry.level === "error"
+                  ? "blocked"
+                  : entry.level === "warning"
+                    ? "warning"
+                    : "healthy"
+              }`}
+            >
               {entry.level}
             </span>
           </div>
         </article>
       ))}
     </div>
+  );
+}
+
+function renderLiveSlicePanel(backend: BackendSlice) {
+  const hasLiveToday = Boolean(backend.today);
+
+  return (
+    <article className="panel">
+      <div className="panel-header">
+        <p className="eyebrow">Thin End-to-End Demo</p>
+        <h3>{backend.connectionLabel}</h3>
+      </div>
+
+      <div className="panel-inline-row">
+        {renderStatusBadge(backend.status)}
+        <span className="inline-detail">Base URL: {backend.baseUrl}</span>
+        <span className="inline-detail">Workspace: {backend.workspaceId}</span>
+      </div>
+
+      <p className="panel-copy">
+        {backend.health?.data.summary ??
+          backend.error ??
+          "Start the FastAPI stub backend to turn the live demo path on."}
+      </p>
+
+      <div className="metric-grid">
+        <article className="metric-card">
+          <p>API Version</p>
+          <strong>
+            {backend.version?.data.apiVersion ?? "Unavailable"}
+          </strong>
+        </article>
+        <article className="metric-card">
+          <p>Contract Version</p>
+          <strong>
+            {backend.version?.data.contractVersion ?? "Unavailable"}
+          </strong>
+        </article>
+        <article className="metric-card">
+          <p>Application Version</p>
+          <strong>
+            {backend.version?.data.applicationVersion ?? "Unavailable"}
+          </strong>
+        </article>
+        <article className="metric-card">
+          <p>Today Cards</p>
+          <strong>{backend.today?.data.cards.length ?? 0}</strong>
+        </article>
+      </div>
+
+      {hasLiveToday ? (
+        <>
+          <div className="section-divider" />
+          <div className="panel-header">
+            <p className="eyebrow">Today Preview</p>
+            <h3>{backend.today?.data.summary}</h3>
+          </div>
+          <ul className="preview-list">
+            {backend.today?.data.cards.map((card) => (
+              <li key={card.id}>{describeTodayCard(card)}</li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="stack-note">
+          Keep `pnpm dev:backend` running on `127.0.0.1:8808` to load the live
+          Today preview into this panel.
+        </p>
+      )}
+    </article>
   );
 }
 
@@ -215,8 +310,8 @@ function App() {
       return [
         { title: "Reference Host", value: "Apple silicon / 24 GB", tone: "steady" },
         { title: "Runtime", value: "Loading...", tone: "attention" },
+        { title: "Backend", value: "Loading...", tone: "attention" },
         { title: "Contract", value: "Loading...", tone: "attention" },
-        { title: "Next Integration", value: "Preparing...", tone: "attention" },
       ] as const;
     }
 
@@ -234,15 +329,21 @@ function App() {
         tone: snapshot.runtime.engineReachable ? "steady" : "attention",
       },
       {
-        title: "Contract",
-        value: snapshot.diagnostics.find((fact) => fact.label === "Contract version")
-          ?.value ?? "Pending",
-        tone: "active",
+        title: "Backend",
+        value: snapshot.backend.connectionLabel,
+        tone:
+          snapshot.backend.status === "healthy"
+            ? "active"
+            : snapshot.backend.status === "warning"
+              ? "attention"
+              : "attention",
       },
       {
-        title: "Next Integration",
-        value: snapshot.nextIntegration,
-        tone: "attention",
+        title: "Contract",
+        value:
+          snapshot.diagnostics.find((fact) => fact.label === "Contract version")
+            ?.value ?? "Pending",
+        tone: "active",
       },
     ] as const;
   }, [snapshot]);
@@ -325,7 +426,16 @@ function App() {
             </div>
             <div className="diagnostic-grid">
               {snapshot.diagnostics.map((fact) => (
-                <article key={fact.label} className={`status-card ${fact.tone === "healthy" ? "steady" : fact.tone === "planned" ? "attention" : "active"}`}>
+                <article
+                  key={fact.label}
+                  className={`status-card ${
+                    fact.tone === "healthy"
+                      ? "steady"
+                      : fact.tone === "planned"
+                        ? "attention"
+                        : "active"
+                  }`}
+                >
                   <p>{fact.label}</p>
                   <strong>{fact.value}</strong>
                 </article>
@@ -388,6 +498,7 @@ function App() {
               Source: {snapshot?.source ?? "loading"} | Last updated:{" "}
               {snapshot ? formatCollectedAt(snapshot.collectedAtMs) : "waiting"}
             </span>
+            <span>Next integration: {snapshot?.nextIntegration ?? "Waiting on the first snapshot."}</span>
             <span>
               {isRefreshing ? "Refresh in progress." : "Auto-refreshing every 15 seconds."}
             </span>
@@ -407,22 +518,36 @@ function App() {
 
         <section className="detail-grid">
           {screenBody}
+          {snapshot ? (
+            renderLiveSlicePanel(snapshot.backend)
+          ) : (
+            <article className="panel">
+              <div className="panel-header">
+                <p className="eyebrow">Thin End-to-End Demo</p>
+                <h3>Waiting for backend status</h3>
+              </div>
+              <p className="panel-copy">
+                The manager app will load health, version, and Today stubs from the
+                backend once the first snapshot completes.
+              </p>
+            </article>
+          )}
+        </section>
 
-          <article className="panel">
-            <div className="panel-header">
-              <p className="eyebrow">Current App Activity</p>
-              <h3>What this slice already proves</h3>
-            </div>
-            <ul className="detail-list">
-              {(snapshot?.activity ?? [
-                "Manager app shell is booting its first supervision snapshot.",
-                "Generated shared types will appear here once the API contract is wired.",
-                "Backend stub routes are the next live integration target.",
-              ]).map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </article>
+        <section className="panel">
+          <div className="panel-header">
+            <p className="eyebrow">Current App Activity</p>
+            <h3>What this slice already proves</h3>
+          </div>
+          <ul className="detail-list">
+            {(snapshot?.activity ?? [
+              "Manager app shell is booting its first supervision snapshot.",
+              "Generated shared types are already available to the frontend.",
+              "Backend stub routes are the next live integration target.",
+            ]).map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
         </section>
       </main>
     </div>

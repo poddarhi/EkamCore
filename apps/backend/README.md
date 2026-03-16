@@ -27,10 +27,12 @@ From the repo root:
 pnpm dev:backend
 ```
 
+This binds the Sprint 0 backend stub to `http://127.0.0.1:8808`, which matches the canonical OpenAPI contract and the manager-app live demo path.
+
 Or from this directory:
 
 ```sh
-python3 -m uvicorn app.main:app --reload
+python3 -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8808
 ```
 
 ## Stub Endpoints
@@ -46,3 +48,4 @@ python3 -m uvicorn app.main:app --reload
 - The canonical contract lives in `docs/contracts/ekamcore-api.yaml`.
 - Stub routes intentionally use response envelopes so client work can begin before real data integrations land.
 - Unknown job IDs return a problem envelope instead of an unstructured error body.
+- Sprint 0 enables local manager-app/web-shell CORS origins for the thin demo path only; auth enforcement still comes later.

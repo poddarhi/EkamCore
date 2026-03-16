@@ -245,6 +245,19 @@ button {
   color: rgba(243, 234, 223, 0.82);
 }
 
+.panel-inline-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.inline-detail {
+  color: rgba(243, 234, 223, 0.82);
+  font-size: 0.92rem;
+}
+
 .stack-list {
   display: flex;
   flex-direction: column;
@@ -322,6 +335,41 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin-top: 18px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.metric-card {
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.metric-card p {
+  margin: 0 0 10px;
+  color: rgba(243, 234, 223, 0.68);
+}
+
+.section-divider {
+  height: 1px;
+  margin: 22px 0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.preview-list {
+  margin: 18px 0 0;
+  padding-left: 20px;
+  color: rgba(243, 234, 223, 0.9);
+}
+
+.preview-list li + li {
+  margin-top: 10px;
 }
 
 .alert-banner {

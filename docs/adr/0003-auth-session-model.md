@@ -4,7 +4,7 @@
 - Date: 2026-03-15
 - Owners: EkamCore engineering
 - Related Sprint tasks: S0-021, Sprint 1 auth work
-- Related docs: `/Users/hiteshpoddar/EkamCore/docs/adr/0004-workspace-scoping.md`
+- Related docs: `/Users/hiteshpoddar/EkamCore/docs/adr/0004-workspace-scoping.md`, `/Users/hiteshpoddar/EkamCore/docs/auth-session-implementation-note.md`
 
 ## Context
 
