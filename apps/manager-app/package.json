@@ -1,0 +1,9 @@
+{
+  "name": "@ekamcore/manager-app",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "echo \"TODO: bootstrap the manager app in S0-007\"",
+    "build": "echo \"TODO: add manager app build in S0-007\""
+  }
+}

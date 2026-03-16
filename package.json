@@ -1,0 +1,16 @@
+{
+  "name": "ekamcore",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Monorepo for EkamCore, a private local life assistant.",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "bootstrap": "pnpm install",
+    "dev:manager": "pnpm --filter @ekamcore/manager-app dev",
+    "dev:mobile": "pnpm --filter @ekamcore/mobile dev",
+    "generate:shared-types": "pnpm --filter @ekamcore/shared-types generate"
+  }
+}

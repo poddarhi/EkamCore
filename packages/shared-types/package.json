@@ -1,0 +1,8 @@
+{
+  "name": "@ekamcore/shared-types",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "generate": "echo \"TODO: generate shared types from OpenAPI in S0-013\""
+  }
+}

@@ -1,0 +1,35 @@
+# macOS
+.DS_Store
+
+# Node / frontend
+node_modules/
+.pnpm-store/
+dist/
+build/
+coverage/
+.turbo/
+
+# Python
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Environment and local overrides
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Tauri / Rust
+target/
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/*.code-workspace
