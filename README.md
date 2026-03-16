@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # EkamCore
 
 EkamCore is a private local life assistant for your knowledge, memory, and daily operations.
@@ -58,3 +59,6 @@ The backend does not yet have a committed Python package manager. That choice is
 ## Current Status
 
 The repository currently contains structure and placeholders only. Framework bootstrap, runtime orchestration, API contracts, and runnable services will be added in later Sprint 0 tasks.
+=======
+# EkamCore
+>>>>>>> origin/main
