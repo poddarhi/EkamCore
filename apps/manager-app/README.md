@@ -33,6 +33,8 @@ export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$PATH"
 rustup default stable
 ```
 
+The package scripts already include the common macOS `rustup` paths, so after that one-time initialization you should not need to re-export `PATH` in every new terminal session.
+
 ## Commands
 
 Run the desktop app in development mode:

@@ -43,19 +43,27 @@ If that file does not exist yet, `start` still validates the runtime substrate a
 - Docker Desktop installed
 - Docker Desktop first-run setup completed
 - `docker` available on `PATH`
+- Docker Desktop local context available at `desktop-linux` by default
+
+If you need to target a different local Docker context, set:
+
+```sh
+export EKAMCORE_DOCKER_CONTEXT="your-local-context"
+```
 
 ## What Start Does
 
 1. Verifies the Docker CLI is installed.
 2. Verifies `/Applications/Docker.app` exists.
-3. Launches Docker Desktop if the engine is not yet ready.
-4. Waits for the Docker engine to become reachable.
-5. If `infra/runtime/docker-compose.yml` exists and defines services, runs `docker compose up -d`.
-6. If no compose file exists yet, reports that the substrate is ready for later tasks.
+3. Verifies the expected local Docker context exists.
+4. Launches Docker Desktop if the engine is not yet ready.
+5. Waits for the Docker engine to become reachable on that context.
+6. If `infra/runtime/docker-compose.yml` exists and defines services, runs `docker compose up -d`.
+7. If no compose file exists yet, reports that the substrate is ready for later tasks.
 
 ## What Stop Does
 
-1. Verifies whether Docker is installed and reachable.
+1. Verifies whether Docker is installed and the expected local context is reachable.
 2. If `infra/runtime/docker-compose.yml` exists and defines services, runs `docker compose down --remove-orphans`.
 3. If no EkamCore compose file exists yet, exits successfully with a no-op message.
 
@@ -80,11 +88,13 @@ Resolution:
 Symptoms:
 
 - Docker app opens but `docker info` still fails
+- runtime scripts report that the expected Docker context is not reachable
 
 Resolution:
 
 - wait for Docker Desktop to finish starting
 - check first-run prompts or macOS approvals
+- confirm the expected local context exists with `docker context ls`
 - rerun `pnpm runtime:start`
 
 ### First-Run Prompts or Privileged Setup Required

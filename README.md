@@ -29,7 +29,7 @@ This repository is currently in Sprint 0. The goal of `S0-001` is to establish t
 - `pnpm` `10.x` or newer
 - Python `3.13.x`
 - Rust stable toolchain with `cargo` on `PATH`
-- Docker Desktop for the upcoming runtime substrate spike
+- Docker Desktop for the accepted v1 local runtime substrate
 
 ## Bootstrap
 
@@ -49,6 +49,8 @@ Initialize Rust if it is not already configured:
 export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$PATH"
 rustup default stable
 ```
+
+The manager app package scripts already include the common macOS `rustup` paths above, so once Rust is initialized you should not need to re-export that `PATH` for every new terminal session.
 
 Install workspace dependencies:
 
