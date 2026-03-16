@@ -28,12 +28,22 @@ app = FastAPI(
 )
 
 
-@app.get("/v1/health", tags=["System"], response_model=HealthResponse)
+@app.get(
+    "/v1/health",
+    tags=["System"],
+    response_model=HealthResponse,
+    response_model_exclude_none=True,
+)
 def get_health() -> HealthResponse:
     return build_health_response()
 
 
-@app.get("/v1/version", tags=["System"], response_model=VersionResponse)
+@app.get(
+    "/v1/version",
+    tags=["System"],
+    response_model=VersionResponse,
+    response_model_exclude_none=True,
+)
 def get_version() -> VersionResponse:
     return build_version_response()
 
@@ -42,6 +52,7 @@ def get_version() -> VersionResponse:
     "/v1/workspaces/{workspaceId}/today",
     tags=["Workspace Summary"],
     response_model=TodayResponse,
+    response_model_exclude_none=True,
 )
 def get_today(workspaceId: str) -> TodayResponse:
     return build_today_response(workspaceId)
@@ -51,6 +62,7 @@ def get_today(workspaceId: str) -> TodayResponse:
     "/v1/workspaces/{workspaceId}/recap",
     tags=["Workspace Summary"],
     response_model=RecapResponse,
+    response_model_exclude_none=True,
 )
 def get_recap(workspaceId: str) -> RecapResponse:
     return build_recap_response(workspaceId)
@@ -60,6 +72,7 @@ def get_recap(workspaceId: str) -> RecapResponse:
     "/v1/workspaces/{workspaceId}/jobs/{jobId}",
     tags=["Jobs"],
     response_model=JobStatusResponse,
+    response_model_exclude_none=True,
     responses={404: {"model": ProblemResponse}},
 )
 def get_job_status(workspaceId: str, jobId: str) -> JobStatusResponse | JSONResponse:
@@ -73,4 +86,7 @@ def get_job_status(workspaceId: str, jobId: str) -> JobStatusResponse | JSONResp
         suggestion="Try 'initial-bootstrap' or 'photo-index-demo'.",
         workspace_id=workspaceId,
     )
-    return JSONResponse(status_code=404, content=problem.model_dump(mode="json"))
+    return JSONResponse(
+        status_code=404,
+        content=problem.model_dump(mode="json", exclude_none=True),
+    )

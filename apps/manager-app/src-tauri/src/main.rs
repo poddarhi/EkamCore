@@ -138,6 +138,8 @@ fn build_supervision_snapshot() -> SupervisionSnapshot {
     let contract_file = repo_root.join("docs/contracts/ekamcore-api.yaml");
     let shared_types_file = repo_root.join("packages/shared-types/src/generated/ekamcore-api.ts");
     let backend_main = repo_root.join("apps/backend/app/main.py");
+    let contract_version = "0.1.0-sprint0";
+    let api_version = "v1";
 
     let context_available = command_success(
         &docker_binary,
@@ -342,6 +344,20 @@ fn build_supervision_snapshot() -> SupervisionSnapshot {
             label: "Runtime context".to_string(),
             value: docker_context.clone(),
             tone: if context_available {
+                "healthy".to_string()
+            } else {
+                "warning".to_string()
+            },
+        },
+        DiagnosticFact {
+            label: "Backend API version".to_string(),
+            value: api_version.to_string(),
+            tone: "healthy".to_string(),
+        },
+        DiagnosticFact {
+            label: "Contract version".to_string(),
+            value: contract_version.to_string(),
+            tone: if contract_file.is_file() {
                 "healthy".to_string()
             } else {
                 "warning".to_string()
