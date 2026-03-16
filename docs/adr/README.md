@@ -31,7 +31,7 @@ ADRs are the repository-level source of truth for important technical and operat
 
 | ADR | Title | Status | Purpose |
 | --- | --- | --- | --- |
-| [0001](/Users/hiteshpoddar/EkamCore/docs/adr/0001-runtime-substrate.md) | Runtime substrate for local hub services | Proposed | Decide how EkamCore starts, supervises, updates, and repairs local services on the reference Mac. |
+| [0001](/Users/hiteshpoddar/EkamCore/docs/adr/0001-runtime-substrate.md) | Runtime substrate for local hub services | Accepted | Use Docker Desktop as the v1 local runtime substrate, with clean-machine onboarding and explicit dependency tradeoffs. |
 | [0002](/Users/hiteshpoddar/EkamCore/docs/adr/0002-api-source-of-truth.md) | API source of truth and generated shared types | Accepted | Lock OpenAPI 3.1 plus generated shared TypeScript artifacts as the contract baseline. |
 | [0003](/Users/hiteshpoddar/EkamCore/docs/adr/0003-auth-session-model.md) | Local auth and session model for v1 | Accepted | Record the password-first local auth model and session rules used on LAN and over Tailscale. |
 | [0004](/Users/hiteshpoddar/EkamCore/docs/adr/0004-workspace-scoping.md) | Workspace scoping at the API boundary | Accepted | Establish that workspace content must be scoped and enforced at the application boundary. |
