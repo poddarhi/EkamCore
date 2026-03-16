@@ -1,11 +1,42 @@
 # Contracts
 
-This directory is reserved for API contract artifacts.
+This directory holds the canonical API contract artifacts for EkamCore.
 
-Planned Sprint 0 direction:
+## Source of Truth
 
 - canonical OpenAPI file: `docs/contracts/ekamcore-api.yaml`
-- contract notes and change log live beside the spec
-- generated client/types output will target `packages/shared-types`
+- contract notes and workflow: this directory
+- generated TypeScript artifacts: `packages/shared-types`
 
-The formal contract workflow will be added in `S0-011` and `S0-012`.
+This matches [ADR 0002](/Users/hiteshpoddar/EkamCore/docs/adr/0002-api-source-of-truth.md): the OpenAPI document is the reviewed source of truth, and clients consume generated shared types from it.
+
+## Sprint 0 Scope
+
+The initial Sprint 0 contract covers the first thin local API slice:
+
+- global health and version endpoints
+- workspace-scoped Today and Recap stub endpoints
+- workspace-scoped job-status polling endpoint
+- shared response envelope shapes and a problem envelope
+
+## Workflow
+
+1. Edit `docs/contracts/ekamcore-api.yaml`.
+2. Lint the contract:
+
+```sh
+pnpm lint:api
+```
+
+3. Regenerate the shared TypeScript package:
+
+```sh
+pnpm generate:shared-types
+```
+
+4. Update backend stubs in `apps/backend` in the same review cycle if the contract shape changed.
+
+## Notes
+
+- The contract is intentionally conservative in Sprint 0: it is stub-first, explicit about workspace-scoped routes, and ready for generated TS consumption before richer feature work begins.
+- Auth/session enforcement will layer on after the Sprint 0 note in `S0-021`; the initial stub routes focus on payload shape and endpoint boundaries.

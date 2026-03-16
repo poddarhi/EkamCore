@@ -9,10 +9,17 @@
   },
   "scripts": {
     "bootstrap": "pnpm install",
+    "dev:backend": "apps/backend/.venv/bin/python -m uvicorn app.main:app --reload --app-dir apps/backend",
     "dev:manager": "pnpm --filter @ekamcore/manager-app tauri:dev",
     "dev:mobile": "pnpm --filter @ekamcore/mobile dev",
+    "lint:api": "pnpm exec redocly lint --config .redocly.yaml docs/contracts/ekamcore-api.yaml",
+    "validate:api": "pnpm run lint:api",
     "generate:shared-types": "pnpm --filter @ekamcore/shared-types generate",
+    "build:shared-types": "pnpm --filter @ekamcore/shared-types build",
     "runtime:start": "./infra/runtime/start.sh",
     "runtime:stop": "./infra/runtime/stop.sh"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^2.21.1"
   }
 }

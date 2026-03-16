@@ -1,4 +1,12 @@
-import { useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
+import {
+  createServiceSupervisor,
+  type LogEntry,
+  type ServiceRecord,
+  type SetupCheck,
+  type StatusTone,
+  type SupervisionSnapshot,
+} from "./lib/supervision";
 
 type ScreenId =
   | "setup"
@@ -13,7 +21,6 @@ type Screen = {
   eyebrow: string;
   title: string;
   description: string;
-  bullets: string[];
 };
 
 const screens: Screen[] = [
@@ -23,12 +30,7 @@ const screens: Screen[] = [
     eyebrow: "First Run",
     title: "Guide the hub from blank Mac to ready local stack.",
     description:
-      "This Sprint 0 shell reserves the setup surface for prerequisite checks, Docker Desktop detection, admin bootstrap, and the first source-connection flow.",
-    bullets: [
-      "Detect Docker Desktop and report clean-machine onboarding state.",
-      "Reserve space for account bootstrap and permission guidance.",
-      "Keep the flow honest about privileged install or first-run prompts.",
-    ],
+      "The manager app now exposes concrete prerequisite checks for Docker Desktop, generated contract types, and the backend stub baseline.",
   },
   {
     id: "service-status",
@@ -36,12 +38,7 @@ const screens: Screen[] = [
     eyebrow: "Control Plane",
     title: "One place to see whether the hub is healthy.",
     description:
-      "The eventual manager app will supervise the local runtime, show health, and expose restart and repair actions. This shell turns that structure into a concrete navigation target now.",
-    bullets: [
-      "Display runtime readiness, service heartbeat, and issue severity.",
-      "Separate stack health from product data readiness.",
-      "Support later restart, repair, and job-status actions.",
-    ],
+      "This screen is now backed by a real supervision snapshot model with Tauri-first runtime checks and a safe web fallback path.",
   },
   {
     id: "logs",
@@ -49,12 +46,7 @@ const screens: Screen[] = [
     eyebrow: "Troubleshooting",
     title: "Recent errors and useful context without terminal spelunking.",
     description:
-      "This area is reserved for readable runtime and backend diagnostics so the manager app becomes the first stop for support instead of a collection of shell commands.",
-    bullets: [
-      "Summarize recent failures in plain language.",
-      "Keep a short tail of runtime and backend messages.",
-      "Link later to export and support bundle actions.",
-    ],
+      "The current log surface is intentionally small, but it already reads from the supervision snapshot instead of hard-coded copy.",
   },
   {
     id: "settings",
@@ -62,12 +54,7 @@ const screens: Screen[] = [
     eyebrow: "Configuration",
     title: "Surface the controls that shape how the hub runs.",
     description:
-      "Settings will eventually cover storage, runtime preferences, update policy, and private access guidance. For now, the shell establishes the location and structure.",
-    bullets: [
-      "Reserve controls for runtime and storage configuration.",
-      "Make future update and rollback messaging easy to place.",
-      "Keep high-risk actions explicit and reviewable.",
-    ],
+      "Sprint 0 settings focus on the decisions already locked in: runtime substrate, contract source of truth, and API boundary rules.",
   },
   {
     id: "diagnostics",
@@ -75,51 +62,281 @@ const screens: Screen[] = [
     eyebrow: "Support",
     title: "Prepare the product for supportability from the beginning.",
     description:
-      "Diagnostics is where Sprint 0 and later work will gather versions, environment facts, health state, and exportable support context for debugging.",
-    bullets: [
-      "Capture runtime, app, and backend version details.",
-      "Prepare a stable place for support bundle export.",
-      "Support future repair recommendations with concrete evidence.",
-    ],
+      "Diagnostics now reads from the same supervision snapshot as the rest of the app, so versions and runtime facts stay coherent.",
   },
 ];
 
-const readinessCards = [
-  {
-    title: "Reference Host",
-    value: "Apple silicon / 24 GB",
-    tone: "steady",
-  },
-  {
-    title: "Runtime Direction",
-    value: "Docker Desktop accepted",
-    tone: "steady",
-  },
-  {
-    title: "Current Stage",
-    value: "Manager app skeleton",
-    tone: "active",
-  },
-  {
-    title: "Next Integration",
-    value: "Service supervision adapter",
-    tone: "attention",
-  },
-] as const;
+const supervisor = createServiceSupervisor();
 
-const activityItems = [
-  "Placeholder navigation is wired for Setup, Service Status, Logs, Settings, and Diagnostics.",
-  "Tauri shell is ready for later runtime supervision and health polling.",
-  "Frontend structure is TypeScript-first and ready for generated contract types later in Sprint 0.",
-];
+function formatCollectedAt(collectedAtMs: number) {
+  return new Date(collectedAtMs).toLocaleString();
+}
+
+function statusLabel(status: StatusTone) {
+  switch (status) {
+    case "healthy":
+      return "Healthy";
+    case "warning":
+      return "Warning";
+    case "attention":
+      return "Needs attention";
+    case "planned":
+      return "Planned";
+    case "blocked":
+      return "Blocked";
+    default:
+      return status;
+  }
+}
+
+function renderStatusBadge(status: StatusTone) {
+  return <span className={`badge badge-${status}`}>{statusLabel(status)}</span>;
+}
+
+function renderSetupChecks(checks: SetupCheck[]) {
+  return (
+    <div className="stack-list">
+      {checks.map((check) => (
+        <article key={check.id} className="stack-card">
+          <div className="stack-card-header">
+            <div>
+              <h3>{check.label}</h3>
+              <p>{check.detail}</p>
+            </div>
+            {renderStatusBadge(check.status)}
+          </div>
+          {check.nextStep ? <p className="stack-note">{check.nextStep}</p> : null}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function renderServices(services: ServiceRecord[]) {
+  return (
+    <div className="stack-list">
+      {services.map((service) => (
+        <article key={service.id} className="stack-card">
+          <div className="stack-card-header">
+            <div>
+              <p className="stack-kicker">{service.category}</p>
+              <h3>{service.label}</h3>
+              <p>{service.detail}</p>
+            </div>
+            {renderStatusBadge(service.status)}
+          </div>
+          {service.actionHint ? (
+            <p className="stack-note">Next action: {service.actionHint}</p>
+          ) : null}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function renderLogs(logs: LogEntry[]) {
+  return (
+    <div className="stack-list">
+      {logs.map((entry) => (
+        <article key={entry.id} className="stack-card">
+          <div className="stack-card-header">
+            <div>
+              <p className="stack-kicker">{entry.source}</p>
+              <h3>{entry.level.toUpperCase()}</h3>
+              <p>{entry.message}</p>
+            </div>
+            <span className={`badge badge-${entry.level === "error" ? "blocked" : entry.level === "warning" ? "warning" : "healthy"}`}>
+              {entry.level}
+            </span>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
 
 function App() {
   const [activeScreen, setActiveScreen] = useState<ScreenId>("setup");
+  const [snapshot, setSnapshot] = useState<SupervisionSnapshot | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const refresh = async () => {
+      setIsRefreshing(true);
+
+      try {
+        const next = await supervisor.getSnapshot();
+        if (cancelled) {
+          return;
+        }
+
+        startTransition(() => {
+          setSnapshot(next);
+          setError(null);
+        });
+      } catch (refreshError) {
+        if (cancelled) {
+          return;
+        }
+
+        setError(
+          refreshError instanceof Error
+            ? refreshError.message
+            : "Unknown refresh failure.",
+        );
+      } finally {
+        if (!cancelled) {
+          setIsRefreshing(false);
+        }
+      }
+    };
+
+    void refresh();
+    const intervalId = window.setInterval(() => {
+      void refresh();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const selectedScreen = useMemo(
     () => screens.find((screen) => screen.id === activeScreen) ?? screens[0],
     [activeScreen],
   );
+
+  const readinessCards = useMemo(() => {
+    if (!snapshot) {
+      return [
+        { title: "Reference Host", value: "Apple silicon / 24 GB", tone: "steady" },
+        { title: "Runtime", value: "Loading...", tone: "attention" },
+        { title: "Contract", value: "Loading...", tone: "attention" },
+        { title: "Next Integration", value: "Preparing...", tone: "attention" },
+      ] as const;
+    }
+
+    return [
+      {
+        title: "Reference Host",
+        value: "Apple silicon / 24 GB",
+        tone: "steady",
+      },
+      {
+        title: "Runtime",
+        value: snapshot.runtime.engineReachable
+          ? `Ready (${snapshot.runtime.contextName})`
+          : "Needs follow-up",
+        tone: snapshot.runtime.engineReachable ? "steady" : "attention",
+      },
+      {
+        title: "Contract",
+        value: snapshot.diagnostics.find((fact) => fact.label === "Contract version")
+          ?.value ?? "Pending",
+        tone: "active",
+      },
+      {
+        title: "Next Integration",
+        value: snapshot.nextIntegration,
+        tone: "attention",
+      },
+    ] as const;
+  }, [snapshot]);
+
+  const screenBody = useMemo(() => {
+    if (!snapshot) {
+      return (
+        <article className="panel">
+          <div className="panel-header">
+            <p className="eyebrow">Loading</p>
+            <h3>Building the first supervision snapshot</h3>
+          </div>
+          <p className="panel-copy">
+            The manager app is collecting runtime, contract, and backend baseline
+            information.
+          </p>
+        </article>
+      );
+    }
+
+    switch (activeScreen) {
+      case "setup":
+        return (
+          <article className="panel">
+            <div className="panel-header">
+              <p className="eyebrow">Readiness Checks</p>
+              <h3>Clean-machine onboarding baseline</h3>
+            </div>
+            {renderSetupChecks(snapshot.setupChecks)}
+          </article>
+        );
+      case "service-status":
+        return (
+          <article className="panel">
+            <div className="panel-header">
+              <p className="eyebrow">Live Services</p>
+              <h3>Runtime and application surfaces</h3>
+            </div>
+            {renderServices(snapshot.services)}
+          </article>
+        );
+      case "logs":
+        return (
+          <article className="panel">
+            <div className="panel-header">
+              <p className="eyebrow">Recent Log Summary</p>
+              <h3>Readable operational context</h3>
+            </div>
+            {renderLogs(snapshot.logs)}
+          </article>
+        );
+      case "settings":
+        return (
+          <article className="panel">
+            <div className="panel-header">
+              <p className="eyebrow">Locked Decisions</p>
+              <h3>Configuration baseline</h3>
+            </div>
+            <div className="stack-list">
+              {snapshot.settings.map((setting) => (
+                <article key={setting.label} className="stack-card">
+                  <div className="stack-card-header">
+                    <div>
+                      <h3>{setting.label}</h3>
+                      <p>{setting.detail}</p>
+                    </div>
+                    <strong>{setting.value}</strong>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </article>
+        );
+      case "diagnostics":
+        return (
+          <article className="panel">
+            <div className="panel-header">
+              <p className="eyebrow">Runtime Facts</p>
+              <h3>Diagnostics snapshot</h3>
+            </div>
+            <div className="diagnostic-grid">
+              {snapshot.diagnostics.map((fact) => (
+                <article key={fact.label} className={`status-card ${fact.tone === "healthy" ? "steady" : fact.tone === "planned" ? "attention" : "active"}`}>
+                  <p>{fact.label}</p>
+                  <strong>{fact.value}</strong>
+                </article>
+              ))}
+            </div>
+          </article>
+        );
+      default:
+        return null;
+    }
+  }, [activeScreen, snapshot]);
 
   return (
     <div className="app-shell">
@@ -165,14 +382,19 @@ function App() {
           </div>
 
           <div className="hero-panel">
-            <p className="hero-panel-label">Shell status</p>
-            <strong>Ready for Sprint 0 integration work</strong>
+            <p className="hero-panel-label">Supervision status</p>
+            <strong>{snapshot?.summary ?? "Collecting the first runtime snapshot..."}</strong>
             <span>
-              This build is intentionally skeletal, but it already behaves like a
-              real desktop shell and is ready for runtime wiring.
+              Source: {snapshot?.source ?? "loading"} | Last updated:{" "}
+              {snapshot ? formatCollectedAt(snapshot.collectedAtMs) : "waiting"}
+            </span>
+            <span>
+              {isRefreshing ? "Refresh in progress." : "Auto-refreshing every 15 seconds."}
             </span>
           </div>
         </header>
+
+        {error ? <div className="alert-banner">Refresh warning: {error}</div> : null}
 
         <section className="card-grid" aria-label="Readiness overview">
           {readinessCards.map((card) => (
@@ -184,25 +406,19 @@ function App() {
         </section>
 
         <section className="detail-grid">
-          <article className="panel">
-            <div className="panel-header">
-              <p className="eyebrow">Section Scope</p>
-              <h3>{selectedScreen.label}</h3>
-            </div>
-            <ul className="detail-list">
-              {selectedScreen.bullets.map((bullet) => (
-                <li key={bullet}>{bullet}</li>
-              ))}
-            </ul>
-          </article>
+          {screenBody}
 
           <article className="panel">
             <div className="panel-header">
               <p className="eyebrow">Current App Activity</p>
-              <h3>What this skeleton already proves</h3>
+              <h3>What this slice already proves</h3>
             </div>
             <ul className="detail-list">
-              {activityItems.map((item) => (
+              {(snapshot?.activity ?? [
+                "Manager app shell is booting its first supervision snapshot.",
+                "Generated shared types will appear here once the API contract is wired.",
+                "Backend stub routes are the next live integration target.",
+              ]).map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>

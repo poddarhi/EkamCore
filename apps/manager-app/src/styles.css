@@ -179,6 +179,10 @@ button {
   font-size: 1.18rem;
 }
 
+.hero-panel span + span {
+  margin-top: 8px;
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -214,6 +218,7 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+  align-items: start;
 }
 
 .panel {
@@ -233,4 +238,96 @@ button {
 
 .detail-list li + li {
   margin-top: 12px;
+}
+
+.panel-copy {
+  margin: 18px 0 0;
+  color: rgba(243, 234, 223, 0.82);
+}
+
+.stack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.stack-card {
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stack-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.stack-card-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.stack-card-header p,
+.stack-note {
+  margin: 10px 0 0;
+  color: rgba(243, 234, 223, 0.78);
+}
+
+.stack-kicker {
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  color: #f2a96f;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: fit-content;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.badge-healthy {
+  background: rgba(75, 141, 104, 0.24);
+  color: #a7e1bf;
+}
+
+.badge-warning {
+  background: rgba(217, 157, 67, 0.22);
+  color: #ffd487;
+}
+
+.badge-attention,
+.badge-planned {
+  background: rgba(195, 102, 38, 0.22);
+  color: #ffc197;
+}
+
+.badge-blocked {
+  background: rgba(170, 66, 66, 0.24);
+  color: #ffb5b5;
+}
+
+.diagnostic-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.alert-banner {
+  padding: 14px 18px;
+  border: 1px solid rgba(242, 169, 111, 0.35);
+  border-radius: 18px;
+  background: rgba(242, 169, 111, 0.12);
+  color: #ffd7b4;
 }

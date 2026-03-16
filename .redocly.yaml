@@ -1,0 +1,10 @@
+apis:
+  ekamcore@v1:
+    root: ./docs/contracts/ekamcore-api.yaml
+
+extends:
+  - recommended
+
+rules:
+  info-license: off
+  operation-4xx-response: off

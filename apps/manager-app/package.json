@@ -12,6 +12,7 @@
     "tauri:build": "PATH=\"$HOME/.cargo/bin:/opt/homebrew/opt/rustup/bin:$PATH\" tauri build"
   },
   "dependencies": {
+    "@ekamcore/shared-types": "workspace:*",
     "@tauri-apps/api": "^2.8.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

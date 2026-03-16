@@ -58,7 +58,14 @@ Install workspace dependencies:
 pnpm install
 ```
 
-The backend does not yet have a committed Python package manager. That choice is intentionally deferred until the backend skeleton is added in `S0-015`.
+The backend now uses a simple `requirements.txt` bootstrap for Sprint 0 so the FastAPI stub service can run without adding extra packaging complexity early.
+
+Validate the canonical API contract and regenerate the shared TypeScript package:
+
+```sh
+pnpm lint:api
+pnpm generate:shared-types
+```
 
 ## Development Expectations
 
@@ -68,7 +75,8 @@ The backend does not yet have a committed Python package manager. That choice is
 - Capture repository-level decisions in `docs/adr` once the ADR workflow is added.
 - Follow the engineering workflow in `docs/engineering-workflow.md` for branches, pull requests, merge rules, and foundational artifact changes.
 - Use `pnpm dev:manager` to launch the desktop manager app shell once the manager app dependencies are installed.
+- Use `pnpm dev:backend` to run the FastAPI stub service once the backend virtualenv dependencies are installed.
 
 ## Current Status
 
-The repository now includes a runnable Sprint 0 manager app shell plus runtime bootstrap groundwork. Backend implementation, API contracts, service supervision, and richer operational features will be added in later Sprint 0 tasks.
+The repository now includes a runnable Sprint 0 manager app shell, a service supervision adapter, the canonical OpenAPI contract, generated shared TypeScript types, and a FastAPI stub backend. Real source adapters, storage, auth enforcement, and richer operational features will be added in later Sprint 0 tasks.

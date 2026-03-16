@@ -1,10 +1,28 @@
 # Shared Types
 
-This package is reserved for generated TypeScript types and shared API client artifacts.
+This package contains the generated TypeScript artifacts for the EkamCore API contract.
 
-Planned Sprint 0 direction:
+## Source of Truth
 
-- source of truth: canonical OpenAPI file in `docs/contracts`
-- first milestone: `S0-013` generated shared types and client package
+- canonical contract: `docs/contracts/ekamcore-api.yaml`
+- generator: `openapi-typescript`
+- consuming clients: manager app today, mobile and web clients later in Sprint 0+
 
-Until the API contract is added, this package remains a placeholder.
+## Commands
+
+Generate the shared contract types:
+
+```sh
+pnpm generate:shared-types
+```
+
+Validate the package types:
+
+```sh
+pnpm build:shared-types
+```
+
+## Notes
+
+- This package is intentionally source-exported inside the monorepo so the manager app can consume generated types without an extra publish step.
+- When the contract changes, regenerate this package in the same review cycle.
