@@ -3,7 +3,7 @@
 use serde::Serialize;
 use std::env;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Serialize)]
@@ -113,6 +113,8 @@ fn resolve_docker_binary() -> String {
 fn command_success(binary: &str, args: &[&str]) -> bool {
     Command::new(binary)
         .args(args)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()
         .map(|status| status.success())
         .unwrap_or(false)
@@ -266,20 +268,20 @@ fn build_supervision_snapshot() -> SupervisionSnapshot {
             },
         },
         SetupCheck {
-            id: "backend-stub".to_string(),
-            label: "Backend stub service scaffolded".to_string(),
+            id: "backend-live-slice".to_string(),
+            label: "Live backend slice".to_string(),
             status: if backend_main.is_file() {
-                "healthy".to_string()
+                "attention".to_string()
             } else {
                 "planned".to_string()
             },
             detail: if backend_main.is_file() {
-                "FastAPI stub routes are present in apps/backend/app/main.py.".to_string()
+                "The manager app can poll health, version, and Today from the local FastAPI stub when the backend process is running.".to_string()
             } else {
                 "Backend scaffolding has not been added yet.".to_string()
             },
             next_step: if backend_main.is_file() {
-                Some("Run pnpm dev:backend when the backend virtualenv is installed.".to_string())
+                Some("Run pnpm dev:backend to activate the live backend slice.".to_string())
             } else {
                 None
             },
@@ -324,8 +326,8 @@ fn build_supervision_snapshot() -> SupervisionSnapshot {
             } else {
                 "planned".to_string()
             },
-            detail: "Stub routes exist, but the manager app does not poll the backend live yet.".to_string(),
-            action_hint: Some("Next thin slice: manager app health polling and Today preview.".to_string()),
+            detail: "Backend stub routes back the live manager-app demo when the local process is running.".to_string(),
+            action_hint: Some("Run pnpm dev:backend to activate the live backend slice.".to_string()),
         },
     ];
 
@@ -450,7 +452,7 @@ fn build_supervision_snapshot() -> SupervisionSnapshot {
         } else {
             "Manager app is live, but the local runtime still needs attention before service startup.".to_string()
         },
-        next_integration: "Connect the manager app to the FastAPI health and summary stubs.".to_string(),
+        next_integration: "Keep the backend running for the live slice, then layer auth/session and workspace-aware request context on top.".to_string(),
         runtime,
         setup_checks,
         services,
@@ -460,7 +462,7 @@ fn build_supervision_snapshot() -> SupervisionSnapshot {
         activity: vec![
             "The service supervision adapter now produces structured runtime, contract, and backend status.".to_string(),
             "Generated shared types are present for manager-app consumption.".to_string(),
-            "FastAPI stubs are ready for the next thin end-to-end integration path.".to_string(),
+            "The live backend slice is wired and activates whenever the local backend process is running.".to_string(),
         ],
     }
 }

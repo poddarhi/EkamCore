@@ -199,7 +199,7 @@ function withBackendSlice(
   const isPartial = backend.status === "warning";
 
   const setupChecks = baseSnapshot.setupChecks.map((check) => {
-    if (check.id !== "backend-stub") {
+    if (check.id !== "backend-live-slice") {
       return check;
     }
 
@@ -360,7 +360,8 @@ function buildFallbackSnapshot(message?: string): BaseSupervisionSnapshot {
     collectedAtMs: now,
     summary:
       "Manager shell is active with fallback supervision data while the desktop runtime path stays ready for live checks.",
-    nextIntegration: "Wire the backend stub service into the manager app health loop.",
+    nextIntegration:
+      "Keep the backend running for the live slice, then layer auth/session and workspace-aware request context on top.",
     runtime: {
       contextName: "desktop-linux",
       dockerAppInstalled: true,
@@ -392,10 +393,12 @@ function buildFallbackSnapshot(message?: string): BaseSupervisionSnapshot {
         detail: "The manager app is reading generated OpenAPI-derived types from the monorepo package.",
       },
       {
-        id: "backend-stub",
-        label: "Backend stub service scaffolded",
-        status: "planned",
-        detail: "FastAPI stub routes exist; the next step is wiring live polling from the manager app.",
+        id: "backend-live-slice",
+        label: "Live backend slice",
+        status: "attention",
+        detail:
+          "The manager app can poll health, version, and Today from the local FastAPI stub when the backend process is running.",
+        nextStep: "Run pnpm dev:backend to activate the live backend slice.",
       },
     ],
     services: [
@@ -426,8 +429,9 @@ function buildFallbackSnapshot(message?: string): BaseSupervisionSnapshot {
         label: "FastAPI stub backend",
         category: "Backend",
         status: "attention",
-        detail: "Backend routes are scaffolded, but the manager app is not polling them live yet.",
-        actionHint: "Next slice: thin end-to-end health polling and stub Today/Recap preview.",
+        detail:
+          "Backend stub routes back the live manager-app demo when the local process is running.",
+        actionHint: "Run pnpm dev:backend to activate the live backend slice.",
       },
     ],
     diagnostics: [
@@ -483,7 +487,7 @@ function buildFallbackSnapshot(message?: string): BaseSupervisionSnapshot {
     activity: [
       "Service supervision adapter is active with a Tauri-first, fallback-friendly shape.",
       "Generated shared contract types are imported into real manager-app code.",
-      "FastAPI stub routes are ready for the next thin end-to-end demo slice.",
+      "The live backend slice is wired and activates whenever the local backend process is running.",
     ],
   };
 }
