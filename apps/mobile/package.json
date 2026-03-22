@@ -1,9 +1,0 @@
-{
-  "name": "@ekamcore/mobile",
-  "private": true,
-  "version": "0.0.0",
-  "scripts": {
-    "dev": "echo \"TODO: bootstrap the mobile app in a later Sprint 0 task\"",
-    "build": "echo \"TODO: add mobile build once the app shell exists\""
-  }
-}

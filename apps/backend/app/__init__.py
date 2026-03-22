@@ -1,1 +1,0 @@
-"""EkamCore backend package."""
