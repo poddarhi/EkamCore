@@ -1,0 +1,227 @@
+services:
+  ekamcore-postgres:
+    image: postgres:16.3
+    container_name: ekamcore-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ekamcore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ekamcore_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ekamcore}
+    command: >
+      postgres
+        -c shared_buffers=512MB
+        -c work_mem=16MB
+        -c effective_cache_size=1536MB
+        -c maintenance_work_mem=128MB
+        -c max_connections=100
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - ekamcore-net
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ekamcore}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    restart: unless-stopped
+
+  ekamcore-redis:
+    image: redis:7.2-alpine
+    container_name: ekamcore-redis
+    command: >
+      redis-server
+        --requirepass ${REDIS_PASSWORD:-ekamcore_redis_dev}
+        --databases 4
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - ekamcore-net
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-ekamcore_redis_dev}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: unless-stopped
+
+  ekamcore-qdrant:
+    image: qdrant/qdrant:v1.9.0
+    container_name: ekamcore-qdrant
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-ekamcore_qdrant_dev}
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - ekamcore-net
+    ports:
+      - "6333:6333"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+    restart: unless-stopped
+
+  ekamcore-ollama:
+    image: ollama/ollama:latest
+    container_name: ekamcore-ollama
+    environment:
+      OLLAMA_MAX_LOADED_MODELS: "2"
+    volumes:
+      - models:/root/.ollama
+    networks:
+      - ekamcore-net
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:11434/api/tags || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+    restart: unless-stopped
+
+  ekamcore-migrate:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: ekamcore-migrate
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://ekamcore:ekamcore_dev_password@ekamcore-postgres:5432/ekamcore}
+    networks:
+      - ekamcore-net
+    depends_on:
+      ekamcore-postgres:
+        condition: service_healthy
+    restart: "no"
+
+  ekamcore-api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: ekamcore-api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://ekamcore:ekamcore_dev_password@ekamcore-postgres:5432/ekamcore}
+      REDIS_URL: ${REDIS_URL:-redis://:ekamcore_redis_dev@ekamcore-redis:6379/0}
+      QDRANT_URL: ${QDRANT_URL:-http://ekamcore-qdrant:6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-ekamcore_qdrant_dev}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ekamcore-ollama:11434}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-ekamcore-dev-jwt-secret-change-in-production}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    networks:
+      - ekamcore-net
+    ports:
+      - "8420:8420"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8420/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      ekamcore-postgres:
+        condition: service_healthy
+      ekamcore-redis:
+        condition: service_healthy
+      ekamcore-qdrant:
+        condition: service_healthy
+      ekamcore-migrate:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    restart: unless-stopped
+
+  ekamcore-workers:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.workers
+    container_name: ekamcore-workers
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://ekamcore:ekamcore_dev_password@ekamcore-postgres:5432/ekamcore}
+      REDIS_URL: ${REDIS_URL:-redis://:ekamcore_redis_dev@ekamcore-redis:6379/0}
+      QDRANT_URL: ${QDRANT_URL:-http://ekamcore-qdrant:6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-ekamcore_qdrant_dev}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ekamcore-ollama:11434}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    networks:
+      - ekamcore-net
+    depends_on:
+      ekamcore-api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    restart: unless-stopped
+
+  ekamcore-web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: ekamcore-web
+    networks:
+      - ekamcore-net
+    ports:
+      - "3000:80"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: unless-stopped
+
+  ekamcore-proxy:
+    image: caddy:2-alpine
+    container_name: ekamcore-proxy
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - ekamcore-net
+    ports:
+      - "443:443"
+      - "80:80"
+    depends_on:
+      ekamcore-api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: unless-stopped
+
+networks:
+  ekamcore-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redis-data:
+  qdrant-data:
+  models:
+  caddy-data:
+  caddy-config:

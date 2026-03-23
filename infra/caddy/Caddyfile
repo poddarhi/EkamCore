@@ -1,0 +1,21 @@
+localhost {
+	handle /api/* {
+		reverse_proxy ekamcore-api:8420
+	}
+
+	handle /health {
+		reverse_proxy ekamcore-api:8420
+	}
+
+	handle {
+		reverse_proxy ekamcore-web:80
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 100MiB
+			roll_keep 7
+		}
+		format json
+	}
+}

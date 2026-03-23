@@ -1,0 +1,48 @@
+services:
+  ekamcore-postgres-test:
+    image: postgres:16.3
+    container_name: ekamcore-postgres-test
+    environment:
+      POSTGRES_USER: ekamcore_test
+      POSTGRES_PASSWORD: ekamcore_test_password
+      POSTGRES_DB: ekamcore_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    networks:
+      - ekamcore-test-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ekamcore_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ekamcore-redis-test:
+    image: redis:7.2-alpine
+    container_name: ekamcore-redis-test
+    command: redis-server --databases 4
+    tmpfs:
+      - /data
+    networks:
+      - ekamcore-test-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ekamcore-qdrant-test:
+    image: qdrant/qdrant:v1.9.0
+    container_name: ekamcore-qdrant-test
+    tmpfs:
+      - /qdrant/storage
+    networks:
+      - ekamcore-test-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/healthz || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+networks:
+  ekamcore-test-net:
+    driver: bridge
