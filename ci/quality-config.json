@@ -1,0 +1,18 @@
+{
+  "current_phase": 0,
+  "coverage_thresholds": {
+    "api": { "line": 80, "branch": 70 },
+    "web": { "line": 75, "branch": 65 },
+    "mobile": { "line": 70, "branch": 60 }
+  },
+  "lint": {
+    "python": { "tool": "ruff", "line_length": 120 },
+    "typescript": { "tool": "eslint", "strict": true },
+    "rust": { "tool": "clippy", "deny_warnings": true }
+  },
+  "test": {
+    "timeout_seconds": 300,
+    "parallel": true,
+    "fail_fast": false
+  }
+}
