@@ -114,3 +114,54 @@ logger = structlog.get_logger()
 logger.info("request_completed", method=method, path=path, status=status, latency_ms=latency, correlation_id=cid)
 # NEVER: logger.info(f"Query: {user_query}")  ← logs personal data
 ```
+
+## PaperlessNGX Integration
+
+### Error Code
+`PAPERLESS_UNAVAILABLE` → 503. Paperless being down never degrades core EkamCore queries.
+
+### Ollama URL
+`OLLAMA_URL` always uses `http://host.docker.internal:11434` (Ollama runs natively on host, not in Docker).
+
+### PaperlessNGX API Client Pattern
+```python
+# api/services/paperless/client.py
+import httpx
+
+PAPERLESS_BASE = "http://ekamcore-paperless:8000/api"
+
+async def get_documents(token: str, page: int = 1) -> dict:
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{PAPERLESS_BASE}/documents/",
+            headers={"Authorization": f"Token {token}"},
+            params={"page": page},
+            timeout=10.0,
+        )
+        resp.raise_for_status()
+        return resp.json()
+```
+
+### Document Sync Worker Pattern
+Periodic ARQ task (`workers/tasks/paperless_sync.py`):
+1. GET `/api/documents/?ordering=-modified` from Paperless (paginated)
+2. For each doc: fetch full text via `/api/documents/{id}/download/`
+3. Chunk text (512 tokens, 64 overlap)
+4. Embed via `http://host.docker.internal:11434` (nomic-embed-text)
+5. Upsert into Qdrant `document_embeddings` collection with `workspace_id` payload filter
+6. Store sync cursor in Redis
+
+### Paperless Correspondent → People Graph Bridge
+`api/services/paperless/correspondent_bridge.py`:
+- Pull correspondents from Paperless API
+- Fuzzy-match name against `people` table (workspace-scoped)
+- Create candidate links; queue for human review via People Graph review queue (S12-001)
+
+### Hybrid Search Pattern
+```python
+# Combine Qdrant semantic + Paperless full-text
+async def hybrid_search(query: str, workspace_ids: list[UUID]) -> list[SearchResult]:
+    semantic = await qdrant_service.search(query_embedding, workspace_ids, limit=20)
+    fulltext = await paperless_client.search(query, token=get_paperless_token())
+    return merge_and_rerank(semantic, fulltext)
+```

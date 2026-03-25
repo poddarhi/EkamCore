@@ -5,12 +5,12 @@ Use this reference to find the specification for any story by ID. Then load the 
 ## Sprint 1 (Weeks 1-2) — Phase 0
 | Story | Title | Workstream | Key Spec |
 |---|---|---|---|
-| S01-001 [CP] | Docker Compose full stack | infrastructure | 9 containers, health checks, resource limits, ekamcore-net |
+| S01-001 [CP] | Docker Compose full stack | infrastructure | 9 containers + Ollama native, health checks, resource limits, ekamcore-net |
 | S01-002 [CP] | PostgreSQL initial schema | backend | Alembic 001_initial_schema. All system tables + files + ingestion_states + audit_log |
 | S01-003 [CP] | OpenAPI 3.1 spec | backend | openapi/openapi.yaml covering all endpoints. Generate TS+Python clients |
 | S01-004 [CP] | CI/CD pipeline | infrastructure | .github/workflows/ci.yml. lint+typecheck+test+integration-build |
 | S01-006 [CP] | FastAPI scaffold | backend | app factory, health endpoint, SQLAlchemy session, Pydantic config, middleware |
-| S01-007 | Caddy reverse proxy | infrastructure | Caddyfile: /api/*->api:8420, /*->web:3000. TLS auto-cert |
+| S01-007 | Caddy reverse proxy | infrastructure | Caddyfile: /api/*->api:8420, /paperless/*->paperless:8000, /*->web:3000. TLS auto-cert |
 | S01-008 | Qdrant collection init | backend+ml-ai | document_embeddings(768), face_embeddings(512). Idempotent init in lifespan |
 
 ## Sprint 2 (Weeks 3-4) — Phase 0
@@ -49,14 +49,15 @@ Use this reference to find the specification for any story by ID. Then load the 
 | S06-005 | FSEvents monitoring | backend+manager-app |
 
 ## Sprint 7-8 (Weeks 13-16) — Phase 2
-| Story | Title | Workstream |
-|---|---|---|
-| S07-001 [CP] | File text extraction | backend |
-| S07-002 [CP] | Embedding generation | ml-ai+backend |
-| S07-003 [CP] | Semantic search | backend+ml-ai |
-| S07-004 | OCR pipeline | backend |
+| Story | Title | Workstream | Key Spec |
+|---|---|---|---|
+| S07-001 [CP] | PaperlessNGX API Client | backend | api/services/paperless/client.py using httpx. Pull documents, correspondents, tags. |
+| S07-002 [CP] | Paperless Document Sync + Embedding Generation | ml-ai+backend | Periodic worker: pull from Paperless, chunk, embed via Ollama nomic-embed-text, store in Qdrant |
+| S07-003 [CP] | Hybrid Semantic Search | backend+ml-ai | Qdrant semantic + Paperless full-text. Merge and re-rank results. |
+| S07-004 | Paperless Correspondent → People Graph Mapping | backend | Map Paperless correspondents to People Graph entries. Bridge service. |
 | S08-001 [CP] | Photo metadata + thumbnails | backend |
 | S08-004 | Automated daily backup | infrastructure |
+| S08-006 (NEW) | Paperless Setup in Manager Wizard | manager-app | Add Paperless health check step to manager setup wizard (S03-005). Show consume dir path. |
 
 ## Sprint 9-10 (Weeks 17-20) — Phase 2
 | Story | Title | Workstream |

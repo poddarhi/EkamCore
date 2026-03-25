@@ -1,19 +1,60 @@
-.PHONY: setup up down clean logs restart migrate test lint dev-api dev-web shell-api shell-db
+.PHONY: setup up down clean logs restart migrate test lint dev-api dev-web shell-api shell-db \
+        ollama-start ollama-stop ollama-status paperless-logs paperless-token paperless-shell
 
 # === Setup ===
 setup: ## Install all dependencies
 	cd apps/api && poetry install
 	cd apps/web && pnpm install
 
+# === Ollama (runs natively, not in Docker) ===
+ollama-start: ## Start Ollama natively on host
+	@if ! pgrep -x ollama > /dev/null; then \
+		echo "Starting Ollama..."; \
+		ollama serve & \
+		sleep 2; \
+		echo "Ollama started"; \
+	else \
+		echo "Ollama already running"; \
+	fi
+
+ollama-stop: ## Stop Ollama
+	@pkill ollama 2>/dev/null || echo "Ollama not running"
+
+ollama-status: ## Show loaded Ollama models
+	@ollama list 2>/dev/null || echo "Ollama not running"
+
+# === PaperlessNGX ===
+paperless-logs: ## Tail PaperlessNGX logs
+	docker compose logs -f ekamcore-paperless
+
+paperless-token: ## Create Paperless API token for admin
+	@docker compose exec ekamcore-paperless python3 manage.py create_api_token admin
+
+paperless-shell: ## Shell into PaperlessNGX container
+	docker compose exec ekamcore-paperless bash
+
 # === Docker ===
-up: ## Start all services
+up: ollama-start ## Start all services (also ensures Ollama is running)
 	docker compose up -d
+	@echo "Waiting for services..."
+	@sleep 5
+	@docker compose ps
+	@echo ""
+	@echo "Stack is up. Access:"
+	@echo "  Web:        https://localhost"
+	@echo "  API:        https://localhost/api/v1"
+	@echo "  Health:     https://localhost/health"
+	@echo "  Paperless:  https://localhost/paperless/"
+	@echo "  (Paperless login: admin / check .env for password)"
 
-down: ## Stop all services
+down: ## Stop all containers (Ollama keeps running — use 'make ollama-stop' to stop)
 	docker compose down
+	@echo "Containers stopped. Ollama still running (use 'make ollama-stop' to stop)"
 
-clean: ## Stop and remove volumes
+clean: ## Stop and remove all containers and volumes (DELETES ALL DATA)
 	docker compose down -v
+	@echo "All containers and volumes removed"
+	@echo "WARNING: All data has been deleted"
 
 logs: ## Tail all service logs
 	docker compose logs -f

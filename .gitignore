@@ -46,3 +46,7 @@ coverage.xml
 # Misc
 *.bak
 *.tmp
+
+# PaperlessNGX consume directory
+consume/
+consume/**
