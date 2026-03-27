@@ -1,0 +1,245 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, development]
+  push:
+    branches: [main, development]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Path filter — only run jobs for changed code ──
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+      openapi: ${{ steps.filter.outputs.openapi }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+            web:
+              - 'apps/web/**'
+            openapi:
+              - 'openapi/**'
+
+  # ── Python lint + typecheck ──
+  lint-python:
+    name: Lint Python
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Cache Poetry venv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: poetry-${{ runner.os }}-${{ hashFiles('apps/api/poetry.lock') }}
+      - name: Install dependencies
+        run: poetry install --no-interaction
+      - name: Ruff lint
+        run: poetry run ruff check api/ tests/
+      - name: Ruff format check
+        run: poetry run ruff format --check api/ tests/
+
+  typecheck-python:
+    name: Typecheck Python
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Cache Poetry venv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: poetry-${{ runner.os }}-${{ hashFiles('apps/api/poetry.lock') }}
+      - name: Install dependencies
+        run: poetry install --no-interaction
+      - name: Mypy
+        run: poetry run mypy api/ --ignore-missing-imports
+
+  # ── TypeScript lint ──
+  lint-typescript:
+    name: Lint TypeScript
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store/v3
+          key: pnpm-${{ runner.os }}-${{ hashFiles('apps/web/pnpm-lock.yaml') }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: ESLint
+        run: pnpm lint
+      - name: TypeScript check
+        run: pnpm tsc --noEmit
+
+  # ── Unit tests ──
+  unit-test-python:
+    name: Unit Tests (Python)
+    runs-on: ubuntu-latest
+    needs: [lint-python, typecheck-python]
+    if: needs.changes.outputs.api == 'true'
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Cache Poetry venv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: poetry-${{ runner.os }}-${{ hashFiles('apps/api/poetry.lock') }}
+      - name: Install dependencies
+        run: poetry install --no-interaction
+      - name: Run tests with coverage
+        run: poetry run pytest tests/ -v --tb=short --cov=api --cov-report=term-missing
+        env:
+          ENVIRONMENT: test
+          DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+          REDIS_URL: "redis://localhost:6379/0"
+          QDRANT_URL: "http://localhost:6333"
+          QDRANT_API_KEY: "test"
+          JWT_SECRET_KEY: "test-secret"
+
+  unit-test-web:
+    name: Unit Tests (Web)
+    runs-on: ubuntu-latest
+    needs: lint-typescript
+    if: needs.changes.outputs.web == 'true'
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store/v3
+          key: pnpm-${{ runner.os }}-${{ hashFiles('apps/web/pnpm-lock.yaml') }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run tests
+        run: pnpm test -- --run
+
+  # ── Docker builds ──
+  build-api:
+    name: Build API Image
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API
+        run: docker build -t ekamcore-api:ci ./apps/api
+      - name: Build Workers
+        run: docker build -t ekamcore-workers:ci -f ./apps/api/Dockerfile.workers ./apps/api
+
+  build-web:
+    name: Build Web Image
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Web
+        run: docker build -t ekamcore-web:ci ./apps/web
+
+  # ── OpenAPI validation ──
+  openapi-validate:
+    name: Validate OpenAPI Spec
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.openapi == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Validate spec
+        run: npx @redocly/cli lint openapi/ekamcore.yaml
+
+  # ── Final gate ──
+  pr-status-check:
+    name: PR Status Check
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - lint-python
+      - typecheck-python
+      - lint-typescript
+      - unit-test-python
+      - unit-test-web
+      - build-api
+      - build-web
+      - openapi-validate
+    steps:
+      - name: Check all jobs
+        run: |
+          results=("${{ needs.lint-python.result }}" "${{ needs.typecheck-python.result }}" \
+                   "${{ needs.lint-typescript.result }}" "${{ needs.unit-test-python.result }}" \
+                   "${{ needs.unit-test-web.result }}" "${{ needs.build-api.result }}" \
+                   "${{ needs.build-web.result }}" "${{ needs.openapi-validate.result }}")
+          for r in "${results[@]}"; do
+            if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
+              echo "One or more jobs failed: $r"
+              exit 1
+            fi
+          done
+          echo "All jobs passed or were skipped."

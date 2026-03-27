@@ -1,0 +1,35 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # Daily 2am UTC
+  workflow_dispatch:
+
+jobs:
+  full-test-suite:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Install API dependencies
+        working-directory: apps/api
+        run: poetry install --no-interaction
+      - name: Run API tests
+        working-directory: apps/api
+        run: poetry run pytest tests/ -v --tb=short --cov=api --cov-report=term-missing
+        env:
+          ENVIRONMENT: test
+          DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+          REDIS_URL: "redis://localhost:6379/0"
+          QDRANT_URL: "http://localhost:6333"
+          QDRANT_API_KEY: "test"
+          JWT_SECRET_KEY: "test-secret"
+      # TODO: Add integration tests (docker-compose.test.yml)
+      # TODO: Add E2E tests
+      # TODO: Add security scan
+      # TODO: Add perf regression
