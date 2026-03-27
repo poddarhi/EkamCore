@@ -7,6 +7,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
+from api.db.models import Base
+
 config = context.config
 
 if config.config_file_name is not None:
@@ -15,10 +17,9 @@ if config.config_file_name is not None:
 # Override from environment variable
 database_url = os.getenv("DATABASE_URL")
 if database_url:
-    # Alembic needs sync URL for some operations, but we use async
     config.set_main_option("sqlalchemy.url", database_url)
 
-target_metadata = None
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
