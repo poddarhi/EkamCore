@@ -1,0 +1,1371 @@
+openapi: 3.1.0
+info:
+  title: EkamCore API
+  description: Private, local-first life assistant API. All endpoints require Bearer JWT unless noted.
+  version: 0.1.0
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://localhost
+    description: Local development (via Caddy)
+  - url: http://localhost:8420
+    description: Direct API access (no proxy)
+
+tags:
+  - name: health
+    description: Health and readiness
+  - name: auth
+    description: Authentication
+  - name: today
+    description: Today view cards
+  - name: recap
+    description: Daily/weekly recap
+  - name: query
+    description: Natural language query
+  - name: search
+    description: Hybrid search
+  - name: people
+    description: People Graph
+  - name: review
+    description: Candidate review queue
+  - name: photos
+    description: Photo assets
+  - name: files
+    description: Ingested files
+  - name: sources
+    description: Data source CRUD
+  - name: write-through
+    description: Apple Calendar & Reminders sync
+  - name: admin
+    description: Admin-only endpoints
+  - name: settings
+    description: Settings and consent
+  - name: flags
+    description: Feature flags
+  - name: internal
+    description: Manager-only (localhost)
+
+paths:
+  # ── Health ──
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      tags: [health]
+      security: []
+      responses:
+        "200":
+          description: Service status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: One or more core services unhealthy
+
+  # ── Auth ──
+  /api/v1/auth/login:
+    post:
+      operationId: login
+      summary: Authenticate with email and password
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+          headers:
+            Set-Cookie:
+              description: Refresh token (HttpOnly, 7d) + CSRF double-submit cookie
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+
+  /api/v1/auth/refresh:
+    post:
+      operationId: refreshToken
+      summary: Rotate refresh token and get new access token
+      description: Uses refresh_token from HttpOnly cookie. Single-use rotation.
+      tags: [auth]
+      security: []
+      responses:
+        "200":
+          description: Tokens rotated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  /api/v1/auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke current session
+      tags: [auth]
+      responses:
+        "204":
+          description: Session revoked
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  # ── Today ──
+  /api/v1/today:
+    get:
+      operationId: getToday
+      summary: Today view — prioritised cards
+      tags: [today]
+      x-not-implemented: true
+      parameters:
+        - name: workspace_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: max_cards
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        "200":
+          description: Today cards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseEnvelope"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  # ── Recap ──
+  /api/v1/recap:
+    get:
+      operationId: getRecap
+      summary: Daily or weekly recap
+      tags: [recap]
+      x-not-implemented: true
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [daily, weekly]
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Recap sections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseEnvelope"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  # ── Query ──
+  /api/v1/query:
+    post:
+      operationId: query
+      summary: Natural language query with grounded LLM answer
+      tags: [query]
+      x-not-implemented: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  maxLength: 1000
+                workspace_id:
+                  type: string
+                  format: uuid
+                filters:
+                  type: object
+                prefer_fast:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: Query result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseEnvelope"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  # ── Search ──
+  /api/v1/search:
+    get:
+      operationId: search
+      summary: Hybrid search across all content
+      tags: [search]
+      x-not-implemented: true
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, file, contact, event, reminder, photo]
+            default: all
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedResponse"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  # ── Flags ──
+  /api/v1/flags:
+    get:
+      operationId: getFlags
+      summary: All feature flag states
+      tags: [flags]
+      x-not-implemented: true
+      responses:
+        "200":
+          description: Flag states
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  flags:
+                    type: object
+                    additionalProperties:
+                      type: boolean
+                  current_phase:
+                    type: integer
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  # ── People ──
+  /api/v1/people:
+    get:
+      operationId: listPeople
+      summary: List people (trusted persons and candidates)
+      tags: [people]
+      x-not-implemented: true
+      parameters:
+        - name: trust_level
+          in: query
+          schema:
+            type: string
+            enum: [all, trusted, candidate]
+            default: all
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: People list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedResponse"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  /api/v1/people/{person_id}:
+    get:
+      operationId: getPerson
+      summary: Person detail with linked objects and graph edges
+      tags: [people]
+      x-not-implemented: true
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Person detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonPayload"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/people/{person_id}/confirm:
+    post:
+      operationId: confirmPerson
+      summary: Confirm candidate as trusted person
+      tags: [people]
+      x-not-implemented: true
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                link_contact_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Person confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonPayload"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/people/{person_id}/merge:
+    post:
+      operationId: mergePerson
+      summary: Merge another person into this one
+      tags: [people]
+      x-not-implemented: true
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source_person_id]
+              properties:
+                source_person_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Merged result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonPayload"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+
+  /api/v1/people/{person_id}/split:
+    post:
+      operationId: splitPerson
+      summary: Split clusters out of a person
+      tags: [people]
+      x-not-implemented: true
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cluster_ids]
+              properties:
+                cluster_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        "200":
+          description: Split result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  original_id:
+                    type: string
+                    format: uuid
+                  new_person_id:
+                    type: string
+                    format: uuid
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  /api/v1/people/{person_id}/undo:
+    post:
+      operationId: undoPerson
+      summary: Undo last person operation (90-day window)
+      tags: [people]
+      x-not-implemented: true
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "200":
+          description: Operation undone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonPayload"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+
+  # ── Review Queue ──
+  /api/v1/review-queue:
+    get:
+      operationId: getReviewQueue
+      summary: Candidate links sorted by confidence (>=0.7)
+      tags: [review]
+      x-not-implemented: true
+      parameters:
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Review queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedResponse"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  # ── Photos ──
+  /api/v1/photos/{photo_id}:
+    get:
+      operationId: getPhoto
+      summary: Photo detail with faces and metadata
+      tags: [photos]
+      x-not-implemented: true
+      parameters:
+        - name: photo_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Photo detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhotoPayload"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/photos/{photo_id}/thumbnail:
+    get:
+      operationId: getPhotoThumbnail
+      summary: Photo thumbnail (300px JPEG)
+      tags: [photos]
+      x-not-implemented: true
+      parameters:
+        - name: photo_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: JPEG thumbnail
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  # ── Files ──
+  /api/v1/files/{file_id}:
+    get:
+      operationId: getFile
+      summary: File detail with ingestion status and linked persons
+      tags: [files]
+      x-not-implemented: true
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: File detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilePayload"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  # ── Sources ──
+  /api/v1/sources:
+    get:
+      operationId: listSources
+      summary: List data sources
+      tags: [sources]
+      x-not-implemented: true
+      responses:
+        "200":
+          description: Source list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sources:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SourcePayload"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+    post:
+      operationId: createSource
+      summary: Register a new data source and queue ingestion
+      tags: [sources]
+      x-not-implemented: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, type, path]
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [local_folder, photo_folder, contacts, calendar, reminders]
+                path:
+                  type: string
+                config:
+                  type: object
+      responses:
+        "201":
+          description: Source created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourcePayload"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/v1/sources/{source_id}:
+    patch:
+      operationId: updateSource
+      summary: Update a data source
+      tags: [sources]
+      x-not-implemented: true
+      parameters:
+        - name: source_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                status:
+                  type: string
+                  enum: [active, paused]
+                config:
+                  type: object
+      responses:
+        "200":
+          description: Source updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourcePayload"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+    delete:
+      operationId: deleteSource
+      summary: Soft-delete a data source
+      tags: [sources]
+      x-not-implemented: true
+      parameters:
+        - name: source_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Source deleted
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  # ── Write-Through ──
+  /api/v1/reminders:
+    post:
+      operationId: createReminder
+      summary: Create reminder in EkamCore + Apple Reminders
+      tags: [write-through]
+      x-not-implemented: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReminderPayload"
+      responses:
+        "201":
+          description: Reminder created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseEnvelope"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/v1/events:
+    post:
+      operationId: createEvent
+      summary: Create event in EkamCore + Apple Calendar
+      tags: [write-through]
+      x-not-implemented: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventPayload"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseEnvelope"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  # ── Admin ──
+  /api/v1/admin/users:
+    get:
+      operationId: listUsers
+      summary: List all users (admin only)
+      tags: [admin]
+      x-not-implemented: true
+      responses:
+        "200":
+          description: User list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        email:
+                          type: string
+                          format: email
+                        display_name:
+                          type: string
+                        role:
+                          type: string
+                          enum: [admin, standard]
+                        is_active:
+                          type: boolean
+                        created_at:
+                          type: string
+                          format: date-time
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+    post:
+      operationId: createUser
+      summary: Create a new user (admin only)
+      tags: [admin]
+      x-not-implemented: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                display_name:
+                  type: string
+                role:
+                  type: string
+                  enum: [admin, standard]
+                  default: standard
+      responses:
+        "201":
+          description: User created
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+
+  /api/v1/admin/audit-log:
+    get:
+      operationId: getAuditLog
+      summary: Paginated audit log (admin only)
+      tags: [admin]
+      x-not-implemented: true
+      parameters:
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Audit entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedResponse"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  # ── Settings ──
+  /api/v1/settings/face-clustering/consent:
+    post:
+      operationId: setFaceClusteringConsent
+      summary: Grant or revoke biometric processing consent
+      tags: [settings]
+      x-not-implemented: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accepted, consent_version]
+              properties:
+                accepted:
+                  type: boolean
+                consent_version:
+                  type: string
+      responses:
+        "200":
+          description: Consent recorded
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  # ── Status (authenticated) ──
+  /api/v1/status:
+    get:
+      operationId: getStatus
+      summary: Detailed system status (authenticated)
+      tags: [health]
+      x-not-implemented: true
+      responses:
+        "200":
+          description: Detailed status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: object
+                  jobs:
+                    type: object
+                  storage:
+                    type: object
+                  ingestion_progress:
+                    type: object
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  # ── Internal (localhost only) ──
+  /api/v1/internal/ingest/{source_type}:
+    post:
+      operationId: ingestFromManager
+      summary: Manager pushes calendar/reminders/contacts data
+      tags: [internal]
+      x-not-implemented: true
+      parameters:
+        - name: source_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [calendar, reminders, contacts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "202":
+          description: Ingestion queued
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  /api/v1/internal/fs-event:
+    post:
+      operationId: fsEvent
+      summary: FSEvents notification from manager
+      tags: [internal]
+      x-not-implemented: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path:
+                  type: string
+                event_type:
+                  type: string
+                  enum: [created, modified, deleted]
+      responses:
+        "202":
+          description: Event queued
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  /api/v1/internal/ingestion-status:
+    get:
+      operationId: ingestionStatus
+      summary: Per-source ingestion progress
+      tags: [internal]
+      x-not-implemented: true
+      responses:
+        "200":
+          description: Ingestion progress
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  /api/v1/internal/write-through/{entity_type}:
+    post:
+      operationId: writeThrough
+      summary: EventKit bridge callback
+      tags: [internal]
+      x-not-implemented: true
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [reminder, event]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Write-through completed
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256 JWT access token. 15-minute expiry.
+
+  parameters:
+    PersonId:
+      name: person_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PerPage:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque pagination cursor
+      schema:
+        type: string
+
+  responses:
+    AuthenticationError:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ConflictError:
+      description: Conflict (e.g. duplicate, merge self)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    # ── Core envelope ──
+    ResponseEnvelope:
+      type: object
+      properties:
+        answer_text:
+          type:
+            - string
+            - "null"
+        confidence_level:
+          type: string
+          enum: [deterministic, high, medium, low]
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/Source"
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+        suggested_actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SuggestedAction"
+        metadata:
+          $ref: "#/components/schemas/ResponseMetadata"
+
+    Card:
+      type: object
+      required: [type, id]
+      properties:
+        type:
+          type: string
+          enum: [event, reminder, person, file, photo, status, suggestion, pack]
+        id:
+          type: string
+          format: uuid
+        priority_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        source_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        payload:
+          type: object
+
+    Source:
+      type: object
+      required: [type, id, title, relevance]
+      properties:
+        type:
+          type: string
+          enum: [file, contact, event, reminder, photo, person]
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        relevance:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    SuggestedAction:
+      type: object
+      required: [action_type, label]
+      properties:
+        action_type:
+          type: string
+        label:
+          type: string
+        payload:
+          type: object
+
+    ResponseMetadata:
+      type: object
+      properties:
+        query_path:
+          type: string
+          enum: [deterministic, semantic, small_model, large_model]
+        latency_ms:
+          type: integer
+        is_partial:
+          type: boolean
+        cache_hint:
+          type: object
+          properties:
+            ttl_seconds:
+              type: integer
+
+    # ── Pagination ──
+    Pagination:
+      type: object
+      required: [per_page, has_more]
+      properties:
+        cursor:
+          type:
+            - string
+            - "null"
+        per_page:
+          type: integer
+        has_more:
+          type: boolean
+
+    PaginatedResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+        facets:
+          type: object
+
+    # ── Domain payloads ──
+    EventPayload:
+      type: object
+      required: [title, start_at, end_at]
+      properties:
+        title:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        location:
+          type: string
+        calendar_name:
+          type: string
+
+    ReminderPayload:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        due_at:
+          type: string
+          format: date-time
+        list_name:
+          type: string
+        notes:
+          type: string
+        priority:
+          type: string
+          enum: [high, medium, low, none]
+          default: none
+
+    PersonPayload:
+      type: object
+      required: [id, display_name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        trust_source:
+          type: string
+          enum: [contact_import, face_confirmed, manual, merged]
+        linked_objects:
+          type: array
+          items:
+            type: object
+        graph_edges:
+          type: array
+          items:
+            type: object
+        undo_history:
+          type: array
+          items:
+            type: object
+
+    FilePayload:
+      type: object
+      required: [id, filename]
+      properties:
+        id:
+          type: string
+          format: uuid
+        filename:
+          type: string
+        path:
+          type: string
+        mime_type:
+          type: string
+        size_bytes:
+          type: integer
+        ingestion_status:
+          type: string
+        snippet:
+          type: string
+        linked_persons:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    PhotoPayload:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        taken_at:
+          type: string
+          format: date-time
+        location_name:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        face_count:
+          type: integer
+        faces:
+          type: array
+          items:
+            type: object
+        metadata:
+          type: object
+
+    StatusPayload:
+      type: object
+      properties:
+        label:
+          type: string
+        value:
+          type: string
+        trend:
+          type: string
+          enum: [up, down, stable]
+
+    SourcePayload:
+      type: object
+      required: [id, name, type, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum: [local_folder, photo_folder, contacts, calendar, reminders]
+        path:
+          type: string
+        status:
+          type: string
+          enum: [active, paused, error]
+        last_sync_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        config:
+          type: object
+
+    # ── Auth ──
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    LoginResponse:
+      type: object
+      required: [access_token, token_type, expires_in]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+        expires_in:
+          type: integer
+          description: Access token TTL in seconds
+          example: 900
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            display_name:
+              type: string
+            role:
+              type: string
+
+    # ── Error ──
+    ErrorResponse:
+      type: object
+      required: [error_code, message]
+      properties:
+        error_code:
+          type: string
+          example: NOT_FOUND
+        message:
+          type: string
+          example: Resource not found.
+        details:
+          type: object
+        correlation_id:
+          type: string
+          format: uuid
+
+    # ── Health ──
+    HealthResponse:
+      type: object
+      required: [status, version, services]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded]
+        version:
+          type: string
+        services:
+          type: object
+          properties:
+            postgres:
+              $ref: "#/components/schemas/ServiceStatus"
+            redis:
+              $ref: "#/components/schemas/ServiceStatus"
+            qdrant:
+              $ref: "#/components/schemas/ServiceStatus"
+            ollama:
+              $ref: "#/components/schemas/ServiceStatus"
+
+    ServiceStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        error:
+          type: string
+
+security:
+  - BearerAuth: []
