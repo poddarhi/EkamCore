@@ -21,7 +21,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ekamcore}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ekamcore} -d ${POSTGRES_DB:-ekamcore}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -41,6 +41,7 @@ services:
         --databases 4
         --maxmemory 128mb
         --maxmemory-policy allkeys-lru
+        --appendonly yes
     volumes:
       - ekamcore-redis-data:/data
     networks:
@@ -71,7 +72,7 @@ services:
     ports:
       - "6333:6333"
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333'"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:6333/healthz || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -94,14 +95,16 @@ services:
       PAPERLESS_DBPASS: ${POSTGRES_PASSWORD:-ekamcore_dev_password}
       PAPERLESS_REDIS: redis://:${REDIS_PASSWORD:-ekamcore_dev_password}@ekamcore-redis:6379/2
       PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY:-ekamcore_paperless_dev_secret}
-      PAPERLESS_URL: https://localhost/paperless
+      PAPERLESS_URL: https://localhost
+      PAPERLESS_FORCE_SCRIPT_NAME: /paperless
+      PAPERLESS_CORS_ALLOWED_HOSTS: https://localhost
       PAPERLESS_OCR_LANGUAGE: eng
-      PAPERLESS_OCR_MODE: skip_noarchive
+      PAPERLESS_OCR_SKIP_ARCHIVE_FILE: with_text
       PAPERLESS_TASK_WORKERS: 1
       PAPERLESS_THREADS_PER_WORKER: 1
       PAPERLESS_CONSUMER_RECURSIVE: "true"
       PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS: "true"
-      PAPERLESS_FILENAME_FORMAT: "{created_year}/{correspondent}/{title}"
+      PAPERLESS_FILENAME_FORMAT: "{{ created_year }}/{{ correspondent }}/{{ title }}"
       PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER:-admin}
       PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD:-ekamcore_dev_password}
     volumes:
