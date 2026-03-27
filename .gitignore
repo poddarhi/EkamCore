@@ -42,6 +42,7 @@ target/
 htmlcov/
 .coverage
 coverage.xml
+coverage/
 
 # Misc
 *.bak
