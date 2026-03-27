@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.db.session import get_db
 from api.errors import AuthenticationError
 from api.middleware.auth import get_current_user
+from api.middleware.csrf import generate_csrf_token, set_csrf_cookie, validate_csrf
 from api.schemas.auth import CurrentUser, LoginRequest, TokenResponse
 from api.services.auth import REFRESH_COOKIE_NAME, login, logout, refresh
 
@@ -39,6 +40,7 @@ async def login_endpoint(
         max_age=7 * 24 * 3600,
         path="/api/v1/auth",
     )
+    set_csrf_cookie(response, generate_csrf_token())
 
     return TokenResponse(access_token=access_token, expires_in=expires_in)
 
@@ -67,11 +69,12 @@ async def refresh_endpoint(
         max_age=7 * 24 * 3600,
         path="/api/v1/auth",
     )
+    set_csrf_cookie(response, generate_csrf_token())
 
     return TokenResponse(access_token=access_token, expires_in=expires_in)
 
 
-@router.post("/logout", status_code=204)
+@router.post("/logout", status_code=204, dependencies=[Depends(validate_csrf)])
 async def logout_endpoint(
     response: Response,
     user: CurrentUser = Depends(get_current_user),

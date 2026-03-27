@@ -3,13 +3,19 @@
 import pytest
 from httpx import AsyncClient
 
+CSRF_TOKEN = "test-csrf-token-for-middleware-tests"
+
 
 @pytest.mark.asyncio
 async def test_valid_token(client: AsyncClient, auth_tokens: dict) -> None:
     """Authenticated request to a protected endpoint succeeds."""
     response = await client.post(
         "/api/v1/auth/logout",
-        headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        headers={
+            "Authorization": f"Bearer {auth_tokens['access_token']}",
+            "X-CSRF-Token": auth_tokens["csrf_token"],
+        },
+        cookies={"ekamcore_csrf": auth_tokens["csrf_token"]},
     )
     # 204 means the middleware accepted the token and the handler ran
     assert response.status_code == 204
@@ -18,7 +24,11 @@ async def test_valid_token(client: AsyncClient, auth_tokens: dict) -> None:
 @pytest.mark.asyncio
 async def test_missing_token(client: AsyncClient) -> None:
     """Request without Authorization header is rejected."""
-    response = await client.post("/api/v1/auth/logout")
+    response = await client.post(
+        "/api/v1/auth/logout",
+        headers={"X-CSRF-Token": CSRF_TOKEN},
+        cookies={"ekamcore_csrf": CSRF_TOKEN},
+    )
     assert response.status_code == 401
     data = response.json()
     assert data["error_code"] == "AUTH_TOKEN_MISSING"
@@ -29,7 +39,11 @@ async def test_malformed_token(client: AsyncClient) -> None:
     """Request with a garbage Bearer token is rejected."""
     response = await client.post(
         "/api/v1/auth/logout",
-        headers={"Authorization": "Bearer not.a.valid.jwt"},
+        headers={
+            "Authorization": "Bearer not.a.valid.jwt",
+            "X-CSRF-Token": CSRF_TOKEN,
+        },
+        cookies={"ekamcore_csrf": CSRF_TOKEN},
     )
     assert response.status_code == 401
     data = response.json()
@@ -61,7 +75,11 @@ async def test_expired_token(client: AsyncClient, seed_user: dict) -> None:
 
     response = await client.post(
         "/api/v1/auth/logout",
-        headers={"Authorization": f"Bearer {expired_token}"},
+        headers={
+            "Authorization": f"Bearer {expired_token}",
+            "X-CSRF-Token": CSRF_TOKEN,
+        },
+        cookies={"ekamcore_csrf": CSRF_TOKEN},
     )
     assert response.status_code == 401
     data = response.json()

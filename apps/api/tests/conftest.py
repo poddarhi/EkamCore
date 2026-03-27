@@ -97,6 +97,7 @@ async def auth_tokens(client: AsyncClient, seed_user: dict) -> dict:
     return {
         "access_token": data["access_token"],
         "refresh_cookie": cookies.get("ekamcore_refresh"),
+        "csrf_token": cookies.get("ekamcore_csrf"),
         **seed_user,
     }
 

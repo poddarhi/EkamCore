@@ -8,7 +8,11 @@ from httpx import AsyncClient
 async def test_logout_success(client: AsyncClient, auth_tokens: dict) -> None:
     response = await client.post(
         "/api/v1/auth/logout",
-        headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        headers={
+            "Authorization": f"Bearer {auth_tokens['access_token']}",
+            "X-CSRF-Token": auth_tokens["csrf_token"],
+        },
+        cookies={"ekamcore_csrf": auth_tokens["csrf_token"]},
     )
     assert response.status_code == 204
 
@@ -18,13 +22,21 @@ async def test_logout_already_logged_out(client: AsyncClient, auth_tokens: dict)
     # First logout
     resp1 = await client.post(
         "/api/v1/auth/logout",
-        headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        headers={
+            "Authorization": f"Bearer {auth_tokens['access_token']}",
+            "X-CSRF-Token": auth_tokens["csrf_token"],
+        },
+        cookies={"ekamcore_csrf": auth_tokens["csrf_token"]},
     )
     assert resp1.status_code == 204
 
     # Second logout with same token — still succeeds (idempotent, session already revoked)
     resp2 = await client.post(
         "/api/v1/auth/logout",
-        headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        headers={
+            "Authorization": f"Bearer {auth_tokens['access_token']}",
+            "X-CSRF-Token": auth_tokens["csrf_token"],
+        },
+        cookies={"ekamcore_csrf": auth_tokens["csrf_token"]},
     )
     assert resp2.status_code == 204
