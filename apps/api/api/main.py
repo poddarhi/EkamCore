@@ -18,8 +18,20 @@ logger = structlog.get_logger()
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan: startup and shutdown."""
     logger.info("ekamcore_api_starting")
+    try:
+        from api.services.qdrant_init import init_collections
+
+        await init_collections()
+        logger.info("qdrant_collections_initialized")
+    except Exception:
+        logger.warning("qdrant_init_failed", exc_info=True)
     yield
-    logger.info("ekamcore_api_shutting_down")
+    from api.services.qdrant_client import close as close_qdrant
+    from api.services.redis_client import close_all as close_redis
+
+    await close_qdrant()
+    await close_redis()
+    logger.info("ekamcore_api_shut_down")
 
 
 def create_app() -> FastAPI:
