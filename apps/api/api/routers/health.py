@@ -55,7 +55,7 @@ async def _check_paperless() -> dict[str, Any]:
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get("http://ekamcore-paperless:8000/api/", timeout=5.0)
-            if resp.status_code in (200, 401, 403):
+            if resp.status_code in (200, 301, 302, 401, 403):
                 return {"status": "healthy"}
             return {"status": "unhealthy", "error": f"status_{resp.status_code}"}
     except Exception as e:
