@@ -20,12 +20,14 @@ async def login_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     device_info = {"user_agent": request.headers.get("user-agent", "")}
+    client_ip = request.client.host if request.client else "unknown"
 
     access_token, refresh_token, expires_in = await login(
         email=body.email,
         password=body.password,
         db=db,
         device_info=device_info,
+        ip=client_ip,
     )
 
     response.set_cookie(

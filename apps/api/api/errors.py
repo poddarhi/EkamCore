@@ -57,3 +57,8 @@ class WriteThruFailedError(EkamCoreError):
 class FeatureDisabledError(EkamCoreError):
     status_code = 403
     error_code = "FEATURE_DISABLED"
+
+
+class AccountLockedError(EkamCoreError):
+    status_code = 423
+    error_code = "AUTH_ACCOUNT_LOCKED"

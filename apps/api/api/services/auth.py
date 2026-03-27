@@ -70,18 +70,42 @@ async def _get_workspace_ids(user_id: UUID, db: AsyncSession) -> list[UUID]:
     return list(result.scalars().all())
 
 
-async def login(email: str, password: str, db: AsyncSession, device_info: dict | None = None) -> tuple[str, str, int]:
+async def login(
+    email: str,
+    password: str,
+    db: AsyncSession,
+    device_info: dict | None = None,
+    ip: str = "unknown",
+) -> tuple[str, str, int]:
     """Authenticate user, create session, return (access_token, refresh_token, expires_in)."""
+    from api.services.rate_limiter import (
+        audit_login_attempt,
+        check_brute_force,
+        clear_failed_logins,
+        record_failed_login,
+    )
+
+    # Check brute-force lockout / apply progressive delay before doing any work
+    await check_brute_force(email)
+
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
 
     if user is None or not verify_password(password, user.password_hash):
+        await record_failed_login(email)
+        await audit_login_attempt(email=email, success=False, ip=ip)
         logger.warning("auth_login_failed", email_provided=bool(email))
         raise AuthenticationError(error_code="AUTH_INVALID_CREDENTIALS", message="Incorrect email or password.")
 
     if not user.is_active:
+        await record_failed_login(email)
+        await audit_login_attempt(email=email, success=False, ip=ip)
         logger.warning("auth_login_inactive", user_id=str(user.id))
         raise AuthenticationError(error_code="AUTH_INVALID_CREDENTIALS", message="Incorrect email or password.")
+
+    # Success — clear failure counter
+    await clear_failed_logins(email)
+    await audit_login_attempt(email=email, success=True, ip=ip)
 
     workspace_ids = await _get_workspace_ids(user.id, db)
 

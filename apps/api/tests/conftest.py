@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -98,3 +99,23 @@ async def auth_tokens(client: AsyncClient, seed_user: dict) -> dict:
         "refresh_cookie": cookies.get("ekamcore_refresh"),
         **seed_user,
     }
+
+
+@pytest.fixture(autouse=True)
+def mock_rate_limiter_redis():
+    """Auto-mock the rate_limiter Redis client so tests don't need a running Redis.
+
+    Individual tests (e.g. test_bruteforce.py) can override this by patching
+    get_redis themselves with specific return values.
+    """
+    mock = AsyncMock()
+    mock.get = AsyncMock(return_value=None)  # no failures by default
+    mock.delete = AsyncMock()
+    pipe = Mock()
+    pipe.incr = Mock(return_value=pipe)
+    pipe.expire = Mock(return_value=pipe)
+    pipe.execute = AsyncMock(return_value=[1, True])
+    mock.pipeline = Mock(return_value=pipe)
+
+    with patch("api.services.rate_limiter.get_redis", return_value=mock):
+        yield mock
