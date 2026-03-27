@@ -11,7 +11,7 @@ from api.errors import EkamCoreError
 from api.middleware.correlation import CorrelationIdMiddleware
 from api.middleware.error_handler import ekamcore_error_handler, unhandled_error_handler
 from api.middleware.logging import LoggingMiddleware
-from api.routers import health
+from api.routers import auth, health
 
 logger = structlog.get_logger()
 
@@ -78,6 +78,7 @@ def create_app() -> FastAPI:
 
     # Routers
     app.include_router(health.router)
+    app.include_router(auth.router)
 
     return app
 

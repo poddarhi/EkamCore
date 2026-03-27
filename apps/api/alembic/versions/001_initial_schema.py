@@ -18,6 +18,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Required for gen_random_bytes() used in gen_uuid_v7()
+    op.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
+
     # UUID v7 generation function
     op.execute("""
         CREATE OR REPLACE FUNCTION gen_uuid_v7() RETURNS uuid AS $$
