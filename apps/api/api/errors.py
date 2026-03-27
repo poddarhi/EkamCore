@@ -49,6 +49,11 @@ class ServiceUnavailableError(EkamCoreError):
     error_code = "SERVICE_UNAVAILABLE"
 
 
+class WriteThruFailedError(EkamCoreError):
+    status_code = 502
+    error_code = "WRITE_THROUGH_FAILED"
+
+
 class FeatureDisabledError(EkamCoreError):
     status_code = 403
     error_code = "FEATURE_DISABLED"
