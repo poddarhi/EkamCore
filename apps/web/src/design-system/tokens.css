@@ -1,59 +1,175 @@
 @import "tailwindcss";
+@config "../../tailwind.config.ts";
 
+/* ─────────────────────────────────────────────────
+   CSS Custom Properties — Source of Truth
+   ───────────────────────────────────────────────── */
 :root {
-  /* Colors — EkamCore Brand */
+  /* ── Primary ── */
   --color-primary: #1F3864;
-  --color-primary-light: #2B4F8A;
-  --color-primary-dark: #152847;
-  --color-accent: #4A90D9;
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
-  --color-neutral-50: #F9FAFB;
-  --color-neutral-100: #F3F4F6;
-  --color-neutral-200: #E5E7EB;
-  --color-neutral-300: #D1D5DB;
-  --color-neutral-400: #9CA3AF;
-  --color-neutral-500: #6B7280;
-  --color-neutral-600: #4B5563;
-  --color-neutral-700: #374151;
-  --color-neutral-800: #1F2937;
-  --color-neutral-900: #111827;
+  --color-primary-hover: #162A4D;
+  --color-primary-light: #2E75B6;
+  --color-primary-surface: #E8EFF8;
 
-  /* Typography */
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* ── Neutral Scale ── */
+  --color-neutral-900: #1A1A1A;
+  --color-neutral-700: #404040;
+  --color-neutral-600: #666666;
+  --color-neutral-500: #888888;
+  --color-neutral-400: #AAAAAA;
+  --color-neutral-200: #D9D9D9;
+  --color-neutral-100: #F2F2F2;
+  --color-neutral-50: #F8F8F8;
+  --color-white: #FFFFFF;
 
-  /* Spacing */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 48px;
+  /* ── Semantic ── */
+  --color-success: #28A745;
+  --color-success-surface: #E6F4EA;
+  --color-warning: #E6A817;
+  --color-warning-surface: #FFF8E1;
+  --color-error: #DC3545;
+  --color-error-surface: #FDEDED;
+  --color-info: #0D6EFD;
+  --color-info-surface: #E7F1FF;
 
-  /* Radii */
+  /* ── Confidence Badge ── */
+  --color-confidence-high-bg: #E6F4EA;
+  --color-confidence-high-text: #1B6E2E;
+  --color-confidence-high-border: #28A745;
+  --color-confidence-medium-bg: #FFF8E1;
+  --color-confidence-medium-text: #8A6D00;
+  --color-confidence-medium-border: #E6A817;
+  --color-confidence-low-bg: #F2F2F2;
+  --color-confidence-low-text: #666666;
+  --color-confidence-low-border: #AAAAAA;
+
+  /* ── Typography ── */
+  --font-sans: "Inter", -apple-system, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+
+  --text-display-size: 2rem;
+  --text-display-height: 2.5rem;
+  --text-display-weight: 700;
+  --text-h1-size: 1.5rem;
+  --text-h1-height: 2rem;
+  --text-h1-weight: 700;
+  --text-h2-size: 1.25rem;
+  --text-h2-height: 1.75rem;
+  --text-h2-weight: 600;
+  --text-h3-size: 1.125rem;
+  --text-h3-height: 1.5rem;
+  --text-h3-weight: 600;
+  --text-body-size: 0.9375rem;
+  --text-body-height: 1.375rem;
+  --text-body-weight: 400;
+  --text-small-size: 0.8125rem;
+  --text-small-height: 1.125rem;
+  --text-small-weight: 400;
+  --text-caption-size: 0.75rem;
+  --text-caption-height: 1rem;
+  --text-caption-weight: 500;
+  --text-overline-size: 0.6875rem;
+  --text-overline-height: 1rem;
+  --text-overline-weight: 600;
+
+  /* ── Spacing (4px base) ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Shadows ── */
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
+  --shadow-focus: 0 0 0 3px rgba(46, 117, 182, 0.3);
+
+  /* ── Border Radius ── */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --radius-xl: 16px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-
-  /* Animation */
+  /* ── Animation ── */
   --duration-fast: 0.1s;
   --duration-normal: 0.2s;
   --duration-slow: 0.3s;
   --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── Respect prefers-reduced-motion ── */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration-fast: 0s;
     --duration-normal: 0s;
     --duration-slow: 0s;
   }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+  }
+}
+
+/* ── Tailwind v4 Theme Extension ── */
+@theme {
+  --color-primary: #1F3864;
+  --color-primary-hover: #162A4D;
+  --color-primary-light: #2E75B6;
+  --color-primary-surface: #E8EFF8;
+
+  --color-neutral-900: #1A1A1A;
+  --color-neutral-700: #404040;
+  --color-neutral-600: #666666;
+  --color-neutral-500: #888888;
+  --color-neutral-400: #AAAAAA;
+  --color-neutral-200: #D9D9D9;
+  --color-neutral-100: #F2F2F2;
+  --color-neutral-50: #F8F8F8;
+
+  --color-success: #28A745;
+  --color-success-surface: #E6F4EA;
+  --color-warning: #E6A817;
+  --color-warning-surface: #FFF8E1;
+  --color-error: #DC3545;
+  --color-error-surface: #FDEDED;
+  --color-info: #0D6EFD;
+  --color-info-surface: #E7F1FF;
+
+  --font-sans: "Inter", -apple-system, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
+  --shadow-focus: 0 0 0 3px rgba(46, 117, 182, 0.3);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+}
+
+/* ── Keyframes ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
