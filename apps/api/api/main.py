@@ -8,11 +8,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.errors import EkamCoreError
+from api.logging_config import configure_logging
 from api.middleware.correlation import CorrelationIdMiddleware
 from api.middleware.error_handler import ekamcore_error_handler, unhandled_error_handler
 from api.middleware.logging import LoggingMiddleware
 from api.routers import auth, health
 
+configure_logging()
 logger = structlog.get_logger()
 
 

@@ -31,7 +31,7 @@ async def ekamcore_error_handler(request: Request, exc: EkamCoreError) -> JSONRe
 
 
 async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Catch-all for unhandled exceptions. Never expose stack traces."""
+    """Catch-all for unhandled exceptions. Never expose stack traces in response."""
     correlation_id = getattr(request.state, "correlation_id", "unknown")
 
     logger.error(
@@ -39,6 +39,7 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
         error_type=type(exc).__name__,
         correlation_id=correlation_id,
         path=request.url.path,
+        exc_info=True,
     )
 
     return JSONResponse(
