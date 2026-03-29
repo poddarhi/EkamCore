@@ -9,6 +9,7 @@ from api.db.models.file import File
 from api.db.models.file_chunk import FileChunk
 from api.db.models.ingestion_state import IngestionState
 from api.db.models.calendar_event import CalendarEvent
+from api.db.models.reminder import Reminder
 
 __all__ = [
     "Base",
@@ -22,4 +23,5 @@ __all__ = [
     "FileChunk",
     "IngestionState",
     "CalendarEvent",
+    "Reminder",
 ]
