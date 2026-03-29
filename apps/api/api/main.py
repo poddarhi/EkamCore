@@ -12,7 +12,7 @@ from api.logging_config import configure_logging
 from api.middleware.correlation import CorrelationIdMiddleware
 from api.middleware.error_handler import ekamcore_error_handler, unhandled_error_handler
 from api.middleware.logging import LoggingMiddleware
-from api.routers import auth, health, sources
+from api.routers import auth, health, internal, sources
 
 configure_logging()
 logger = structlog.get_logger()
@@ -82,6 +82,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(sources.router)
+    app.include_router(internal.router)
 
     return app
 
