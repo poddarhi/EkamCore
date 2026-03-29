@@ -1,0 +1,389 @@
+openapi: 3.1.0
+info:
+  title: EkamCore API
+  description: Private, local-first life assistant API. All endpoints require authentication unless noted.
+  version: 0.1.0
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://localhost
+    description: Local development (via Caddy)
+  - url: http://localhost:8420
+    description: Direct API access (no proxy)
+
+tags:
+  - name: health
+    description: Health and readiness checks
+  - name: auth
+    description: Authentication (login, refresh, logout)
+  - name: workspaces
+    description: Workspace management
+  - name: settings
+    description: Per-workspace key-value settings
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      description: Returns service connectivity status. No authentication required.
+      tags: [health]
+      security: []
+      responses:
+        "200":
+          description: All core services healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: One or more core services unhealthy
+
+  /api/v1/auth/login:
+    post:
+      operationId: login
+      summary: Authenticate with email and password
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokens"
+          headers:
+            Set-Cookie:
+              description: CSRF double-submit cookie
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+
+  /api/v1/auth/refresh:
+    post:
+      operationId: refreshToken
+      summary: Rotate refresh token and get new access token
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Tokens rotated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokens"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  /api/v1/auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke current session
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "204":
+          description: Session revoked
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  /api/v1/workspaces:
+    get:
+      operationId: listWorkspaces
+      summary: List workspaces the current user belongs to
+      tags: [workspaces]
+      responses:
+        "200":
+          description: Workspace list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceList"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+  /api/v1/workspaces/{workspace_id}:
+    get:
+      operationId: getWorkspace
+      summary: Get workspace details
+      tags: [workspaces]
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      responses:
+        "200":
+          description: Workspace details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/workspaces/{workspace_id}/settings:
+    get:
+      operationId: listSettings
+      summary: List all settings for a workspace
+      tags: [settings]
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      responses:
+        "200":
+          description: Settings list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsList"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+
+    put:
+      operationId: upsertSetting
+      summary: Create or update a workspace setting
+      tags: [settings]
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingUpsert"
+      responses:
+        "200":
+          description: Setting saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Setting"
+        "401":
+          $ref: "#/components/responses/AuthenticationError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256 JWT access token. 15-minute expiry.
+
+  parameters:
+    WorkspaceId:
+      name: workspace_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    AuthenticationError:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error_code, message]
+      properties:
+        error_code:
+          type: string
+          example: NOT_FOUND
+        message:
+          type: string
+          example: Resource not found.
+        details:
+          type: object
+        correlation_id:
+          type: string
+          format: uuid
+
+    HealthResponse:
+      type: object
+      required: [status, services]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded]
+        services:
+          type: object
+          properties:
+            postgres:
+              $ref: "#/components/schemas/ServiceStatus"
+            redis:
+              $ref: "#/components/schemas/ServiceStatus"
+            qdrant:
+              $ref: "#/components/schemas/ServiceStatus"
+            paperless:
+              $ref: "#/components/schemas/ServiceStatus"
+            ollama:
+              $ref: "#/components/schemas/ServiceStatus"
+        version:
+          type: string
+        ram_mode:
+          type: string
+
+    ServiceStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        error:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    LogoutRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    AuthTokens:
+      type: object
+      required: [access_token, refresh_token, token_type, expires_in]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+        expires_in:
+          type: integer
+          description: Access token TTL in seconds
+          example: 900
+
+    Workspace:
+      type: object
+      required: [id, name, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    WorkspaceList:
+      type: object
+      required: [workspaces]
+      properties:
+        workspaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/Workspace"
+
+    Setting:
+      type: object
+      required: [id, workspace_id, key, value]
+      properties:
+        id:
+          type: string
+          format: uuid
+        workspace_id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        value: {}
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SettingsList:
+      type: object
+      required: [settings]
+      properties:
+        settings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Setting"
+
+    SettingUpsert:
+      type: object
+      required: [key, value]
+      properties:
+        key:
+          type: string
+          maxLength: 255
+        value: {}
+
+security:
+  - BearerAuth: []
