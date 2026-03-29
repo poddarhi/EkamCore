@@ -7,6 +7,7 @@ from api.errors import FeatureDisabledError
 # Phase 1 enabled flags. In Phase 2+, this will be backed by the feature_flags service.
 _ENABLED_FLAGS: set[str] = {
     "sources_management_enabled",
+    "audit_log_enabled",
 }
 
 

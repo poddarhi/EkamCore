@@ -11,6 +11,7 @@ from api.db.models.ingestion_state import IngestionState
 from api.db.models.calendar_event import CalendarEvent
 from api.db.models.contact import Contact
 from api.db.models.reminder import Reminder
+from api.db.models.audit_log import AuditLog
 
 __all__ = [
     "Base",
@@ -26,4 +27,5 @@ __all__ = [
     "CalendarEvent",
     "Contact",
     "Reminder",
+    "AuditLog",
 ]

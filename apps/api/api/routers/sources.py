@@ -83,4 +83,5 @@ async def delete_source(
         source_id=source_id,
         workspace_ids=user.workspace_ids,
         db=db,
+        deleted_by=user.id,
     )

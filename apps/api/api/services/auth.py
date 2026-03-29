@@ -16,6 +16,7 @@ from api.db.models.session import Session
 from api.db.models.user import User
 from api.db.models.workspace_member import WorkspaceMember
 from api.errors import AuthenticationError
+from api.services import audit
 
 logger = structlog.get_logger()
 
@@ -86,7 +87,18 @@ async def login(
     )
 
     # Check brute-force lockout / apply progressive delay before doing any work
-    await check_brute_force(email)
+    try:
+        await check_brute_force(email)
+    except Exception as exc:
+        # AccountLockedError: log in its own session (caller's tx will roll back)
+        from api.errors import AccountLockedError
+        if isinstance(exc, AccountLockedError):
+            await audit.log_event_now(
+                action="account_locked",
+                object_type="session",
+                ip=ip,
+            )
+        raise
 
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
@@ -94,12 +106,24 @@ async def login(
     if user is None or not verify_password(password, user.password_hash):
         await record_failed_login(email)
         await audit_login_attempt(email=email, success=False, ip=ip)
+        await audit.log_event_now(
+            action="login_failure",
+            object_type="session",
+            user_id=user.id if user is not None else None,
+            ip=ip,
+        )
         logger.warning("auth_login_failed", email_provided=bool(email))
         raise AuthenticationError(error_code="AUTH_INVALID_CREDENTIALS", message="Incorrect email or password.")
 
     if not user.is_active:
         await record_failed_login(email)
         await audit_login_attempt(email=email, success=False, ip=ip)
+        await audit.log_event_now(
+            action="login_failure",
+            object_type="session",
+            user_id=user.id,
+            ip=ip,
+        )
         logger.warning("auth_login_inactive", user_id=str(user.id))
         raise AuthenticationError(error_code="AUTH_INVALID_CREDENTIALS", message="Incorrect email or password.")
 
@@ -125,6 +149,14 @@ async def login(
     access_token = _create_access_token(user.id, user.role, workspace_ids, session.id)
     expires_in = settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
+    await audit.log_event(
+        action="login_success",
+        object_type="session",
+        object_id=session.id,
+        user_id=user.id,
+        ip=ip,
+        db=db,
+    )
     logger.info("auth_login_success", user_id=str(user.id))
     return access_token, refresh_token, expires_in
 
@@ -183,6 +215,13 @@ async def refresh(refresh_token: str, db: AsyncSession) -> tuple[str, str, int]:
     access_token = _create_access_token(user.id, user.role, workspace_ids, new_session.id)
     expires_in = settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
+    await audit.log_event(
+        action="token_refresh",
+        object_type="session",
+        object_id=new_session.id,
+        user_id=user.id,
+        db=db,
+    )
     logger.info("auth_refresh_success", user_id=str(user.id))
     return access_token, new_refresh_token, expires_in
 
@@ -194,6 +233,13 @@ async def logout(session_id: UUID, db: AsyncSession) -> None:
 
     if session and not session.is_revoked:
         session.is_revoked = True
+        await audit.log_event(
+            action="logout",
+            object_type="session",
+            object_id=session_id,
+            user_id=session.user_id,
+            db=db,
+        )
         logger.info("auth_logout_success", user_id=str(session.user_id), session_id=str(session_id))
     else:
         logger.info("auth_logout_already_revoked", session_id=str(session_id))

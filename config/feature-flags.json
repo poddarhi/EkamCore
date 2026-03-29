@@ -18,6 +18,7 @@
     "face_clustering_enabled": { "enabled": false, "phase": 3, "type": "consent", "description": "Face detection and clustering" },
     "people_graph_enabled": { "enabled": false, "phase": 3, "type": "feature", "description": "People graph and relationships" },
     "pla_pack_enabled": { "enabled": false, "phase": 3, "type": "feature", "description": "PLA Pack integration" },
-    "write_through_enabled": { "enabled": true, "phase": 1, "type": "feature", "description": "Write-through to Apple frameworks" }
+    "write_through_enabled": { "enabled": true, "phase": 1, "type": "feature", "description": "Write-through to Apple frameworks" },
+    "audit_log_enabled": { "enabled": true, "phase": 1, "type": "system", "description": "Append-only audit log for security-relevant events" }
   }
 }

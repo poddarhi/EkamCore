@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.db.models.source import Source
 from api.errors import ConflictError, NotFoundError, ValidationError
 from api.schemas.source import SourceCreate, SourceUpdate, _FOLDER_TYPES
+from api.services import audit
 
 logger = structlog.get_logger()
 
@@ -106,6 +107,15 @@ async def create_source(
     db.add(source)
     await db.flush()
 
+    await audit.log_event(
+        action="source_created",
+        object_type="source",
+        object_id=source.id,
+        user_id=registered_by,
+        workspace_id=workspace_id,
+        new_state={"type": body.type, "name": body.name},
+        db=db,
+    )
     logger.info("source_registered", source_id=str(source.id), source_type=body.type, workspace_id=str(workspace_id))
     # TODO(S03-008): enqueue initial ingestion scan via ARQ worker
     return source
@@ -135,6 +145,7 @@ async def delete_source(
     source_id: UUID,
     workspace_ids: list[UUID],
     db: AsyncSession,
+    deleted_by: UUID | None = None,
 ) -> None:
     """Soft-delete a source. Data retained for 30 days per policy."""
     from datetime import datetime, timezone
@@ -142,6 +153,16 @@ async def delete_source(
     source = await _get_owned(source_id, workspace_ids, db)
     source.deleted_at = datetime.now(timezone.utc)
     await db.flush()
+
+    await audit.log_event(
+        action="source_deleted",
+        object_type="source",
+        object_id=source_id,
+        user_id=deleted_by,
+        workspace_id=source.workspace_id,
+        old_state={"type": source.type, "name": source.name},
+        db=db,
+    )
     logger.info("source_soft_deleted", source_id=str(source_id))
 
 
