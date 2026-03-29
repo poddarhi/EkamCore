@@ -1,5 +1,5 @@
 .PHONY: setup up down clean logs restart migrate migration seed \
-       test test-api test-web test-integration coverage \
+       test test-api test-web test-mobile test-integration coverage \
        lint format benchmark \
        shell-api shell-db shell-redis \
        ollama-start ollama-stop ollama-status \
@@ -10,6 +10,7 @@
 setup: ## Install all dependencies and create .env
 	cd apps/api && poetry install
 	cd apps/web && pnpm install
+	cd apps/mobile && npm install 2>/dev/null || true
 	cp -n .env.example .env 2>/dev/null || true
 	@echo "Setup complete. Run 'make up' to start the stack."
 
@@ -51,13 +52,16 @@ seed: ## Seed database with dev data
 	docker compose exec ekamcore-api python -m scripts.seed
 
 # === Testing ===
-test: test-api test-web ## Run all tests
+test: test-api test-web test-mobile ## Run all tests
 
 test-api: ## Run API tests with coverage
 	cd apps/api && poetry run pytest -v --tb=short --cov=api --cov-report=term-missing
 
 test-web: ## Run web tests
 	cd apps/web && pnpm test 2>/dev/null || echo "No web tests yet"
+
+test-mobile: ## Run mobile tests
+	cd apps/mobile && npx jest --passWithNoTests
 
 test-integration: ## Run integration tests (requires Docker)
 	docker compose -f docker-compose.test.yml up -d
@@ -71,6 +75,7 @@ coverage: ## Run tests with HTML coverage report
 lint: ## Run all linters
 	cd apps/api && poetry run ruff check .
 	cd apps/web && pnpm lint 2>/dev/null || true
+	cd apps/mobile && npx eslint src --ext .ts,.tsx 2>/dev/null || true
 
 format: ## Format all code
 	cd apps/api && poetry run ruff format .
@@ -78,7 +83,7 @@ format: ## Format all code
 
 # === Benchmarks ===
 benchmark: ## Run performance benchmarks
-	python scripts/benchmark/run_all.py
+	cd apps/api && poetry run python ../../scripts/benchmark/run_all.py
 
 # === Shell Access ===
 shell-api: ## Shell into API container
