@@ -1,5 +1,5 @@
 {
-  "current_phase": 0,
+  "current_phase": 1,
   "coverage_thresholds": {
     "api": { "line": 80, "branch": 70 },
     "web": { "line": 75, "branch": 65 },

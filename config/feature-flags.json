@@ -3,12 +3,12 @@
     "system_auth_enabled": { "enabled": true, "phase": 0, "type": "system", "description": "Authentication and session management" },
     "system_health_enabled": { "enabled": true, "phase": 0, "type": "system", "description": "Health check endpoints" },
     "system_admin_enabled": { "enabled": false, "phase": 0, "type": "system", "description": "Admin management endpoints" },
-    "today_enabled": { "enabled": false, "phase": 1, "type": "feature", "description": "Today page and cards" },
-    "recap_enabled": { "enabled": false, "phase": 1, "type": "feature", "description": "Daily/weekly recap summaries" },
-    "search_enabled": { "enabled": false, "phase": 1, "type": "feature", "description": "Full-text and semantic search" },
-    "calendar_import_enabled": { "enabled": false, "phase": 1, "type": "feature", "description": "Calendar event import" },
-    "reminders_import_enabled": { "enabled": false, "phase": 1, "type": "feature", "description": "Reminders import" },
-    "contacts_import_enabled": { "enabled": false, "phase": 1, "type": "feature", "description": "Contacts import" },
+    "today_enabled": { "enabled": true, "phase": 1, "type": "feature", "description": "Today page and cards" },
+    "recap_enabled": { "enabled": true, "phase": 1, "type": "feature", "description": "Daily/weekly recap summaries" },
+    "search_enabled": { "enabled": true, "phase": 1, "type": "feature", "description": "Full-text and semantic search" },
+    "calendar_import_enabled": { "enabled": true, "phase": 1, "type": "feature", "description": "Calendar event import" },
+    "reminders_import_enabled": { "enabled": true, "phase": 1, "type": "feature", "description": "Reminders import" },
+    "contacts_import_enabled": { "enabled": true, "phase": 1, "type": "feature", "description": "Contacts import" },
     "files_enabled": { "enabled": false, "phase": 2, "type": "feature", "description": "File ingestion and browsing" },
     "embeddings_enabled": { "enabled": false, "phase": 2, "type": "feature", "description": "Vector embeddings generation" },
     "semantic_search_enabled": { "enabled": false, "phase": 2, "type": "feature", "description": "Semantic vector search" },
@@ -18,6 +18,6 @@
     "face_clustering_enabled": { "enabled": false, "phase": 3, "type": "consent", "description": "Face detection and clustering" },
     "people_graph_enabled": { "enabled": false, "phase": 3, "type": "feature", "description": "People graph and relationships" },
     "pla_pack_enabled": { "enabled": false, "phase": 3, "type": "feature", "description": "PLA Pack integration" },
-    "write_through_enabled": { "enabled": false, "phase": 1, "type": "feature", "description": "Write-through to Apple frameworks" }
+    "write_through_enabled": { "enabled": true, "phase": 1, "type": "feature", "description": "Write-through to Apple frameworks" }
   }
 }
