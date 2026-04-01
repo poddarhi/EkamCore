@@ -8,6 +8,7 @@ from api.errors import FeatureDisabledError
 _ENABLED_FLAGS: set[str] = {
     "sources_management_enabled",
     "audit_log_enabled",
+    "today_enabled",
 }
 
 
