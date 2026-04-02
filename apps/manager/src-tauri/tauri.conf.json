@@ -1,0 +1,45 @@
+{
+  "productName": "EkamCore Manager",
+  "version": "0.1.0",
+  "identifier": "dev.ekamcore.manager",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "security": {
+      "csp": null
+    },
+    "windows": [
+      {
+        "title": "EkamCore Manager",
+        "width": 900,
+        "height": 640,
+        "minWidth": 700,
+        "minHeight": 500,
+        "resizable": true,
+        "decorations": true
+      }
+    ],
+    "macOSPrivateApi": false
+  },
+  "bundle": {
+    "active": false,
+    "targets": "all",
+    "icon": [],
+    "macOS": {
+      "entitlements": null,
+      "exceptionDomain": null,
+      "signingIdentity": null,
+      "providerShortName": null
+    }
+  },
+  "plugins": {
+    "shell": {
+      "all": false,
+      "open": true
+    }
+  }
+}
