@@ -1,6 +1,7 @@
 """Today card assembly: CalendarCardSource + ReminderCardSource + StatusCardSource."""
 
-from datetime import date, datetime, timedelta, timezone
+import time
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +25,8 @@ async def assemble_today(
         db: Database session.
         reference_dt: Override "now" (UTC). Defaults to datetime.now(UTC).
     """
+    t0 = time.perf_counter()
+
     now = reference_dt or datetime.now(timezone.utc)
     today = now.date()
 
@@ -38,7 +41,10 @@ async def assemble_today(
     all_cards: list[Card] = [*event_cards, *reminder_cards, status_card]
     all_cards.sort(key=lambda c: c.priority_score, reverse=True)
 
+    latency_ms = int((time.perf_counter() - t0) * 1000)
+
     return make_envelope(
         cards=all_cards,
         query_path="deterministic",
+        latency_ms=latency_ms,
     )

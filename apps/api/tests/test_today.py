@@ -433,6 +433,53 @@ async def test_today_endpoint_returns_envelope(
 
 
 @pytest.mark.asyncio
+async def test_today_envelope_full_shape(
+    client: AsyncClient, auth_tokens: dict
+):
+    """S04-006: Verify every field of the ResponseEnvelope is present and well-typed."""
+    ws_id = auth_tokens["workspace_id"]
+    response = await client.get(
+        f"/api/v1/today?workspace_id={ws_id}",
+        headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    # Top-level keys
+    assert set(data.keys()) >= {
+        "answer_text", "confidence_level", "sources", "cards",
+        "suggested_actions", "metadata",
+    }
+
+    # Field types and values
+    assert data["answer_text"] is None
+    assert data["confidence_level"] == "deterministic"
+    assert isinstance(data["sources"], list)
+    assert isinstance(data["cards"], list)
+    assert isinstance(data["suggested_actions"], list)
+
+    # Metadata shape
+    meta = data["metadata"]
+    assert meta["query_path"] == "deterministic"
+    assert isinstance(meta["latency_ms"], int) and meta["latency_ms"] >= 0
+    assert meta["is_partial"] is False
+    assert "cache_hint" in meta  # may be null
+
+    # Each card has required fields with correct types
+    for card in data["cards"]:
+        assert "type" in card
+        assert card["type"] in {
+            "event", "reminder", "status", "person",
+            "file", "photo", "suggestion", "pack",
+        }
+        assert "id" in card
+        assert isinstance(card["priority_score"], float | int)
+        assert card["priority_score"] >= 0.0
+        assert isinstance(card["source_ids"], list)
+        assert isinstance(card["payload"], dict)
+
+
+@pytest.mark.asyncio
 async def test_today_cards_sorted_by_priority_desc(
     client: AsyncClient,
     auth_tokens: dict,
