@@ -1,7 +1,11 @@
 """Internal API endpoints — not routed by Caddy, accessible within the container network only."""
 
+from typing import Literal
+from uuid import UUID
+
 import structlog
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.session import get_db
@@ -9,6 +13,7 @@ from api.schemas.calendar import CalendarIngestRequest, CalendarIngestResponse
 from api.schemas.contact import ContactIngestRequest, ContactIngestResponse
 from api.schemas.reminder import ReminderIngestRequest, ReminderIngestResponse
 from api.services.ingestion import calendar_sync, contact_sync, reminder_sync
+from api.services.ingestion.fs_handler import handle_fs_event, scan_source
 
 logger = structlog.get_logger()
 
@@ -75,3 +80,70 @@ async def ingest_contacts(
         unchanged=unchanged,
         trusted_persons_created=trusted_persons_created,
     )
+
+
+# ---------------------------------------------------------------------------
+# Filesystem event endpoints
+# ---------------------------------------------------------------------------
+
+
+class FsEventRequest(BaseModel):
+    source_id: UUID
+    event_type: Literal["created", "modified", "deleted", "renamed"]
+    path: str = Field(min_length=1, max_length=4096)
+    old_path: str | None = Field(None, max_length=4096)
+
+
+class FsScanRequest(BaseModel):
+    source_id: UUID
+
+
+@router.post("/fs-event", status_code=202)
+async def post_fs_event(
+    body: FsEventRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Receive a filesystem change event from the manager app.
+
+    Not exposed externally — Caddy does not route /api/v1/internal/*.
+    """
+    result = await handle_fs_event(
+        source_id=body.source_id,
+        event_type=body.event_type,
+        path=body.path,
+        old_path=body.old_path,
+        db=db,
+    )
+
+    logger.info(
+        "fs_event_received",
+        source_id=str(body.source_id),
+        event_type=body.event_type,
+        action=result.get("action"),
+    )
+    return result
+
+
+@router.post("/fs-scan", status_code=202)
+async def post_fs_scan(
+    body: FsScanRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Trigger a full filesystem scan for a source.
+
+    Compares the source path to the files table:
+    - New files → queued for ingestion
+    - Missing files → marked as deleted
+    - Existing files → untouched
+
+    Not exposed externally — Caddy does not route /api/v1/internal/*.
+    """
+    result = await scan_source(source_id=body.source_id, db=db)
+
+    logger.info(
+        "fs_scan_triggered",
+        source_id=str(body.source_id),
+        new=result.get("new"),
+        deleted=result.get("deleted"),
+    )
+    return result
