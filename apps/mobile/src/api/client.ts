@@ -62,6 +62,18 @@ export function registerRefreshCallback(
   refreshCallback = cb;
 }
 
+/** Extract the `exp` (seconds since epoch) from a JWT without verifying. */
+export function getTokenExp(token: string): number | null {
+  try {
+    const base64 = token.split('.')[1];
+    const decoded = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
+    const payload = JSON.parse(decoded);
+    return typeof payload.exp === 'number' ? payload.exp : null;
+  } catch {
+    return null;
+  }
+}
+
 async function parseError(res: Response): Promise<ApiError> {
   try {
     const body = await res.json();
