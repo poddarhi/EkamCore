@@ -1,12 +1,14 @@
-"""Query endpoint: deterministic pattern matching (Steps 1-2 of the query pipeline).
+"""Query endpoint: deterministic pattern matching + text search fallback.
 
 POST /api/v1/query
   Body: {query: str, workspace_id: UUID, prefer_fast: bool}
   Returns: ResponseEnvelope
 
-Step 1: Regex pattern match → if matched, run parameterized SQL
-Step 2: If no match → return empty with "I don't understand that query yet."
+Step 1: Regex pattern match → if matched, run parameterized SQL → deterministic
+Step 2: If no match → run text search across all types → high confidence
 """
+
+import time
 
 import structlog
 from fastapi import APIRouter, Depends
@@ -21,6 +23,7 @@ from api.schemas.envelope import ResponseEnvelope, make_envelope
 from api.schemas.query import QueryRequest
 from api.services.query.patterns import classify_query
 from api.services.query.router import route_deterministic
+from api.services.query.search import search_all
 
 logger = structlog.get_logger()
 
@@ -37,7 +40,8 @@ async def post_query(
 ) -> ResponseEnvelope:
     """Process a natural language query.
 
-    Currently implements Steps 1-2 (deterministic only).
+    Step 1: pattern match → deterministic SQL
+    Step 2: text search fallback → high confidence
     """
     if body.workspace_id not in user.workspace_ids:
         raise AuthorizationError(
@@ -56,14 +60,39 @@ async def post_query(
         )
         return await route_deterministic(intent, body.workspace_id, db)
 
-    # Step 2: no pattern match — future steps will handle semantic search / LLM
+    # Step 2: text search fallback
+    t0 = time.perf_counter()
+
+    cards, _facets = await search_all(
+        body.query,
+        body.workspace_id,
+        db,
+        limit=20,
+    )
+    latency_ms = int((time.perf_counter() - t0) * 1000)
+
+    if cards:
+        logger.info(
+            "query_search_fallback",
+            query_length=len(body.query),
+            workspace_id=str(body.workspace_id),
+            result_count=len(cards),
+        )
+        return make_envelope(
+            cards=cards,
+            confidence_level="high",
+            query_path="deterministic",
+            latency_ms=latency_ms,
+        )
+
+    # No results at all
     logger.info(
-        "query_no_pattern_match",
+        "query_no_results",
         query_length=len(body.query),
         workspace_id=str(body.workspace_id),
     )
     return make_envelope(
         answer_text="I don't understand that query yet.",
         query_path="deterministic",
-        latency_ms=0,
+        latency_ms=latency_ms,
     )

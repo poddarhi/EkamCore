@@ -11,6 +11,7 @@ _ENABLED_FLAGS: set[str] = {
     "today_enabled",
     "recap_enabled",
     "query_deterministic_enabled",
+    "search_basic_enabled",
 }
 
 
