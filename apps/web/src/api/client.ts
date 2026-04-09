@@ -143,3 +143,67 @@ export async function apiFetch<T = unknown>(
 /** SWR-compatible fetcher */
 export const swrFetcher = <T = unknown>(url: string): Promise<T> =>
   apiFetch<T>(url);
+
+// ── Response types ──
+
+export interface SourceRef {
+  type: "file" | "contact" | "event" | "reminder" | "photo" | "person";
+  id: string;
+  title: string;
+  relevance: number;
+}
+
+export interface SuggestedAction {
+  action_type: string;
+  label: string;
+  payload: Record<string, unknown>;
+}
+
+export interface ResponseMetadata {
+  query_path: "deterministic" | "semantic" | "small_model" | "large_model";
+  latency_ms: number;
+  is_partial: boolean;
+  cache_hint: { ttl_seconds: number } | null;
+}
+
+export interface EventPayload {
+  title: string;
+  start_at: string;
+  end_at: string | null;
+  is_all_day: boolean;
+  location: string | null;
+  calendar_name: string | null;
+  participants: string[];
+}
+
+export interface ReminderPayload {
+  title: string;
+  due_at: string | null;
+  priority: "high" | "medium" | "low" | "none" | null;
+  list_name: string | null;
+  notes: string | null;
+  is_overdue: boolean;
+}
+
+export interface StatusPayload {
+  date: string;
+  time_of_day: "morning" | "afternoon" | "evening" | "night";
+  weekday: string;
+}
+
+export interface Card {
+  type: "event" | "reminder" | "status" | "person" | "file" | "photo" | "suggestion" | "pack";
+  id: string;
+  priority_score: number;
+  source_ids: string[];
+  payload: EventPayload | ReminderPayload | StatusPayload | Record<string, unknown>;
+}
+
+export interface ResponseEnvelope {
+  answer_text: string | null;
+  confidence_level: "deterministic" | "high" | "medium" | "low";
+  sources: SourceRef[];
+  cards: Card[];
+  suggested_actions: SuggestedAction[];
+  metadata: ResponseMetadata;
+}
