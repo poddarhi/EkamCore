@@ -162,6 +162,8 @@ services:
       QDRANT_URL: ${QDRANT_URL:-http://ekamcore-qdrant:6333}
       QDRANT_API_KEY: ${QDRANT_API_KEY:-ekamcore_qdrant_dev}
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      PAPERLESS_URL: ${PAPERLESS_URL:-http://ekamcore-paperless:8000}
+      PAPERLESS_API_TOKEN: ${PAPERLESS_API_TOKEN}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-ekamcore-dev-jwt-secret-change-in-production}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -202,6 +204,8 @@ services:
       QDRANT_URL: ${QDRANT_URL:-http://ekamcore-qdrant:6333}
       QDRANT_API_KEY: ${QDRANT_API_KEY:-ekamcore_qdrant_dev}
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      PAPERLESS_URL: ${PAPERLESS_URL:-http://ekamcore-paperless:8000}
+      PAPERLESS_API_TOKEN: ${PAPERLESS_API_TOKEN}
       ENVIRONMENT: ${ENVIRONMENT:-development}
     networks:
       - ekamcore-net

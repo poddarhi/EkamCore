@@ -116,8 +116,8 @@ ollama-status: ## Show loaded Ollama models
 paperless-logs: ## Tail PaperlessNGX logs
 	docker compose logs -f ekamcore-paperless
 
-paperless-token: ## Create Paperless API token for admin
-	@docker compose exec ekamcore-paperless python3 manage.py create_api_token admin
+paperless-token: ## Create Paperless API token for admin (idempotent — returns existing token if already created)
+	@docker compose exec ekamcore-paperless python3 manage.py drf_create_token admin
 
 paperless-shell: ## Shell into PaperlessNGX container
 	docker compose exec ekamcore-paperless bash
