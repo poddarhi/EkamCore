@@ -264,3 +264,18 @@ export interface SearchResponse {
 }
 
 export type SearchType = "calendar" | "reminder" | "contact" | "all";
+
+// ── Health types ──
+
+export interface ServiceHealth {
+  status: "healthy" | "unhealthy";
+  error?: string;
+}
+
+export interface HealthResponse {
+  status: "healthy" | "degraded";
+  services: Record<string, ServiceHealth>;
+  version: string;
+  ram_mode: string;
+  note?: string;
+}
