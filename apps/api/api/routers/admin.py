@@ -1,4 +1,4 @@
-"""Admin endpoints: audit log query.
+"""Admin endpoints: audit log query, diagnostics export.
 
 All endpoints require:
   - Valid JWT (get_current_user)
@@ -11,6 +11,7 @@ from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +22,7 @@ from api.middleware.auth import get_current_user
 from api.middleware.feature_gate import require_flag
 from api.schemas.audit import AuditLogEntry, AuditLogPage
 from api.schemas.auth import CurrentUser
+from api.services.diagnostics import build_diagnostics_zip
 
 logger = structlog.get_logger()
 
@@ -94,4 +96,29 @@ async def list_audit_log(
         items=[AuditLogEntry.from_row(r) for r in rows],
         next_cursor=next_cursor,
         total_in_page=len(rows),
+    )
+
+
+@router.get("/diagnostics")
+async def get_diagnostics(
+    admin: CurrentUser = Depends(_require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Download a ZIP file containing system diagnostics.
+
+    Admin-only. Contains system info, service health, container stats,
+    audit log summary (counts only), and sanitized error logs.
+    All PII is stripped before inclusion.
+    """
+    zip_bytes = await build_diagnostics_zip(db)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"ekamcore_diagnostics_{timestamp}.zip"
+
+    logger.info("diagnostics_downloaded", admin_user_id=str(admin.id))
+
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
