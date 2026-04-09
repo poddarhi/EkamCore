@@ -9,6 +9,7 @@ _ENABLED_FLAGS: set[str] = {
     "sources_management_enabled",
     "audit_log_enabled",
     "today_enabled",
+    "recap_enabled",
 }
 
 
