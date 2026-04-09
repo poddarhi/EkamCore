@@ -249,3 +249,18 @@ export interface ResponseEnvelope {
   suggested_actions: SuggestedAction[];
   metadata: ResponseMetadata;
 }
+
+// ── Search types ──
+
+export interface PaginationInfo {
+  cursor: number;
+  has_more: boolean;
+}
+
+export interface SearchResponse {
+  data: Card[];
+  pagination: PaginationInfo;
+  facets: Record<string, number>;
+}
+
+export type SearchType = "calendar" | "reminder" | "contact" | "all";

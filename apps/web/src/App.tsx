@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import TodayPage from "./pages/TodayPage";
+import SearchPage from "./pages/SearchPage";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -41,7 +42,7 @@ function AppRoutes() {
       >
         <Route path="/today" element={<TodayPage />} />
         <Route path="/recap" element={<PlaceholderPage title="Recap" />} />
-        <Route path="/search" element={<PlaceholderPage title="Search" />} />
+        <Route path="/search" element={<SearchPage />} />
         <Route
           path="/people"
           element={<PlaceholderPage title="People" disabled />}
