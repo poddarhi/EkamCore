@@ -8,6 +8,7 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import TodayPage from "./pages/TodayPage";
 import SearchPage from "./pages/SearchPage";
 import SystemStatusPage from "./pages/SystemStatusPage";
+import RecapPage from "./pages/RecapPage";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -42,7 +43,7 @@ function AppRoutes() {
         }
       >
         <Route path="/today" element={<TodayPage />} />
-        <Route path="/recap" element={<PlaceholderPage title="Recap" />} />
+        <Route path="/recap" element={<RecapPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route
           path="/people"
