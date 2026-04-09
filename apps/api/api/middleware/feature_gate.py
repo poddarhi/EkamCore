@@ -10,6 +10,7 @@ _ENABLED_FLAGS: set[str] = {
     "audit_log_enabled",
     "today_enabled",
     "recap_enabled",
+    "query_deterministic_enabled",
 }
 
 
