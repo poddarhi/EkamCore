@@ -51,13 +51,11 @@ async def _check_qdrant() -> dict[str, Any]:
 
 
 async def _check_paperless() -> dict[str, Any]:
-    """Check PaperlessNGX connectivity (optional — does not degrade core)."""
+    """Check PaperlessNGX via the typed API client (validates token too)."""
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get("http://ekamcore-paperless:8000/api/", timeout=5.0)
-            if resp.status_code in (200, 301, 302, 401, 403):
-                return {"status": "healthy"}
-            return {"status": "unhealthy", "error": f"status_{resp.status_code}"}
+        from api.services.paperless.client import get_paperless_client
+        ok = await get_paperless_client().health_check()
+        return {"status": "healthy" if ok else "unhealthy"}
     except Exception as e:
         logger.warning("paperless_health_failed", error_type=type(e).__name__)
         return {"status": "unhealthy", "error": type(e).__name__}

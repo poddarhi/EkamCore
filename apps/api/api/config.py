@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     # Ollama
     OLLAMA_URL: str = "http://localhost:11434"
 
+    # Paperless
+    PAPERLESS_URL: str = "http://ekamcore-paperless:8000/api"
+    PAPERLESS_API_TOKEN: str = ""
+
     # JWT
     JWT_SECRET_KEY: str = "ekamcore-dev-jwt-secret-change-in-production"
     JWT_ALGORITHM: str = "HS256"
