@@ -1,11 +1,14 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Card, Input } from "../design-system/components";
 import { useAuth } from "../contexts/AuthContext";
 import { ApiError, getUserMessage } from "../api/client";
 
+/** Default lockout countdown when the server doesn't provide one. */
+const DEFAULT_LOCKOUT_SECS = 60;
+
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -13,12 +16,45 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
+  const lockoutTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const returnTo = searchParams.get("returnTo") ?? "/today";
+
+  // If already authenticated (e.g. navigated back to /login), redirect
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(returnTo, { replace: true });
+    }
+  }, [isAuthenticated, navigate, returnTo]);
+
+  // Countdown timer for account lockout
+  useEffect(() => {
+    if (lockoutRemaining <= 0) {
+      if (lockoutTimer.current) {
+        clearInterval(lockoutTimer.current);
+        lockoutTimer.current = null;
+      }
+      return;
+    }
+    lockoutTimer.current = setInterval(() => {
+      setLockoutRemaining((prev) => {
+        if (prev <= 1) {
+          setError(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (lockoutTimer.current) clearInterval(lockoutTimer.current);
+    };
+  }, [lockoutRemaining]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setLockoutRemaining(0);
     setLoading(true);
 
     try {
@@ -26,7 +62,12 @@ export default function LoginPage() {
       navigate(returnTo, { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(getUserMessage(err.errorCode));
+        if (err.errorCode === "AUTH_ACCOUNT_LOCKED") {
+          setLockoutRemaining(DEFAULT_LOCKOUT_SECS);
+          setError(getUserMessage(err.errorCode));
+        } else {
+          setError(getUserMessage(err.errorCode));
+        }
       } else {
         setError("Unable to connect. Check that the server is running.");
       }
@@ -34,6 +75,8 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  const isLocked = lockoutRemaining > 0;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--color-neutral-50)] px-4">
@@ -57,6 +100,11 @@ export default function LoginPage() {
                 className="px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-error-surface)] text-[var(--color-error)] text-[var(--text-small-size)] leading-[var(--text-small-height)]"
               >
                 {error}
+                {isLocked && (
+                  <span className="ml-1 font-medium">
+                    Try again in {lockoutRemaining}s.
+                  </span>
+                )}
               </div>
             )}
 
@@ -69,6 +117,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              disabled={loading || isLocked}
             />
 
             <Input
@@ -79,6 +128,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              disabled={loading || isLocked}
             />
 
             {/* Submit */}
@@ -87,6 +137,7 @@ export default function LoginPage() {
               variant="primary"
               size="lg"
               loading={loading}
+              disabled={isLocked}
               className="w-full"
             >
               Sign in

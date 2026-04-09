@@ -36,6 +36,30 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
+// ── Auth state sync (AuthContext registers these) ──
+type AuthChangeHandler = (token: string) => void;
+type AuthFailHandler = () => void;
+
+let _onTokenRefreshed: AuthChangeHandler | null = null;
+let _onRefreshFailed: AuthFailHandler | null = null;
+
+/**
+ * Called by AuthContext on mount so the client can notify it
+ * when a 401-triggered refresh succeeds or fails.
+ */
+export function registerAuthCallbacks(
+  onRefreshed: AuthChangeHandler,
+  onFailed: AuthFailHandler,
+) {
+  _onTokenRefreshed = onRefreshed;
+  _onRefreshFailed = onFailed;
+}
+
+export function unregisterAuthCallbacks() {
+  _onTokenRefreshed = null;
+  _onRefreshFailed = null;
+}
+
 // ── Error code → user-friendly message ──
 const ERROR_MESSAGES: Record<string, string> = {
   AUTH_INVALID_CREDENTIALS: "Invalid email or password.",
@@ -95,11 +119,16 @@ async function attemptRefresh(): Promise<boolean> {
       method: "POST",
       credentials: "include",
     });
-    if (!res.ok) return false;
+    if (!res.ok) {
+      _onRefreshFailed?.();
+      return false;
+    }
     const data = await res.json();
     accessToken = data.access_token;
+    _onTokenRefreshed?.(data.access_token);
     return true;
   } catch {
+    _onRefreshFailed?.();
     return false;
   }
 }
@@ -143,6 +172,19 @@ export async function apiFetch<T = unknown>(
 /** SWR-compatible fetcher */
 export const swrFetcher = <T = unknown>(url: string): Promise<T> =>
   apiFetch<T>(url);
+
+// ── JWT helpers ──
+
+/** Extract the `exp` (seconds since epoch) from a JWT without verifying. */
+export function getTokenExp(token: string): number | null {
+  try {
+    const base64 = token.split(".")[1];
+    const payload = JSON.parse(atob(base64));
+    return typeof payload.exp === "number" ? payload.exp : null;
+  } catch {
+    return null;
+  }
+}
 
 // ── Response types ──
 
