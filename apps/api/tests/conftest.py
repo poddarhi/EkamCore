@@ -104,19 +104,31 @@ async def auth_tokens(client: AsyncClient, seed_user: dict) -> dict:
 
 @pytest.fixture(autouse=True)
 def mock_rate_limiter_redis():
-    """Auto-mock the rate_limiter Redis client so tests don't need a running Redis.
+    """Auto-mock all Redis clients used by auth and rate-limiting so unit tests
+    don't need a running Redis instance.
 
-    Individual tests (e.g. test_bruteforce.py) can override this by patching
-    get_redis themselves with specific return values.
+    Mocks three call sites:
+      - api.services.rate_limiter.get_redis  (brute-force counters)
+      - api.middleware.auth.get_redis         (session revocation blocklist check)
+      - api.services.auth.get_redis           (blocklist write on logout)
+
+    Individual tests (e.g. test_bruteforce.py) can override the rate_limiter
+    patch by patching get_redis themselves with specific return values.
+    The mock returns None for .get() (no revoked sessions, no failures by default).
     """
     mock = AsyncMock()
-    mock.get = AsyncMock(return_value=None)  # no failures by default
+    mock.get = AsyncMock(return_value=None)  # no failures, no revoked sessions
     mock.delete = AsyncMock()
+    mock.setex = AsyncMock()
     pipe = Mock()
     pipe.incr = Mock(return_value=pipe)
     pipe.expire = Mock(return_value=pipe)
     pipe.execute = AsyncMock(return_value=[1, True])
     mock.pipeline = Mock(return_value=pipe)
 
-    with patch("api.services.rate_limiter.get_redis", return_value=mock):
+    with (
+        patch("api.services.rate_limiter.get_redis", return_value=mock),
+        patch("api.middleware.auth.get_redis", return_value=mock),
+        patch("api.services.auth.get_redis", return_value=mock),
+    ):
         yield mock

@@ -17,6 +17,7 @@ from api.db.models.user import User
 from api.db.models.workspace_member import WorkspaceMember
 from api.errors import AuthenticationError
 from api.services import audit
+from api.services.redis_client import REDIS_DB_SESSIONS, get_redis
 
 logger = structlog.get_logger()
 
@@ -227,7 +228,12 @@ async def refresh(refresh_token: str, db: AsyncSession) -> tuple[str, str, int]:
 
 
 async def logout(session_id: UUID, db: AsyncSession) -> None:
-    """Revoke the session identified by the JWT jti claim."""
+    """Revoke the session identified by the JWT jti claim.
+
+    Sets is_revoked=True in PostgreSQL AND writes the jti to a Redis blocklist
+    so that any access tokens already issued for this session are immediately
+    rejected by the auth middleware, even within their 15-minute JWT window.
+    """
     result = await db.execute(select(Session).where(Session.id == session_id))
     session = result.scalar_one_or_none()
 
@@ -240,6 +246,10 @@ async def logout(session_id: UUID, db: AsyncSession) -> None:
             user_id=session.user_id,
             db=db,
         )
+        # Write jti to Redis blocklist so the middleware rejects it immediately.
+        # TTL matches the access token expiry — no reads needed after that.
+        ttl_seconds = settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        await get_redis(REDIS_DB_SESSIONS).setex(f"revoked:{session_id}", ttl_seconds, "1")
         logger.info("auth_logout_success", user_id=str(session.user_id), session_id=str(session_id))
     else:
         logger.info("auth_logout_already_revoked", session_id=str(session_id))
