@@ -12,6 +12,7 @@ _ENABLED_FLAGS: set[str] = {
     "recap_enabled",
     "query_deterministic_enabled",
     "search_basic_enabled",
+    "write_through_enabled",
 }
 
 
