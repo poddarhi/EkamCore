@@ -13,6 +13,7 @@ from api.db.models.contact import Contact
 from api.db.models.reminder import Reminder
 from api.db.models.audit_log import AuditLog
 from api.db.models.correspondent_candidate import CorrespondentContactCandidate
+from api.db.models.photo_asset import PhotoAsset
 
 __all__ = [
     "Base",
@@ -30,4 +31,5 @@ __all__ = [
     "Reminder",
     "AuditLog",
     "CorrespondentContactCandidate",
+    "PhotoAsset",
 ]
