@@ -173,11 +173,19 @@ def test_pattern_photo_date_last_week():
     assert intent.params["date_ref"] == "last week"
 
 
-def test_pattern_photo_date_year():
-    intent = classify_query("photos from 2024")
+def test_pattern_photo_date_today():
+    intent = classify_query("photos from today")
     assert intent is not None
     assert intent.intent_type == "photo_date"
-    assert intent.params["date_ref"] == "2024"
+    assert intent.params["date_ref"] == "today"
+
+
+def test_pattern_photo_date_year_routes_to_location():
+    # "photos from 2024" is not a handled date ref — falls through to photo_location
+    intent = classify_query("photos from 2024")
+    # Either photo_location or None — must NOT be photo_date (would silently ignore the year)
+    if intent is not None:
+        assert intent.intent_type != "photo_date"
 
 
 def test_pattern_photo_location():

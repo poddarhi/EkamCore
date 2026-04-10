@@ -404,10 +404,12 @@ _PATTERNS: list[tuple[re.Pattern, IntentType, callable]] = [
     # PHOTOS
     # ══════════════════════════════════════════════════════════════════════
 
-    # photo_date: "photos from last week" / "photos from 2024" / "photo from yesterday"
+    # photo_date: "photos from last week" / "photo from yesterday"
+    # Restricted to refs that parse_date_reference handles. "last month"/"this month"/year
+    # are excluded because parse_date_reference returns None for them, causing silent
+    # degradation to an unfiltered search.
     (re.compile(
-        r"photos?\s+from\s+(?P<date_ref>"
-        r"yesterday|today|last week|last month|this week|this month|\d{4})",
+        r"photos?\s+from\s+(?P<date_ref>yesterday|today|last week|this week)\b",
         re.I,
     ), "photo_date", _photo_date),
 
@@ -415,9 +417,10 @@ _PATTERNS: list[tuple[re.Pattern, IntentType, callable]] = [
     (re.compile(r"photos?\s+(?:in|from|near|at)\s+(?P<location>.+)", re.I),
      "photo_location", _photo_location),
 
-    # photo_camera: "photos with iPhone" / "photos taken with Canon" / "photos from Nikon camera"
+    # photo_camera: "photos with iPhone" / "photos taken with Canon"
+    # 'from' intentionally excluded — it conflicts with photo_location above.
     (re.compile(
-        r"photos?\s+(?:with|taken with|from|shot with)\s+(?P<camera>.+?)(?:\s+camera|\s+phone|\s+iphone)?\s*$",
+        r"photos?\s+(?:with|taken with|shot with)\s+(?P<camera>.+?)(?:\s+camera|\s+phone|\s+iphone)?\s*$",
         re.I,
     ), "photo_camera", _photo_camera),
 ]
