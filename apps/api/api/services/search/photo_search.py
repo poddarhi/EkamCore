@@ -25,7 +25,7 @@ class PhotoFilters:
     date_from: datetime | None = None
     date_to: datetime | None = None
     location_contains: str | None = None    # ILIKE on location_name
-    camera: str | None = None               # ILIKE on make || ' ' || model
+    camera: str | None = None               # ILIKE on camera_make OR camera_model separately
     has_gps: bool | None = None
 
 
@@ -35,6 +35,8 @@ def _build_filters(
     filters: PhotoFilters,
 ):
     """Build a list of SQLAlchemy filter clauses."""
+    # These two are unconditional — clauses is never empty going into and_(*clauses).
+    # and_() with zero args produces true(), which would bypass workspace isolation.
     clauses = [
         PhotoAsset.workspace_id.in_(workspace_ids),
         PhotoAsset.deleted_at.is_(None),
