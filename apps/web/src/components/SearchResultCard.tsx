@@ -1,6 +1,8 @@
 import { Calendar, CheckCircle, User } from "lucide-react";
 import { Card, Badge } from "../design-system/components";
-import type { Card as CardType, EventPayload, ReminderPayload } from "../api/client";
+import type { Card as CardType, EventPayload, ReminderPayload, FilePayload, PhotoPayload } from "../api/client";
+import FileCard from "./cards/FileCard";
+import PhotoCard from "./cards/PhotoCard";
 
 interface SearchResultCardProps {
   card: CardType;
@@ -46,6 +48,13 @@ function formatTime(iso: string): string {
 }
 
 export default function SearchResultCard({ card, query }: SearchResultCardProps) {
+  if (card.type === "file") {
+    return <FileCard id={card.id} payload={card.payload as FilePayload} query={query} />;
+  }
+  if (card.type === "photo") {
+    return <PhotoCard id={card.id} payload={card.payload as PhotoPayload} />;
+  }
+
   const Icon = TYPE_ICONS[card.type as keyof typeof TYPE_ICONS] ?? Calendar;
   const typeLabel = TYPE_LABELS[card.type] ?? card.type;
   const iconColor = TYPE_COLORS[card.type] ?? "text-[var(--color-neutral-500)]";
@@ -103,8 +112,8 @@ export default function SearchResultCard({ card, query }: SearchResultCardProps)
           const p = card.payload as Record<string, unknown>;
           return (
             <div className="flex items-center gap-[var(--space-3)]">
-              {p.organization && <span>{p.organization as string}</span>}
-              {p.job_title && <span>{p.job_title as string}</span>}
+              {typeof p.organization === "string" && <span>{p.organization}</span>}
+              {typeof p.job_title === "string" && <span>{p.job_title}</span>}
             </div>
           );
         })()}

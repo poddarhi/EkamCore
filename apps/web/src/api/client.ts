@@ -263,7 +263,29 @@ export interface SearchResponse {
   facets: Record<string, number>;
 }
 
-export type SearchType = "calendar" | "reminder" | "contact" | "all";
+export type SearchType = "calendar" | "reminder" | "contact" | "file" | "photo" | "all";
+
+export interface FilePayload {
+  filename?: string | null;
+  path?: string | null;
+  snippet?: string | null;        // highlighted content excerpt
+  correspondent?: string | null;
+  tags?: string[];
+  document_type?: string | null;
+  modified_date?: string | null;
+  paperless_id?: number | string | null;
+  mime_type?: string | null;
+}
+
+export interface PhotoPayload {
+  photo_id?: string | null;
+  thumbnail_url?: string | null;
+  taken_at?: string | null;
+  location_name?: string | null;
+  camera?: string | null;
+  width?: number | null;
+  height?: number | null;
+}
 
 // ── Health types ──
 

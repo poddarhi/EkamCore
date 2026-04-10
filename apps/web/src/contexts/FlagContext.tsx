@@ -16,8 +16,8 @@ const PHASE_0_FLAGS: Flags = {
   recap_enabled: true,
   search_enabled: true,
   people_enabled: false,
-  photos_enabled: false,
-  files_enabled: false,
+  photos_enabled: true,
+  files_enabled: true,
   settings_enabled: true,
 };
 
