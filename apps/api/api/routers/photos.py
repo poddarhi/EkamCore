@@ -9,6 +9,8 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import UUID
 
+import anyio
+
 import structlog
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
@@ -89,12 +91,12 @@ async def get_photo_thumbnail(
     if not photo.thumbnail_path:
         raise NotFoundError(error_code="THUMBNAIL_NOT_FOUND", message="Thumbnail not yet generated.")
 
-    thumb_path = Path(settings.THUMBNAIL_DIR) / photo.thumbnail_path
-    if not thumb_path.exists():
+    thumb_path = anyio.Path(settings.THUMBNAIL_DIR) / photo.thumbnail_path
+    if not await thumb_path.exists():
         raise NotFoundError(error_code="THUMBNAIL_NOT_FOUND", message="Thumbnail file missing.")
 
     return Response(
-        content=thumb_path.read_bytes(),
+        content=await thumb_path.read_bytes(),
         media_type="image/jpeg",
         headers={"Cache-Control": "max-age=86400"},
     )
