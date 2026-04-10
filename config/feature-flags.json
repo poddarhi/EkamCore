@@ -20,6 +20,7 @@
     "people_graph_enabled": { "enabled": false, "phase": 3, "type": "feature", "description": "People graph and relationships" },
     "pla_pack_enabled": { "enabled": false, "phase": 3, "type": "feature", "description": "PLA Pack integration" },
     "write_through_enabled": { "enabled": true, "phase": 1, "type": "feature", "description": "Write-through to Apple frameworks" },
-    "audit_log_enabled": { "enabled": true, "phase": 1, "type": "system", "description": "Append-only audit log for security-relevant events" }
+    "audit_log_enabled": { "enabled": true, "phase": 1, "type": "system", "description": "Append-only audit log for security-relevant events" },
+    "photo_dedup_enabled": { "enabled": true, "phase": 2, "type": "feature", "description": "SHA-256 exact and pHash near-duplicate photo detection" }
   }
 }

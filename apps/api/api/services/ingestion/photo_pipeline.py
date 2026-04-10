@@ -40,7 +40,7 @@ from api.services.ingestion.photo_extractor import (
     extract_metadata,
     generate_thumbnail,
 )
-from api.services.ingestion.state_machine import advance_stage, fail_stage
+from api.services.ingestion.state_machine import advance_stage, fail_stage, skip_file
 
 logger = structlog.get_logger()
 
@@ -145,6 +145,7 @@ async def ingest_photo(
             file_row.is_duplicate = True
             file_row.duplicate_of_id = duplicate.id
             file_row.content_hash_sha256 = content_hash
+            await skip_file(file_id, "DISCOVERED", db)
             await db.commit()
             logger.info("photo_pipeline_duplicate", file_id=str(file_id))
             return {"status": "duplicate_skipped", "file_id": str(file_id)}

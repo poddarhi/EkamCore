@@ -271,3 +271,55 @@ async def trigger_photo_ingest(body: PhotoIngestRequest) -> dict:
     asyncio.create_task(_run_photo_ingest(body.source_id, body.file_path))
     logger.info("photo_ingest_triggered", source_id=str(body.source_id))
     return {"status": "ingestion_started", "source_id": str(body.source_id)}
+
+
+# ---------------------------------------------------------------------------
+# Near-duplicate photo detection endpoint
+# ---------------------------------------------------------------------------
+
+
+class FindPhotoDuplicatesRequest(BaseModel):
+    workspace_id: UUID
+    threshold: int = Field(5, ge=0, le=64, description="Max Hamming distance for near-duplicates")
+
+
+@router.post("/photos/find-duplicates", status_code=200)
+async def find_photo_duplicates(
+    body: FindPhotoDuplicatesRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Scan workspace photos for near-duplicates and return SuggestionCards.
+
+    Uses pHash Hamming distance — photos within `threshold` bits are grouped.
+    Does NOT delete anything; returns review suggestions only.
+    Not exposed externally — Caddy does not route /api/v1/internal/*.
+    """
+    from api.services.ingestion.dedup_photos import scan_for_near_duplicates
+    from uuid import uuid4 as _uuid4
+
+    groups = await scan_for_near_duplicates(
+        workspace_id=body.workspace_id,
+        threshold=body.threshold,
+        db=db,
+    )
+
+    cards = []
+    for group in groups:
+        cards.append({
+            "type": "suggestion",
+            "id": str(_uuid4()),
+            "priority_score": 0.6,
+            "source_ids": [str(pid) for pid in group],
+            "payload": {
+                "suggestion_type": "duplicate_photos",
+                "group": [str(pid) for pid in group],
+                "action": "review",
+            },
+        })
+
+    logger.info(
+        "photo_duplicate_scan_complete",
+        workspace_id=str(body.workspace_id),
+        group_count=len(groups),
+    )
+    return {"groups": len(groups), "cards": cards}
