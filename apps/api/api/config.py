@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
 
+    # Photo thumbnails
+    THUMBNAIL_DIR: str = "./data/thumbnails"
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 
