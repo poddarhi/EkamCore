@@ -578,6 +578,8 @@ async def test_search_all_includes_file_type_by_default():
               new_callable=AsyncMock, return_value=[file_card]),
         patch("api.services.query.search.count_files",
               new_callable=AsyncMock, return_value=1),
+        patch("api.services.query.search.search_photos",
+              new_callable=AsyncMock, return_value=([], 0)),
     ):
         cards, facets = await search_all("invoice", workspace_id, db)
 
@@ -637,6 +639,8 @@ async def test_search_all_cross_type_sort_by_score():
               new_callable=AsyncMock, return_value=[file_card]),
         patch("api.services.query.search.count_files",
               new_callable=AsyncMock, return_value=1),
+        patch("api.services.query.search.search_photos",
+              new_callable=AsyncMock, return_value=([], 0)),
     ):
         cards, _ = await search_all("invoice", workspace_id, db)
 
