@@ -4,6 +4,7 @@
        shell-api shell-db shell-redis \
        ollama-start ollama-stop ollama-status \
        paperless-logs paperless-token paperless-shell \
+       backup restore backup-list \
        dev-api dev-web help
 
 # === Setup ===
@@ -121,6 +122,29 @@ paperless-token: ## Create Paperless API token for admin (idempotent — returns
 
 paperless-shell: ## Shell into PaperlessNGX container
 	docker compose exec ekamcore-paperless bash
+
+# === Backup / Restore ===
+backup: ## Run backup (pg_dump + Qdrant snapshots + Paperless export + config)
+	@BACKUP_DIR="${EKAMCORE_BACKUP_DIR:-/backups}" bash infra/backup/backup.sh
+
+restore: ## Restore from backup (usage: make restore BACKUP_PATH=/backups/2026-04-10_02-00-00)
+	@if [ -z "$(BACKUP_PATH)" ]; then \
+		echo "ERROR: BACKUP_PATH is required. Usage: make restore BACKUP_PATH=/backups/2026-04-10_02-00-00"; \
+		exit 1; \
+	fi
+	bash infra/backup/restore.sh "$(BACKUP_PATH)"
+
+backup-list: ## List available backups with sizes
+	@BACKUP_DIR="${EKAMCORE_BACKUP_DIR:-/backups}"; \
+	if [ ! -d "$$BACKUP_DIR" ]; then \
+		echo "No backups directory found at $$BACKUP_DIR"; \
+		exit 0; \
+	fi; \
+	echo "Available backups in $$BACKUP_DIR:"; \
+	ls -lt "$$BACKUP_DIR" | grep "^d" | awk '{print $$NF}' | while read -r dir; do \
+		size=$$(du -sh "$$BACKUP_DIR/$$dir" 2>/dev/null | cut -f1); \
+		echo "  $$dir  ($$size)"; \
+	done
 
 # === Local Development (without Docker) ===
 dev-api: ## Run API in dev mode (local, no Docker)
