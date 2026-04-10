@@ -25,6 +25,9 @@ IntentType = Literal[
     "contact_field",
     "count_query",
     "recent_query",
+    "photo_date",
+    "photo_location",
+    "photo_camera",
 ]
 
 
@@ -120,6 +123,15 @@ def _count(m: re.Match) -> dict[str, str]:
 
 def _recent(m: re.Match) -> dict[str, str]:
     return {"entity": m.group("entity").strip().lower()}
+
+def _photo_date(m: re.Match) -> dict[str, str]:
+    return {"date_ref": m.group("date_ref").strip()}
+
+def _photo_location(m: re.Match) -> dict[str, str]:
+    return {"location": m.group("location").strip()}
+
+def _photo_camera(m: re.Match) -> dict[str, str]:
+    return {"camera": m.group("camera").strip()}
 
 
 # ---------------------------------------------------------------------------
@@ -387,6 +399,27 @@ _PATTERNS: list[tuple[re.Pattern, IntentType, callable]] = [
     # 53. "anything due this week"
     (re.compile(rf"anything (?:due|coming up) {_DATE_REF_SIMPLE}", re.I),
      "reminders_range", _date_ref),
+
+    # ══════════════════════════════════════════════════════════════════════
+    # PHOTOS
+    # ══════════════════════════════════════════════════════════════════════
+
+    # photo_date: "photos from last week" / "photos from 2024" / "photo from yesterday"
+    (re.compile(
+        r"photos?\s+from\s+(?P<date_ref>"
+        r"yesterday|today|last week|last month|this week|this month|\d{4})",
+        re.I,
+    ), "photo_date", _photo_date),
+
+    # photo_location: "photos in Paris" / "photos near home" / "photos from Tokyo"
+    (re.compile(r"photos?\s+(?:in|from|near|at)\s+(?P<location>.+)", re.I),
+     "photo_location", _photo_location),
+
+    # photo_camera: "photos with iPhone" / "photos taken with Canon" / "photos from Nikon camera"
+    (re.compile(
+        r"photos?\s+(?:with|taken with|from|shot with)\s+(?P<camera>.+?)(?:\s+camera|\s+phone|\s+iphone)?\s*$",
+        re.I,
+    ), "photo_camera", _photo_camera),
 ]
 
 

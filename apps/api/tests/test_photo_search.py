@@ -159,3 +159,50 @@ async def test_search_photos_no_camera_returns_none():
     )
 
     assert cards[0].payload["camera"] is None
+
+
+# ── Pattern classification tests ──────────────────────────────────────────────
+
+from api.services.query.patterns import classify_query
+
+
+def test_pattern_photo_date_last_week():
+    intent = classify_query("photos from last week")
+    assert intent is not None
+    assert intent.intent_type == "photo_date"
+    assert intent.params["date_ref"] == "last week"
+
+
+def test_pattern_photo_date_year():
+    intent = classify_query("photos from 2024")
+    assert intent is not None
+    assert intent.intent_type == "photo_date"
+    assert intent.params["date_ref"] == "2024"
+
+
+def test_pattern_photo_location():
+    intent = classify_query("photos in Paris")
+    assert intent is not None
+    assert intent.intent_type == "photo_location"
+    assert intent.params["location"] == "Paris"
+
+
+def test_pattern_photo_location_near():
+    intent = classify_query("photos near home")
+    assert intent is not None
+    assert intent.intent_type == "photo_location"
+    assert intent.params["location"] == "home"
+
+
+def test_pattern_photo_camera():
+    intent = classify_query("photos with iPhone")
+    assert intent is not None
+    assert intent.intent_type == "photo_camera"
+    assert "iphone" in intent.params["camera"].lower()
+
+
+def test_pattern_photo_camera_brand():
+    intent = classify_query("photos taken with Canon")
+    assert intent is not None
+    assert intent.intent_type == "photo_camera"
+    assert "canon" in intent.params["camera"].lower()

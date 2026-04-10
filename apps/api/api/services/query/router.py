@@ -33,6 +33,7 @@ from api.schemas.envelope import (
 )
 from api.services.query.date_parser import parse_date_reference
 from api.services.query.patterns import QueryIntent, classify_query
+from api.services.search.photo_search import PhotoFilters, search_photos
 
 logger = structlog.get_logger()
 
@@ -482,6 +483,66 @@ async def _handle_recent_query(
 
 
 # ---------------------------------------------------------------------------
+# Photo handlers
+# ---------------------------------------------------------------------------
+
+
+async def _handle_photo_date(
+    params: dict[str, str],
+    workspace_id: UUID,
+    db: AsyncSession,
+) -> list[Card]:
+    date_ref = params.get("date_ref", "today")
+    bounds = parse_date_reference(date_ref)
+    date_from = bounds[0] if bounds else None
+    date_to = bounds[1] if bounds else None
+
+    cards, _ = await search_photos(
+        workspace_ids=[workspace_id],
+        query="",
+        filters=PhotoFilters(date_from=date_from, date_to=date_to),
+        limit=20,
+        offset=0,
+        db=db,
+    )
+    return cards
+
+
+async def _handle_photo_location(
+    params: dict[str, str],
+    workspace_id: UUID,
+    db: AsyncSession,
+) -> list[Card]:
+    location = params.get("location", "")
+    cards, _ = await search_photos(
+        workspace_ids=[workspace_id],
+        query="",
+        filters=PhotoFilters(location_contains=location),
+        limit=20,
+        offset=0,
+        db=db,
+    )
+    return cards
+
+
+async def _handle_photo_camera(
+    params: dict[str, str],
+    workspace_id: UUID,
+    db: AsyncSession,
+) -> list[Card]:
+    camera = params.get("camera", "")
+    cards, _ = await search_photos(
+        workspace_ids=[workspace_id],
+        query="",
+        filters=PhotoFilters(camera=camera),
+        limit=20,
+        offset=0,
+        db=db,
+    )
+    return cards
+
+
+# ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
 
@@ -497,6 +558,9 @@ _HANDLERS = {
     "contact_field": _handle_contact_field,
     "count_query": _handle_count_query,
     "recent_query": _handle_recent_query,
+    "photo_date": _handle_photo_date,
+    "photo_location": _handle_photo_location,
+    "photo_camera": _handle_photo_camera,
 }
 
 
