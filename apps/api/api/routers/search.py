@@ -33,11 +33,12 @@ router = APIRouter(prefix="/api/v1/search", tags=["search"])
 async def get_search(
     q: str = Query(..., min_length=1, max_length=200, description="Search query"),
     workspace_id: UUID = Query(..., description="Workspace to search"),
-    type: Literal["calendar", "reminder", "contact", "file", "all"] = Query(
+    type: Literal["calendar", "reminder", "contact", "file", "photo", "all"] = Query(
         "all", description="Type filter"
     ),
     date_from: datetime | None = Query(None, description="Filter events from this date"),
     date_to: datetime | None = Query(None, description="Filter events to this date"),
+    has_gps: bool | None = Query(None, description="Filter photos with GPS coordinates"),
     per_page: int = Query(20, ge=1, le=100, description="Results per page"),
     cursor: int = Query(0, ge=0, description="Offset cursor for pagination"),
     user: CurrentUser = Depends(get_current_user),
@@ -63,6 +64,7 @@ async def get_search(
         types=types,
         date_from=date_from,
         date_to=date_to,
+        has_gps=has_gps,
         limit=per_page + 1,  # Fetch one extra to detect has_more
         offset=cursor,
     )

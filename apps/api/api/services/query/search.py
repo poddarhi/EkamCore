@@ -18,6 +18,7 @@ import structlog
 from sqlalchemy import and_, or_, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.services.search.photo_search import PhotoFilters, search_photos
 from api.db.models.calendar_event import CalendarEvent
 from api.db.models.contact import Contact
 from api.db.models.reminder import Reminder
@@ -25,7 +26,7 @@ from api.schemas.envelope import Card, EventCard, FileCard, PersonCard, Reminder
 
 logger = structlog.get_logger()
 
-SearchType = Literal["calendar", "reminder", "contact", "file"]
+SearchType = Literal["calendar", "reminder", "contact", "file", "photo"]
 
 
 # ---------------------------------------------------------------------------
@@ -336,6 +337,7 @@ async def search_all(
     types: list[SearchType] | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
+    has_gps: bool | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> tuple[list[Card], dict[str, int]]:
@@ -343,7 +345,7 @@ async def search_all(
 
     Returns (cards sorted by relevance, facet counts by type).
     """
-    search_types = types or ["calendar", "reminder", "contact", "file"]
+    search_types = types or ["calendar", "reminder", "contact", "file", "photo"]
 
     all_cards: list[Card] = []
     facets: dict[str, int] = {}
@@ -372,6 +374,23 @@ async def search_all(
         cards = await search_files(query, workspace_id, db, limit=limit, offset=offset)
         all_cards.extend(cards)
         facets["file"] = await count_files(query, workspace_id, db)
+
+    if "photo" in search_types:
+        photo_filters = PhotoFilters(
+            date_from=date_from,
+            date_to=date_to,
+            has_gps=has_gps,
+        )
+        photo_cards, photo_total = await search_photos(
+            workspace_ids=[workspace_id],
+            query=query,
+            filters=photo_filters,
+            limit=limit,
+            offset=offset,
+            db=db,
+        )
+        all_cards.extend(photo_cards)
+        facets["photo"] = photo_total
 
     all_cards.sort(key=lambda c: c.priority_score, reverse=True)
 
