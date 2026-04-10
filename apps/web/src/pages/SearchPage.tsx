@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import { Search, X, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { swrFetcher, type SearchResponse, type SearchType, type Card } from "../api/client";
@@ -62,6 +63,14 @@ export default function SearchPage() {
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Fetch Paperless correspondents for dropdown (falls back to free-text if unavailable)
+  const { data: correspondentsData } = useSWR<{ results: Array<{ id: number; name: string }> }>(
+    filesEnabled ? "/api/v1/paperless/correspondents" : null,
+    swrFetcher,
+    { shouldRetryOnError: false, revalidateOnFocus: false },
+  );
+  const correspondentOptions = correspondentsData?.results ?? null;
 
   // Debounce input → query
   useEffect(() => {
@@ -294,14 +303,28 @@ export default function SearchPage() {
               <label className="block text-[var(--text-caption-size)] text-[var(--color-neutral-500)] mb-[var(--space-1)] font-medium">
                 Correspondent
               </label>
-              <input
-                type="text"
-                value={correspondent}
-                onChange={(e) => setCorrespondent(e.target.value)}
-                placeholder="e.g. Bank of America"
-                className="w-full h-9 px-[var(--space-3)] rounded-[var(--radius-md)] border border-[var(--color-neutral-200)] bg-white text-[var(--text-small-size)] text-[var(--color-neutral-700)] placeholder:text-[var(--color-neutral-400)] outline-none focus:border-[var(--color-primary-light)]"
-                aria-label="Correspondent filter"
-              />
+              {correspondentOptions ? (
+                <select
+                  value={correspondent}
+                  onChange={(e) => setCorrespondent(e.target.value)}
+                  className="w-full h-9 px-[var(--space-3)] rounded-[var(--radius-md)] border border-[var(--color-neutral-200)] bg-white text-[var(--text-small-size)] text-[var(--color-neutral-700)] outline-none focus:border-[var(--color-primary-light)] cursor-pointer"
+                  aria-label="Correspondent filter"
+                >
+                  <option value="">Any correspondent</option>
+                  {correspondentOptions.map((c) => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={correspondent}
+                  onChange={(e) => setCorrespondent(e.target.value)}
+                  placeholder="e.g. Bank of America"
+                  className="w-full h-9 px-[var(--space-3)] rounded-[var(--radius-md)] border border-[var(--color-neutral-200)] bg-white text-[var(--text-small-size)] text-[var(--color-neutral-700)] placeholder:text-[var(--color-neutral-400)] outline-none focus:border-[var(--color-primary-light)]"
+                  aria-label="Correspondent filter"
+                />
+              )}
             </div>
           )}
 
@@ -327,7 +350,9 @@ export default function SearchPage() {
       {/* Result count */}
       {query && !isLoading && !error && allCards.length > 0 && (
         <p className="text-[var(--text-caption-size)] leading-[var(--text-caption-height)] text-[var(--color-neutral-500)] mb-[var(--space-4)]">
-          Showing {allCards.length}{totalCount && totalCount > allCards.length ? ` of ${totalCount}` : ""} result{allCards.length !== 1 ? "s" : ""}
+          {totalCount && totalCount > allCards.length
+            ? `Showing 1–${allCards.length} of ${totalCount} results`
+            : `Showing ${allCards.length} result${allCards.length !== 1 ? "s" : ""}`}
         </p>
       )}
 
@@ -350,8 +375,16 @@ export default function SearchPage() {
 
       {query && !isLoading && !error && allCards.length === 0 && (
         <EmptyState
-          title={`No results for "${query}"`}
-          description="Try different keywords or broaden your filters."
+          title={
+            typeFilter === "file"
+              ? "No documents match your search."
+              : `No results for "${query}"`
+          }
+          description={
+            typeFilter === "file"
+              ? "Try different keywords or clear filters."
+              : "Try different keywords or broaden your filters."
+          }
         />
       )}
 
