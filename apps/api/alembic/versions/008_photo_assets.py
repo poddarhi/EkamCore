@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "008"
 down_revision: str = "007"
@@ -33,7 +34,7 @@ def upgrade() -> None:
         sa.Column("orientation", sa.Integer, nullable=True),
         sa.Column("thumbnail_path", sa.Text, nullable=True),
         sa.Column("perceptual_hash", sa.String(16), nullable=True),
-        sa.Column("exif_json", sa.dialects.postgresql.JSONB, nullable=True),
+        sa.Column("exif_json", JSONB, nullable=True),
         sa.Column("face_count", sa.Integer, server_default="0", nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
