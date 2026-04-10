@@ -229,3 +229,45 @@ async def trigger_correspondent_bridge(body: PaperlessSyncRequest) -> dict:
         workspace_id=str(body.workspace_id),
     )
     return {"status": "bridge_started", "workspace_id": str(body.workspace_id)}
+
+
+# ---------------------------------------------------------------------------
+# Photo ingestion endpoint
+# ---------------------------------------------------------------------------
+
+
+class PhotoIngestRequest(BaseModel):
+    source_id: UUID
+    file_path: str = Field(min_length=1, max_length=4096)
+
+
+async def _run_photo_ingest(source_id: UUID, file_path: str) -> None:
+    """Run photo ingestion pipeline in a fresh DB session."""
+    from api.services.ingestion.photo_pipeline import ingest_photo
+
+    async with async_session() as db:
+        try:
+            result = await ingest_photo(source_id=source_id, file_path=file_path, db=db)
+            logger.info(
+                "photo_ingest_background_complete",
+                source_id=str(source_id),
+                **{k: str(v) if v else v for k, v in result.items()},
+            )
+        except Exception:
+            logger.error(
+                "photo_ingest_background_error",
+                source_id=str(source_id),
+                exc_info=True,
+            )
+
+
+@router.post("/ingest/photo", status_code=202)
+async def trigger_photo_ingest(body: PhotoIngestRequest) -> dict:
+    """Trigger photo ingestion for a single file.
+
+    Runs asynchronously in the background — returns 202 immediately.
+    Not exposed externally — Caddy does not route /api/v1/internal/*.
+    """
+    asyncio.create_task(_run_photo_ingest(body.source_id, body.file_path))
+    logger.info("photo_ingest_triggered", source_id=str(body.source_id))
+    return {"status": "ingestion_started", "source_id": str(body.source_id)}

@@ -15,7 +15,7 @@ from api.middleware.correlation import CorrelationIdMiddleware
 from api.middleware.error_handler import ekamcore_error_handler, unhandled_error_handler
 from api.middleware.feature_gate import _ENABLED_FLAGS
 from api.middleware.logging import LoggingMiddleware
-from api.routers import admin, auth, health, internal, query, recap, reminders, search, sources, today
+from api.routers import admin, auth, health, internal, photos, query, recap, reminders, search, sources, today
 
 configure_logging()
 logger = structlog.get_logger()
@@ -140,6 +140,7 @@ def create_app() -> FastAPI:
     app.include_router(query.router)
     app.include_router(search.router)
     app.include_router(reminders.router)
+    app.include_router(photos.router)
 
     return app
 
