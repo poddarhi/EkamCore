@@ -27,6 +27,14 @@ try:
 except ImportError:
     logger.warning("pillow_heif_not_available")
 
+try:
+    import reverse_geocoder as _rg
+    _RG_AVAILABLE = True
+except ImportError:
+    _rg = None
+    _RG_AVAILABLE = False
+    logger.warning("reverse_geocoder_not_available")
+
 _SUPPORTED_SUFFIXES = frozenset({".jpg", ".jpeg", ".png", ".tiff", ".tif", ".webp", ".heic", ".heif"})
 
 
@@ -54,9 +62,9 @@ def _dms_to_decimal(dms: tuple, ref: str) -> float:
     dms format: ((deg_n, deg_d), (min_n, min_d), (sec_n, sec_d))
     ref: 'N', 'S', 'E', or 'W'
     """
-    d = dms[0][0] / dms[0][1]
-    m = dms[1][0] / dms[1][1]
-    s = dms[2][0] / dms[2][1]
+    d = dms[0][0] / dms[0][1] if dms[0][1] else 0.0
+    m = dms[1][0] / dms[1][1] if dms[1][1] else 0.0
+    s = dms[2][0] / dms[2][1] if dms[2][1] else 0.0
     decimal = d + m / 60 + s / 3600
     if ref in ("S", "W"):
         decimal = -decimal
@@ -148,14 +156,14 @@ def extract_metadata(file_path: Path) -> PhotoMetadata:
                     try:
                         exif_json[key] = value.decode("utf-8", errors="replace").strip("\x00")
                     except Exception:
-                        pass
+                        logger.debug("exif_json_bytes_decode_failed", key=key)
                 elif isinstance(value, (int, float, str)):
                     exif_json[key] = value
                 elif isinstance(value, (list, tuple)):
                     try:
                         exif_json[key] = str(value)
                     except Exception:
-                        pass
+                        logger.debug("exif_json_stringify_failed", key=key)
 
     return PhotoMetadata(
         taken_at=taken_at,
@@ -173,15 +181,16 @@ def extract_metadata(file_path: Path) -> PhotoMetadata:
 
 def _reverse_geocode(lat: float, lon: float) -> str | None:
     """Offline reverse geocode lat/lon to a human-readable location string."""
+    if not _RG_AVAILABLE or _rg is None:
+        return None
     try:
-        import reverse_geocoder as rg
-        results = rg.search([(lat, lon)], verbose=False)
+        results = _rg.search([(lat, lon)], verbose=False)
         if results:
             r = results[0]
             parts = [p for p in [r.get("name"), r.get("admin1"), r.get("cc")] if p]
             return ", ".join(parts) if parts else None
     except Exception:
-        pass
+        logger.warning("reverse_geocode_failed", lat=lat, lon=lon)
     return None
 
 

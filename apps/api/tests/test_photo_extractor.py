@@ -98,6 +98,12 @@ def test_dms_to_decimal_west():
     assert result < 0
 
 
+def test_dms_to_decimal_zero_denominator_safe():
+    # Seconds denominator=0 is legal EXIF for unknown; must not raise
+    result = _dms_to_decimal(((48, 1), (51, 1), (0, 0)), "N")
+    assert result == pytest.approx(48.85, abs=0.01)
+
+
 # ── extract_metadata ──────────────────────────────────────────────────────────
 
 def test_extract_metadata_returns_dimensions(tmp_path: Path):
@@ -145,13 +151,15 @@ def test_extract_metadata_gps(tmp_path: Path):
 
 
 def test_extract_metadata_location_name_set_when_gps_present(tmp_path: Path):
+    from unittest.mock import patch
     jpeg_bytes = _make_test_jpeg(gps_lat=48.8566, gps_lon=2.3522)
     p = tmp_path / "test.jpg"
     p.write_bytes(jpeg_bytes)
 
-    meta = extract_metadata(p)
-    assert meta.location_name is not None
-    assert len(meta.location_name) > 0
+    with patch("api.services.ingestion.photo_extractor._reverse_geocode", return_value="Paris, Île-de-France, FR"):
+        meta = extract_metadata(p)
+
+    assert meta.location_name == "Paris, Île-de-France, FR"
 
 
 def test_extract_metadata_no_gps(tmp_path: Path):
