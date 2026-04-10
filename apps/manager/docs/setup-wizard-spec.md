@@ -241,7 +241,6 @@ Three toggles; each, when turned on, triggers a macOS privacy permission request
 |--------|-------------|-------|
 | Documents folder | `~/Documents` | Folder picker, user can change |
 | Photos library | `~/Pictures/Photos Library.photoslibrary` | Auto-detected; read-only |
-| PaperlessNGX consume folder | *(empty)* | Folder picker; optional — skip if PaperlessNGX not in use |
 
 **UI per folder source:**
 - Label + subtitle
@@ -249,17 +248,82 @@ Three toggles; each, when turned on, triggers a macOS privacy permission request
 - Read-only text field showing the path + "Browse…" button
 - "Folder accessible ✓" / "Folder not found ✗" inline validation after selection
 
+**Note on Photos source:** The Photos permission (`NSPhotoLibraryUsageDescription`)
+and embedding pipeline are Phase 2 features (S08-001). The toggle is rendered but
+grayed out with the label "Available in a future update."
+
 ### 7c — Source Registration
 
-On "Continue", for each enabled source:
+On "Continue", for each enabled source in 7a and 7b:
 1. POST `/api/v1/sources` with `{name, type, path}` using the admin token.
 2. The `source_id` is saved to setup-state.json for use by the EventKit bridge.
 
 Disabled sources are skipped entirely — no source record is created.
 
-**Note on Photos source:** The Photos permission (`NSPhotoLibraryUsageDescription`)
-and embedding pipeline are Phase 2 features (S08-001). The toggle is rendered but
-grayed out with the label "Available in a future update."
+### 7d — PaperlessNGX Configuration
+
+This sub-step configures the document auto-ingest pipeline.  It runs after 7c and
+has four sequential phases.  Each phase is shown as a collapsible row in the UI.
+
+**User-facing headline:**
+> "Drop documents in this folder and they'll be automatically organized and made
+> searchable inside EkamCore."
+
+#### Phase 1 — Consume Folder
+
+The user picks the folder that Paperless monitors for new files.
+
+| Element | Behaviour |
+|---------|-----------|
+| Toggle "Enable document auto-ingest" | On by default. Turning it off skips 7d entirely. |
+| Path field + "Browse…" | Native `NSOpenPanel` (directories only). Default: `~/Documents/EkamCore Inbox`. |
+| "Create folder" link | Appears when the typed path does not exist — creates it via `std::fs::create_dir_all`. |
+| Inline validation | Checks path is writable; rejects system directories (`/`, `/System`, `/Library`, etc.). |
+
+After confirmation the Manager writes `PAPERLESS_CONSUME_DIR=<path>` (and
+`PAPERLESS_TIME_ZONE` / `PAPERLESS_OCR_LANGUAGE`) to
+`~/Library/Application Support/EkamCore/.env` using a line-level rewrite that
+preserves all other variables, then runs:
+```
+docker compose up -d paperless-ngx --no-deps
+```
+
+#### Phase 2 — API Token Generation
+
+A dedicated `ekamcore_service` Paperless user is created and a long-lived token is
+generated for it.  The token is stored in the macOS Keychain
+(`EkamCore-Paperless` / `ekamcore_service`) and the EkamCore API is notified via
+`POST /api/v1/admin/paperless/configure`.  The Manager never logs the token value.
+
+If Keychain access is denied the wizard surfaces:
+> "Could not save the Paperless token to your Keychain.  Please allow access and
+> try again."
+
+#### Phase 3 — Integration Verification
+
+An end-to-end smoke test confirms documents flow from the consume folder into the
+EkamCore search index:
+
+```
+[✓] Writing test document to consume folder…
+[↻] Waiting for Paperless to process document… (up to 2 min)
+[✓] Document processed by Paperless ✓
+[↻] Waiting for EkamCore to index document… (up to 1 min)
+[✓] Document searchable in EkamCore ✓
+[✓] Cleaning up test document…
+[✓] PaperlessNGX integration verified ✓
+```
+
+A synthetic PDF (< 10 KB, embedded in the Manager binary) is written to the consume
+folder, polled in Paperless (`GET /api/documents/?search=EKAMCORE-SETUP-VERIFY`),
+then verified in EkamCore search (`GET /api/v1/search?q=EKAMCORE-SETUP-VERIFY&type=file`),
+and deleted from both systems.
+
+If the EkamCore search check times out (embedding pipeline still starting), a
+**"Continue Anyway"** affordance (yellow ⚠) is offered — search will work once the
+pipeline is ready.
+
+**Full specification:** `apps/manager/docs/paperless-integration.md`
 
 ---
 
@@ -311,7 +375,14 @@ devices on the user's tailnet (e.g., iPhone via mobile app).
       "reminders": { "enabled": true, "permission": "granted", "source_id": "uuid" },
       "contacts": { "enabled": true, "permission": "granted", "source_id": "uuid" },
       "documents": { "enabled": true, "path": "~/Documents", "source_id": "uuid" },
-      "paperless": { "enabled": false }
+      "paperless": {
+        "enabled": true,
+        "consume_dir": "/Users/alice/Documents/EkamCore Inbox",
+        "token_stored": true,
+        "verify_status": "passed",
+        "verify_doc_id": null,
+        "configured_at": "2026-04-10T14:32:00Z"
+      }
     },
     "tailscale": { "status": "skipped" }
   }
@@ -330,11 +401,3 @@ devices on the user's tailnet (e.g., iPhone via mobile app).
 | Setup state file corrupt / unreadable | Warn user, offer to start wizard from scratch (backup corrupt file first) |
 | User force-quits mid-step | On relaunch: resume from last `in_progress` step, re-run it from the start |
 
----
-
-## Future Additions (S08-006)
-
-In Sprint 8, a **PaperlessNGX health check sub-step** will be inserted between
-Step 3 (Docker) and Step 4 (Pull Images).  It will verify the Paperless consume
-folder is accessible and display the configured consume directory path.  See
-story S08-006 for the full spec.
