@@ -20,6 +20,7 @@ _ENABLED_FLAGS: set[str] = {
     "semantic_search_enabled",
     "photos_enabled",
     "llm_query_enabled",
+    "paperless_correspondent_bridge_enabled",
 }
 
 

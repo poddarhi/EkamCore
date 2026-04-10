@@ -180,7 +180,7 @@ async def _run_paperless_sync(workspace_id: UUID) -> None:
 
 
 @router.post("/paperless/sync", status_code=202)
-async def trigger_paperless_sync(body: PaperlessSyncRequest) -> dict:
+async def trigger_paperless_sync(body: PaperlessSyncRequest) -> dict:  # noqa: D401
     """Manually trigger a Paperless document sync for a workspace.
 
     Runs asynchronously in the background — returns 202 immediately.
@@ -189,3 +189,43 @@ async def trigger_paperless_sync(body: PaperlessSyncRequest) -> dict:
     asyncio.create_task(_run_paperless_sync(body.workspace_id))
     logger.info("paperless_sync_triggered", workspace_id=str(body.workspace_id))
     return {"status": "sync_started", "workspace_id": str(body.workspace_id)}
+
+
+# ---------------------------------------------------------------------------
+# Paperless correspondent bridge endpoint
+# ---------------------------------------------------------------------------
+
+
+async def _run_correspondent_bridge(workspace_id: UUID) -> None:
+    """Run the correspondent bridge in a fresh DB session (background task)."""
+    from api.services.paperless.correspondent_bridge import run_correspondent_bridge
+
+    async with async_session() as db:
+        try:
+            result = await run_correspondent_bridge(workspace_id=workspace_id, db=db)
+            logger.info(
+                "correspondent_bridge_background_complete",
+                workspace_id=str(workspace_id),
+                **result,
+            )
+        except Exception:
+            logger.error(
+                "correspondent_bridge_background_error",
+                workspace_id=str(workspace_id),
+                exc_info=True,
+            )
+
+
+@router.post("/paperless/correspondent-bridge", status_code=202)
+async def trigger_correspondent_bridge(body: PaperlessSyncRequest) -> dict:
+    """Trigger the Paperless correspondent → contacts candidate bridge.
+
+    Runs asynchronously in the background — returns 202 immediately.
+    Not exposed externally — Caddy does not route /api/v1/internal/*.
+    """
+    asyncio.create_task(_run_correspondent_bridge(body.workspace_id))
+    logger.info(
+        "correspondent_bridge_triggered",
+        workspace_id=str(body.workspace_id),
+    )
+    return {"status": "bridge_started", "workspace_id": str(body.workspace_id)}

@@ -15,6 +15,7 @@
     "photos_enabled": { "enabled": true, "phase": 2, "type": "feature", "description": "Photo gallery and metadata" },
     "llm_query_enabled": { "enabled": true, "phase": 2, "type": "feature", "description": "LLM-powered query answering" },
     "backup_enabled": { "enabled": false, "phase": 2, "type": "feature", "description": "Automated backup system" },
+    "paperless_correspondent_bridge_enabled": { "enabled": true, "phase": 2, "type": "feature", "description": "Paperless correspondent to contacts fuzzy-match bridge" },
     "face_clustering_enabled": { "enabled": false, "phase": 3, "type": "consent", "description": "Face detection and clustering" },
     "people_graph_enabled": { "enabled": false, "phase": 3, "type": "feature", "description": "People graph and relationships" },
     "pla_pack_enabled": { "enabled": false, "phase": 3, "type": "feature", "description": "PLA Pack integration" },
