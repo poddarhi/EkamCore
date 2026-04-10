@@ -18,8 +18,8 @@ class PhotoAsset(Base):
     __tablename__ = "photo_assets"
     __table_args__ = (UniqueConstraint("file_id", name="uq_photo_assets_file_id"),)
 
-    file_id: Mapped[UUID] = mapped_column(ForeignKey("files.id"), nullable=False, index=True)
-    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id"), nullable=False, index=True)
+    file_id: Mapped[UUID] = mapped_column(ForeignKey("files.id"), nullable=False)
+    workspace_id: Mapped[UUID] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
     taken_at: Mapped[datetime | None] = mapped_column(nullable=True)
     gps_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     gps_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
