@@ -4,8 +4,9 @@ from fastapi import Depends
 
 from api.errors import FeatureDisabledError
 
-# Phase 1 enabled flags. In Phase 2+, this will be backed by the feature_flags service.
+# Phase 1 + Phase 2 enabled flags. In Phase 3+, this will be backed by the feature_flags service.
 _ENABLED_FLAGS: set[str] = {
+    # Phase 1
     "sources_management_enabled",
     "audit_log_enabled",
     "today_enabled",
@@ -13,6 +14,12 @@ _ENABLED_FLAGS: set[str] = {
     "query_deterministic_enabled",
     "search_basic_enabled",
     "write_through_enabled",
+    # Phase 2
+    "files_enabled",
+    "embeddings_enabled",
+    "semantic_search_enabled",
+    "photos_enabled",
+    "llm_query_enabled",
 }
 
 

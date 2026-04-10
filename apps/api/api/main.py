@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -6,16 +7,55 @@ import structlog
 import yaml
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import select
 
 from api.errors import EkamCoreError
 from api.logging_config import configure_logging
 from api.middleware.correlation import CorrelationIdMiddleware
 from api.middleware.error_handler import ekamcore_error_handler, unhandled_error_handler
+from api.middleware.feature_gate import _ENABLED_FLAGS
 from api.middleware.logging import LoggingMiddleware
 from api.routers import admin, auth, health, internal, query, recap, reminders, search, sources, today
 
 configure_logging()
 logger = structlog.get_logger()
+
+_PAPERLESS_SYNC_INTERVAL = 15 * 60  # 15 minutes
+
+
+async def _paperless_sync_loop() -> None:
+    """Background task: sync Paperless documents every 15 minutes per workspace."""
+    from api.db.session import async_session
+    from api.db.models.workspace import Workspace
+    from api.services.paperless.sync import sync_all_documents
+
+    await asyncio.sleep(30)  # brief startup delay to let DB connections settle
+    while True:
+        if "embeddings_enabled" in _ENABLED_FLAGS:
+            try:
+                async with async_session() as db:
+                    result = await db.execute(select(Workspace))
+                    workspaces = result.scalars().all()
+
+                for workspace in workspaces:
+                    try:
+                        async with async_session() as db:
+                            summary = await sync_all_documents(workspace_id=workspace.id, db=db)
+                            logger.info(
+                                "paperless_scheduled_sync_complete",
+                                workspace_id=str(workspace.id),
+                                **summary,
+                            )
+                    except Exception:
+                        logger.warning(
+                            "paperless_scheduled_sync_error",
+                            workspace_id=str(workspace.id),
+                            exc_info=True,
+                        )
+            except Exception:
+                logger.warning("paperless_sync_loop_error", exc_info=True)
+
+        await asyncio.sleep(_PAPERLESS_SYNC_INTERVAL)
 
 
 @asynccontextmanager
@@ -29,7 +69,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("qdrant_collections_initialized")
     except Exception:
         logger.warning("qdrant_init_failed", exc_info=True)
+
+    sync_task = asyncio.create_task(_paperless_sync_loop())
+    logger.info("paperless_sync_scheduler_started")
+
     yield
+
+    sync_task.cancel()
+    try:
+        await sync_task
+    except asyncio.CancelledError:
+        pass
+
     from api.services.qdrant_client import close as close_qdrant
     from api.services.redis_client import close_all as close_redis
 

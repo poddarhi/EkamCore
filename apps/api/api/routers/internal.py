@@ -1,5 +1,6 @@
 """Internal API endpoints — not routed by Caddy, accessible within the container network only."""
 
+import asyncio
 from typing import Literal
 from uuid import UUID
 
@@ -8,7 +9,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.db.session import get_db
+from api.db.session import async_session, get_db
 from api.schemas.calendar import CalendarIngestRequest, CalendarIngestResponse
 from api.schemas.contact import ContactIngestRequest, ContactIngestResponse
 from api.schemas.reminder import ReminderIngestRequest, ReminderIngestResponse
@@ -147,3 +148,44 @@ async def post_fs_scan(
         deleted=result.get("deleted"),
     )
     return result
+
+
+# ---------------------------------------------------------------------------
+# Paperless sync endpoint
+# ---------------------------------------------------------------------------
+
+
+class PaperlessSyncRequest(BaseModel):
+    workspace_id: UUID
+
+
+async def _run_paperless_sync(workspace_id: UUID) -> None:
+    """Run Paperless sync in a fresh DB session (called from background task)."""
+    from api.services.paperless.sync import sync_all_documents
+
+    async with async_session() as db:
+        try:
+            result = await sync_all_documents(workspace_id=workspace_id, db=db)
+            logger.info(
+                "paperless_sync_background_complete",
+                workspace_id=str(workspace_id),
+                **result,
+            )
+        except Exception:
+            logger.error(
+                "paperless_sync_background_error",
+                workspace_id=str(workspace_id),
+                exc_info=True,
+            )
+
+
+@router.post("/paperless/sync", status_code=202)
+async def trigger_paperless_sync(body: PaperlessSyncRequest) -> dict:
+    """Manually trigger a Paperless document sync for a workspace.
+
+    Runs asynchronously in the background — returns 202 immediately.
+    Not exposed externally — Caddy does not route /api/v1/internal/*.
+    """
+    asyncio.create_task(_run_paperless_sync(body.workspace_id))
+    logger.info("paperless_sync_triggered", workspace_id=str(body.workspace_id))
+    return {"status": "sync_started", "workspace_id": str(body.workspace_id)}
