@@ -26,7 +26,7 @@ from api.services.query.patterns import QueryIntent, classify_query
 # Helpers
 # ---------------------------------------------------------------------------
 
-NOW = datetime(2026, 4, 9, 10, 0, 0, tzinfo=timezone.utc)
+NOW = datetime.now(timezone.utc)
 TODAY = NOW.date()
 
 
