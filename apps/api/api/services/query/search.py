@@ -21,11 +21,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.db.models.calendar_event import CalendarEvent
 from api.db.models.contact import Contact
 from api.db.models.reminder import Reminder
-from api.schemas.envelope import Card, EventCard, PersonCard, ReminderCard
+from api.schemas.envelope import Card, EventCard, FileCard, PersonCard, ReminderCard
 
 logger = structlog.get_logger()
 
-SearchType = Literal["calendar", "reminder", "contact"]
+SearchType = Literal["calendar", "reminder", "contact", "file"]
 
 
 # ---------------------------------------------------------------------------
@@ -306,6 +306,28 @@ async def count_contacts(
 # ---------------------------------------------------------------------------
 
 
+async def search_files(
+    query: str,
+    workspace_id: UUID,
+    db: AsyncSession,
+    *,
+    limit: int = 20,
+    offset: int = 0,
+) -> list[FileCard]:
+    """Delegate to the hybrid semantic+fulltext document search service."""
+    from api.services.search.document_search import search_documents
+    return await search_documents(query, workspace_id, db, limit=limit, offset=offset)
+
+
+async def count_files(
+    query: str,
+    workspace_id: UUID,
+    db: AsyncSession,
+) -> int:
+    from api.services.search.document_search import count_documents
+    return await count_documents(query, workspace_id, db)
+
+
 async def search_all(
     query: str,
     workspace_id: UUID,
@@ -321,7 +343,7 @@ async def search_all(
 
     Returns (cards sorted by relevance, facet counts by type).
     """
-    search_types = types or ["calendar", "reminder", "contact"]
+    search_types = types or ["calendar", "reminder", "contact", "file"]
 
     all_cards: list[Card] = []
     facets: dict[str, int] = {}
@@ -345,6 +367,11 @@ async def search_all(
         cards = await search_contacts(query, workspace_id, db, limit=limit, offset=offset)
         all_cards.extend(cards)
         facets["contact"] = await count_contacts(query, workspace_id, db)
+
+    if "file" in search_types:
+        cards = await search_files(query, workspace_id, db, limit=limit, offset=offset)
+        all_cards.extend(cards)
+        facets["file"] = await count_files(query, workspace_id, db)
 
     all_cards.sort(key=lambda c: c.priority_score, reverse=True)
 

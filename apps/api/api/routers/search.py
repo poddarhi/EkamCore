@@ -33,7 +33,7 @@ router = APIRouter(prefix="/api/v1/search", tags=["search"])
 async def get_search(
     q: str = Query(..., min_length=1, max_length=200, description="Search query"),
     workspace_id: UUID = Query(..., description="Workspace to search"),
-    type: Literal["calendar", "reminder", "contact", "all"] = Query(
+    type: Literal["calendar", "reminder", "contact", "file", "all"] = Query(
         "all", description="Type filter"
     ),
     date_from: datetime | None = Query(None, description="Filter events from this date"),
