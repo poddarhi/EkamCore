@@ -1,11 +1,15 @@
-"""Query endpoint: deterministic pattern matching + text search fallback.
+"""Query endpoint: deterministic pattern matching + text search + LLM grounded QA.
 
 POST /api/v1/query
   Body: {query: str, workspace_id: UUID, prefer_fast: bool}
   Returns: ResponseEnvelope
 
 Step 1: Regex pattern match → if matched, run parameterized SQL → deterministic
-Step 2: If no match → run text search across all types → high confidence
+Step 2: Text search across all types (gathers context for LLM)
+Step 3: Assemble context window from search results
+Step 4: Query phi3:mini (5 s) — grounded answer
+Step 5: If needs_more_context and not prefer_fast → query llama3.1:8b (15 s)
+Fallback: return plain search cards if LLM unavailable or parse fails
 """
 
 import time
@@ -17,13 +21,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.db.session import get_db
 from api.errors import AuthorizationError
 from api.middleware.auth import get_current_user
-from api.middleware.feature_gate import require_flag
+from api.middleware.feature_gate import require_flag, _ENABLED_FLAGS
 from api.schemas.auth import CurrentUser
 from api.schemas.envelope import ResponseEnvelope, make_envelope
 from api.schemas.query import QueryRequest
 from api.services.query.patterns import classify_query
 from api.services.query.router import route_deterministic
 from api.services.query.search import search_all
+from api.services.query.context_assembler import assemble_context
+from api.services.query.llm_client import call_llm, SMALL_MODEL, LARGE_MODEL
+from api.services.query.output_parser import parse_output
+from api.services.query.prompts.grounded_qa_v1 import build_messages
 
 logger = structlog.get_logger()
 
@@ -60,7 +68,7 @@ async def post_query(
         )
         return await route_deterministic(intent, body.workspace_id, db)
 
-    # Step 2: text search fallback
+    # Step 2: text search (also gathers context for Steps 3–5)
     t0 = time.perf_counter()
 
     cards, _facets = await search_all(
@@ -69,6 +77,58 @@ async def post_query(
         db,
         limit=20,
     )
+
+    # Steps 3–5: LLM grounded QA (when flag enabled and search returned results)
+    if cards and "llm_query_enabled" in _ENABLED_FLAGS:
+        # Step 3: assemble context
+        context_text, source_titles = assemble_context(cards)
+        messages = build_messages(context_text, body.query)
+
+        llm_out = None
+        model_path = "small_model"
+
+        # Step 4: small LLM (phi3:mini, 5 s)
+        try:
+            raw = await call_llm(messages, SMALL_MODEL, timeout_s=5.0)
+            llm_out = parse_output(raw, source_titles)
+        except Exception:
+            logger.warning(
+                "llm_small_model_failed",
+                workspace_id=str(body.workspace_id),
+                query_length=len(body.query),
+            )
+
+        # Step 5: escalate to large LLM if small model needs more context
+        if llm_out and llm_out.needs_more_context and not body.prefer_fast:
+            try:
+                raw = await call_llm(messages, LARGE_MODEL, timeout_s=15.0)
+                large_out = parse_output(raw, source_titles)
+                if large_out:
+                    llm_out = large_out
+                    model_path = "large_model"
+            except Exception:
+                logger.warning(
+                    "llm_large_model_failed",
+                    workspace_id=str(body.workspace_id),
+                    query_length=len(body.query),
+                )
+
+        if llm_out:
+            latency_ms = int((time.perf_counter() - t0) * 1000)
+            logger.info(
+                "query_llm_answer",
+                model_path=model_path,
+                workspace_id=str(body.workspace_id),
+                latency_ms=latency_ms,
+            )
+            return make_envelope(
+                answer_text=llm_out.answer,
+                cards=cards,
+                confidence_level=llm_out.confidence,
+                query_path=model_path,  # type: ignore[arg-type]
+                latency_ms=latency_ms,
+            )
+
     latency_ms = int((time.perf_counter() - t0) * 1000)
 
     if cards:
