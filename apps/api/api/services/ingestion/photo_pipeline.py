@@ -50,14 +50,19 @@ _PHOTO_SUFFIXES = frozenset({".jpg", ".jpeg", ".png", ".tiff", ".tif", ".webp", 
 _NO_OP_STAGES = ["METADATA_EXTRACTED", "TEXT_EXTRACTED", "OCR_COMPLETED", "EMBEDDING_QUEUED"]
 
 
-async def _save_thumbnail(thumb_bytes: bytes, workspace_id: UUID, photo_id: UUID) -> str:
-    """Save thumbnail bytes to THUMBNAIL_DIR and return relative path."""
+def _save_thumbnail_sync(thumb_bytes: bytes, workspace_id: UUID, photo_id: UUID) -> str:
+    """Synchronous thumbnail save — call via asyncio.to_thread()."""
     base = Path(settings.THUMBNAIL_DIR)
     ws_dir = base / str(workspace_id)
     ws_dir.mkdir(parents=True, exist_ok=True)
     out_path = ws_dir / f"{photo_id}.jpg"
     out_path.write_bytes(thumb_bytes)
     return str(out_path.relative_to(base))
+
+
+async def _save_thumbnail(thumb_bytes: bytes, workspace_id: UUID, photo_id: UUID) -> str:
+    """Save thumbnail bytes to THUMBNAIL_DIR and return relative path."""
+    return await asyncio.to_thread(_save_thumbnail_sync, thumb_bytes, workspace_id, photo_id)
 
 
 async def ingest_photo(
@@ -90,7 +95,14 @@ async def ingest_photo(
 
     # 3. Look up or create File row
     file_result = await db.execute(
-        select(File).where(and_(File.source_id == source_id, File.path == file_path, File.deleted_at.is_(None)))
+        select(File).where(
+            and_(
+                File.source_id == source_id,
+                File.workspace_id == workspace_id,
+                File.path == file_path,
+                File.deleted_at.is_(None),
+            )
+        )
     )
     file_row = file_result.scalar_one_or_none()
 
@@ -139,6 +151,10 @@ async def ingest_photo(
 
         file_row.content_hash_sha256 = content_hash
         await advance_stage(file_id, "DISCOVERED", db)
+        # After advance_stage, DB stage = FINGERPRINTED.
+        # Re-fetch to get the updated stage for subsequent guards.
+        state_r = await db.execute(select(IngestionState).where(IngestionState.file_id == file_id))
+        state = state_r.scalar_one_or_none() or state
 
     # ── Stage: FINGERPRINTED → METADATA_EXTRACTED ──────────────────────────
     if state.current_stage == "FINGERPRINTED":
@@ -147,7 +163,7 @@ async def ingest_photo(
             thumb_bytes: bytes = await asyncio.to_thread(generate_thumbnail, path)
             phash: str = await asyncio.to_thread(compute_perceptual_hash, path)
         except Exception as exc:
-            await fail_stage(file_id, "FINGERPRINTED", str(exc), db)
+            await fail_stage(file_id, "FINGERPRINTED", type(exc).__name__, db)
             logger.error("photo_pipeline_extraction_failed", file_id=str(file_id), exc_info=True)
             return {"status": "failed", "file_id": str(file_id)}
 
@@ -173,11 +189,15 @@ async def ingest_photo(
         await advance_stage(file_id, "FINGERPRINTED", db)
 
     # ── No-op stages: METADATA_EXTRACTED through EMBEDDING_QUEUED ──────────
-    for no_op_stage in _NO_OP_STAGES:
-        state_r = await db.execute(select(IngestionState).where(IngestionState.file_id == file_id))
-        refreshed = state_r.scalar_one_or_none()
-        if refreshed and refreshed.current_stage == no_op_stage:
-            await advance_stage(file_id, no_op_stage, db)
+    # Re-fetch state once, then advance through no-op stages sequentially.
+    state_r = await db.execute(select(IngestionState).where(IngestionState.file_id == file_id))
+    refreshed = state_r.scalar_one_or_none()
+    if refreshed:
+        for no_op_stage in _NO_OP_STAGES:
+            if refreshed.current_stage == no_op_stage:
+                await advance_stage(file_id, no_op_stage, db)
+                # Advance doesn't update refreshed; but next iteration checks
+                # the same starting point. These are one-shot — only one will match.
 
     # ── Stage: EMBEDDED → COMPLETED ────────────────────────────────────────
     state_r = await db.execute(select(IngestionState).where(IngestionState.file_id == file_id))

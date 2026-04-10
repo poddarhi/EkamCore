@@ -43,10 +43,18 @@ def _make_db(source, existing_file=None, existing_state=None):
     state_result = MagicMock()
     state_result.scalar_one_or_none.return_value = existing_state
 
+    # Re-fetch after advance_stage("DISCOVERED"): returns state with FINGERPRINTED
+    fingerprinted_state = MagicMock()
+    fingerprinted_state.current_stage = "FINGERPRINTED"
+    refetch_after_discovered = MagicMock()
+    refetch_after_discovered.scalar_one_or_none.return_value = fingerprinted_state
+
     # Add a fallback for the no-op stage re-queries
     refreshed_state_mock = MagicMock()
     refreshed_state_mock.scalar_one_or_none.return_value = None  # state not found → no-op stages skipped
-    db.execute = AsyncMock(side_effect=[source_result, file_result, state_result] + [refreshed_state_mock] * 10)
+    db.execute = AsyncMock(
+        side_effect=[source_result, file_result, state_result, refetch_after_discovered] + [refreshed_state_mock] * 10
+    )
     db.add = Mock()
     db.flush = AsyncMock()
     db.commit = AsyncMock()
@@ -74,7 +82,8 @@ async def test_ingest_photo_creates_file_and_state(tmp_path: Path):
             camera_make="Canon", camera_model="R5",
             width=100, height=80, orientation=1, exif_json={},
         )
-        mock_thread.side_effect = [meta, b"jpeg_thumb_bytes", "abcd1234abcd1234"]
+        # to_thread is called for: compute_hash, extract_metadata, generate_thumbnail, compute_perceptual_hash
+        mock_thread.side_effect = ["abc123", meta, b"jpeg_thumb_bytes", "abcd1234abcd1234"]
 
         result = await ingest_photo(
             source_id=source.id,
@@ -83,7 +92,7 @@ async def test_ingest_photo_creates_file_and_state(tmp_path: Path):
         )
 
     assert result["status"] in ("completed", "duplicate_skipped")
-    db.add.assert_called()  # File + IngestionState + PhotoAsset added
+    assert db.add.call_count >= 3  # File + IngestionState + PhotoAsset added
 
 
 @pytest.mark.asyncio
