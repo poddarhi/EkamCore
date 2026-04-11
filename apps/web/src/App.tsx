@@ -10,8 +10,16 @@ import TodayPage from "./pages/TodayPage";
 import SearchPage from "./pages/SearchPage";
 import SystemStatusPage from "./pages/SystemStatusPage";
 import RecapPage from "./pages/RecapPage";
+import FilesPage from "./pages/FilesPage";
+import PhotosPage from "./pages/PhotosPage";
 import JobsPage from "./pages/admin/JobsPage";
 import StoragePage from "./pages/admin/StoragePage";
+import SettingsLayout from "./pages/settings/SettingsLayout";
+import GeneralSettings from "./pages/settings/GeneralSettings";
+import SourcesSettings from "./pages/settings/SourcesSettings";
+import PhotoIntelligenceSettings from "./pages/settings/PhotoIntelligenceSettings";
+import AccountSettings from "./pages/settings/AccountSettings";
+import AboutSettings from "./pages/settings/AboutSettings";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -52,18 +60,16 @@ function AppRoutes() {
           path="/people"
           element={<PlaceholderPage title="People" disabled />}
         />
-        <Route
-          path="/photos"
-          element={<PlaceholderPage title="Photos" disabled />}
-        />
-        <Route
-          path="/files"
-          element={<PlaceholderPage title="Files" disabled />}
-        />
-        <Route
-          path="/settings"
-          element={<PlaceholderPage title="Settings" />}
-        />
+        <Route path="/photos" element={<PhotosPage />} />
+        <Route path="/files" element={<FilesPage />} />
+        <Route path="/settings" element={<Navigate to="/settings/general" replace />} />
+        <Route path="/settings" element={<SettingsLayout />}>
+          <Route path="general" element={<GeneralSettings />} />
+          <Route path="sources" element={<SourcesSettings />} />
+          <Route path="photo-intelligence" element={<PhotoIntelligenceSettings />} />
+          <Route path="account" element={<AccountSettings />} />
+          <Route path="about" element={<AboutSettings />} />
+        </Route>
         <Route path="/admin/system" element={<SystemStatusPage />} />
         <Route path="/admin/jobs" element={<JobsPage />} />
         <Route path="/admin/storage" element={<StoragePage />} />

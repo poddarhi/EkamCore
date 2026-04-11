@@ -36,8 +36,8 @@ const NAV_ITEMS: (NavItemDef | "divider")[] = [
   { to: "/search", icon: Search, label: "Search" },
   "divider",
   { to: "/people", icon: Users, label: "People", disabled: true, badgeCount: 0 },
-  { to: "/photos", icon: Image, label: "Photos", disabled: true },
-  { to: "/files", icon: FileText, label: "Files", disabled: true },
+  { to: "/photos", icon: Image, label: "Photos" },
+  { to: "/files", icon: FileText, label: "Files" },
   "divider",
   { to: "/settings", icon: Settings, label: "Settings" },
   { to: "/admin/system", icon: Activity, label: "System Status" },
@@ -56,6 +56,11 @@ const PAGE_TITLES: Record<string, string> = {
   "/admin/system": "System Status",
   "/admin/jobs": "Jobs",
   "/admin/storage": "Storage",
+  "/settings/general": "Settings",
+  "/settings/sources": "Settings",
+  "/settings/photo-intelligence": "Settings",
+  "/settings/account": "Settings",
+  "/settings/about": "Settings",
 };
 
 // ── NavItem ──
