@@ -13,6 +13,7 @@ Fallback: return plain search cards if LLM unavailable or parse fails
 """
 
 import time
+from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, Depends
@@ -23,14 +24,15 @@ from api.errors import AuthorizationError
 from api.middleware.auth import get_current_user
 from api.middleware.feature_gate import require_flag, _ENABLED_FLAGS
 from api.schemas.auth import CurrentUser
-from api.schemas.envelope import ResponseEnvelope, make_envelope
+from api.schemas.envelope import ResponseEnvelope, SourceRef, make_envelope
 from api.schemas.query import QueryRequest
 from api.services.query.patterns import classify_query
 from api.services.query.router import route_deterministic
 from api.services.query.search import search_all
 from api.services.query.context_assembler import assemble_context
+from api.services.query.confidence_scorer import score_confidence
 from api.services.query.llm_client import call_llm, SMALL_MODEL, LARGE_MODEL
-from api.services.query.output_parser import parse_output
+from api.services.query.output_parser import parse_output, LLMOutput
 from api.services.query.prompts.grounded_qa_v1 import build_messages
 
 logger = structlog.get_logger()
@@ -38,6 +40,49 @@ logger = structlog.get_logger()
 _FLAG = require_flag("query_deterministic_enabled")
 
 router = APIRouter(prefix="/api/v1/query", tags=["query"])
+
+
+def _build_source_refs(
+    llm_out: LLMOutput,
+    cards: list,  # list[Card]
+) -> list[SourceRef]:
+    """Build SourceRef list from LLM-cited sources matched against cards.
+
+    Matches each cited source title back to the card that produced it,
+    extracting the card's id and type for the SourceRef.
+    """
+    refs: list[SourceRef] = []
+    card_map: dict[str, tuple[UUID, str]] = {}
+
+    for card in cards:
+        p = card.payload
+        ctype = card.type  # type: ignore[union-attr]
+        title = ""
+        if ctype == "event":
+            title = p.get("title") or ""
+        elif ctype == "reminder":
+            title = p.get("title") or ""
+        elif ctype == "file":
+            title = p.get("filename") or p.get("path") or ""
+        elif ctype == "photo":
+            taken_at = p.get("taken_at", "")
+            title = f"Photo {taken_at}" if taken_at else "Photo"
+        elif ctype == "person":
+            title = p.get("display_name") or p.get("name") or ""
+        if title:
+            card_map[title] = (card.id, ctype)
+
+    for source_title in llm_out.sources_used:
+        if source_title in card_map:
+            cid, ctype = card_map[source_title]
+            refs.append(SourceRef(
+                type=ctype,  # type: ignore[arg-type]
+                id=cid,
+                title=source_title,
+                relevance=0.9,
+            ))
+
+    return refs
 
 
 @router.post("", dependencies=[_FLAG], response_model=ResponseEnvelope)
@@ -49,7 +94,7 @@ async def post_query(
     """Process a natural language query.
 
     Step 1: pattern match → deterministic SQL
-    Step 2: text search fallback → high confidence
+    Steps 2–5: text search → context assembly → LLM grounded QA
     """
     if body.workspace_id not in user.workspace_ids:
         raise AuthorizationError(
@@ -114,6 +159,12 @@ async def post_query(
                 )
 
         if llm_out:
+            # Apply confidence override rules
+            final_confidence = score_confidence(llm_out, cards)
+
+            # Build source references from cited sources
+            source_refs = _build_source_refs(llm_out, cards)
+
             latency_ms = int((time.perf_counter() - t0) * 1000)
             logger.info(
                 "query_llm_answer",
@@ -124,10 +175,26 @@ async def post_query(
             return make_envelope(
                 answer_text=llm_out.answer,
                 cards=cards,
-                confidence_level=llm_out.confidence,
+                sources=source_refs,
+                confidence_level=final_confidence,
                 query_path=model_path,  # type: ignore[arg-type]
                 latency_ms=latency_ms,
             )
+
+        # LLM failed or couldn't parse — return search results with is_partial
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        logger.info(
+            "query_llm_fallback_partial",
+            workspace_id=str(body.workspace_id),
+            result_count=len(cards),
+        )
+        return make_envelope(
+            cards=cards,
+            confidence_level="high",
+            query_path="semantic",
+            latency_ms=latency_ms,
+            is_partial=True,
+        )
 
     latency_ms = int((time.perf_counter() - t0) * 1000)
 

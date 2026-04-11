@@ -4,8 +4,9 @@ Covers:
   - output_parser: JSON parsing, HTML escaping, source hallucination detection
   - context_assembler: card formatting, context trimming
   - llm_client: Ollama /api/chat wrapper, timeout/error handling
+  - confidence_scorer: relevance-based downgrade, needs_more_context, no-sources
   - query endpoint: small model path, large model escalation, prefer_fast,
-    LLM parse failure fallback, flag-disabled fallback
+    LLM parse failure fallback, flag-disabled fallback, is_partial, source_refs
 """
 
 from __future__ import annotations
@@ -19,6 +20,14 @@ import pytest
 import pytest_asyncio
 
 from api.schemas.envelope import EventCard, FileCard, ReminderCard
+
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def _noop_slot(priority):
+    """No-op replacement for acquire_slot in unit tests."""
+    yield
 
 
 # ---------------------------------------------------------------------------
@@ -211,12 +220,16 @@ class TestContextAssembler:
 
 
 class TestLLMClient:
-    """Unit tests for the Ollama /api/chat wrapper. httpx is mocked."""
+    """Unit tests for the Ollama /api/chat wrapper. httpx and acquire_slot are mocked."""
 
     def _import(self):
         from api.services.query.llm_client import call_llm
         from api.errors import ServiceUnavailableError
         return call_llm, ServiceUnavailableError
+
+    def _mock_slot(self):
+        """Return a patch that makes acquire_slot a no-op async context manager."""
+        return patch("api.services.query.llm_client.acquire_slot", _noop_slot)
 
     @pytest.mark.asyncio
     async def test_call_llm_returns_content(self):
@@ -230,7 +243,10 @@ class TestLLMClient:
         mock_response.json.return_value = response_json
         mock_response.raise_for_status = MagicMock()
 
-        with patch("api.services.query.llm_client.httpx.AsyncClient") as MockClient:
+        with (
+            self._mock_slot(),
+            patch("api.services.query.llm_client.httpx.AsyncClient") as MockClient,
+        ):
             mock_ctx = AsyncMock()
             mock_ctx.post = AsyncMock(return_value=mock_response)
             MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
@@ -248,7 +264,10 @@ class TestLLMClient:
     async def test_call_llm_timeout_raises_service_unavailable(self):
         call_llm, ServiceUnavailableError = self._import()
 
-        with patch("api.services.query.llm_client.httpx.AsyncClient") as MockClient:
+        with (
+            self._mock_slot(),
+            patch("api.services.query.llm_client.httpx.AsyncClient") as MockClient,
+        ):
             mock_ctx = AsyncMock()
             mock_ctx.post = AsyncMock(side_effect=httpx.TimeoutException("timeout"))
             MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
@@ -272,7 +291,10 @@ class TestLLMClient:
             "500", request=MagicMock(), response=MagicMock(status_code=500)
         )
 
-        with patch("api.services.query.llm_client.httpx.AsyncClient") as MockClient:
+        with (
+            self._mock_slot(),
+            patch("api.services.query.llm_client.httpx.AsyncClient") as MockClient,
+        ):
             mock_ctx = AsyncMock()
             mock_ctx.post = AsyncMock(return_value=mock_response)
             MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
@@ -286,6 +308,60 @@ class TestLLMClient:
                 )
 
         assert exc_info.value.error_code == "LLM_ERROR"
+
+
+# ---------------------------------------------------------------------------
+# confidence_scorer unit tests
+# ---------------------------------------------------------------------------
+
+
+class TestConfidenceScorer:
+    """Unit tests for post-hoc confidence override rules."""
+
+    def _import(self):
+        from api.services.query.confidence_scorer import score_confidence
+        from api.services.query.output_parser import LLMOutput
+        return score_confidence, LLMOutput
+
+    def _make_cards(self, top_score: float = 0.9):
+        return [
+            EventCard(
+                id=uuid4(),
+                priority_score=top_score,
+                payload={"title": "Meeting"},
+            )
+        ]
+
+    def test_high_confidence_preserved_when_valid(self):
+        score_confidence, LLMOutput = self._import()
+        out = LLMOutput(answer="Answer", sources_used=["Meeting"], confidence="high")
+        assert score_confidence(out, self._make_cards(0.9)) == "high"
+
+    def test_needs_more_context_forces_low(self):
+        score_confidence, LLMOutput = self._import()
+        out = LLMOutput(answer="Partial", confidence="high", needs_more_context=True)
+        assert score_confidence(out, self._make_cards(0.9)) == "low"
+
+    def test_low_relevance_downgrades_high_to_medium(self):
+        score_confidence, LLMOutput = self._import()
+        out = LLMOutput(answer="Answer", sources_used=["Meeting"], confidence="high")
+        assert score_confidence(out, self._make_cards(0.5)) == "medium"
+
+    def test_no_sources_downgrades_high_to_medium(self):
+        score_confidence, LLMOutput = self._import()
+        out = LLMOutput(answer="Answer", sources_used=[], confidence="high")
+        assert score_confidence(out, self._make_cards(0.9)) == "medium"
+
+    def test_medium_not_downgraded_by_relevance(self):
+        score_confidence, LLMOutput = self._import()
+        out = LLMOutput(answer="Answer", sources_used=["Meeting"], confidence="medium")
+        # relevance < 0.6 only affects "high" → "medium", not "medium" → "low"
+        assert score_confidence(out, self._make_cards(0.3)) == "medium"
+
+    def test_low_confidence_unchanged(self):
+        score_confidence, LLMOutput = self._import()
+        out = LLMOutput(answer="Answer", sources_used=["Meeting"], confidence="low")
+        assert score_confidence(out, self._make_cards(0.9)) == "low"
 
 
 # ---------------------------------------------------------------------------
@@ -431,7 +507,7 @@ async def test_query_skips_large_model_when_prefer_fast(client, auth_tokens):
 @pytest.mark.asyncio
 async def test_query_falls_back_to_search_on_llm_parse_failure(client, auth_tokens):
     """When the LLM returns unparseable JSON, the endpoint falls back to
-    returning plain search cards (no answer_text)."""
+    returning plain search cards (no answer_text) with is_partial=true."""
     ws_id = auth_tokens["workspace_id"]
 
     with (
@@ -450,7 +526,63 @@ async def test_query_falls_back_to_search_on_llm_parse_failure(client, auth_toke
     assert response.status_code == 200
     data = response.json()
     assert data["answer_text"] is None
-    assert data["metadata"]["query_path"] == "deterministic"
+    assert data["metadata"]["is_partial"] is True
+    assert data["metadata"]["query_path"] == "semantic"
+    assert len(data["cards"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_query_populates_sources_from_llm_output(client, auth_tokens):
+    """When the LLM cites sources that match card titles, the response
+    envelope populates the sources array with SourceRef objects."""
+    ws_id = auth_tokens["workspace_id"]
+
+    with (
+        patch("api.routers.query.search_all", new_callable=AsyncMock) as mock_search,
+        patch("api.routers.query.call_llm", new_callable=AsyncMock) as mock_llm,
+    ):
+        mock_search.return_value = (_SAMPLE_CARDS, {"event": 1})
+        mock_llm.return_value = _SMALL_MODEL_RESPONSE
+
+        response = await client.post(
+            "/api/v1/query",
+            json={"query": "tell me about the quarterly review project", "workspace_id": str(ws_id)},
+            headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["sources"]) > 0
+    assert data["sources"][0]["title"] == "Team standup"
+    assert data["sources"][0]["type"] == "event"
+
+
+@pytest.mark.asyncio
+async def test_query_llm_timeout_returns_partial(client, auth_tokens):
+    """When Ollama times out, response is cards-only with is_partial=true."""
+    from api.errors import ServiceUnavailableError
+
+    ws_id = auth_tokens["workspace_id"]
+
+    with (
+        patch("api.routers.query.search_all", new_callable=AsyncMock) as mock_search,
+        patch("api.routers.query.call_llm", new_callable=AsyncMock) as mock_llm,
+    ):
+        mock_search.return_value = (_SAMPLE_CARDS, {"event": 1})
+        mock_llm.side_effect = ServiceUnavailableError(
+            error_code="LLM_TIMEOUT", message="timed out"
+        )
+
+        response = await client.post(
+            "/api/v1/query",
+            json={"query": "tell me about the quarterly review project", "workspace_id": str(ws_id)},
+            headers={"Authorization": f"Bearer {auth_tokens['access_token']}"},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["answer_text"] is None
+    assert data["metadata"]["is_partial"] is True
     assert len(data["cards"]) > 0
 
 
