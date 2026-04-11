@@ -10,6 +10,7 @@ import SearchPage from "./pages/SearchPage";
 import SystemStatusPage from "./pages/SystemStatusPage";
 import RecapPage from "./pages/RecapPage";
 import JobsPage from "./pages/admin/JobsPage";
+import StoragePage from "./pages/admin/StoragePage";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -64,6 +65,7 @@ function AppRoutes() {
         />
         <Route path="/admin/system" element={<SystemStatusPage />} />
         <Route path="/admin/jobs" element={<JobsPage />} />
+        <Route path="/admin/storage" element={<StoragePage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

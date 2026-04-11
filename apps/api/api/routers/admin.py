@@ -28,6 +28,7 @@ from api.schemas.audit import AuditLogEntry, AuditLogPage
 from api.schemas.auth import CurrentUser
 from api.services.diagnostics import build_diagnostics_zip
 from api.services.ingestion.state_machine import TERMINAL_STAGES
+from api.services.storage_stats import get_storage_stats
 
 logger = structlog.get_logger()
 
@@ -127,6 +128,26 @@ async def get_diagnostics(
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# Storage stats
+# ---------------------------------------------------------------------------
+
+
+@router.get("/storage")
+async def get_storage(
+    admin: CurrentUser = Depends(_require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return storage usage statistics for all data stores.
+
+    Includes PostgreSQL, Qdrant, Paperless volume sizes, file/photo counts,
+    and host disk free space with warning thresholds.
+    """
+    stats = await get_storage_stats(db)
+    logger.info("storage_stats_queried", admin_user_id=str(admin.id))
+    return stats
 
 
 # ---------------------------------------------------------------------------

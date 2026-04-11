@@ -13,6 +13,7 @@ import {
   X,
   Activity,
   ListChecks,
+  HardDrive,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Avatar } from "../design-system/components";
@@ -40,6 +41,7 @@ const NAV_ITEMS: (NavItemDef | "divider")[] = [
   { to: "/settings", icon: Settings, label: "Settings" },
   { to: "/admin/system", icon: Activity, label: "System Status" },
   { to: "/admin/jobs", icon: ListChecks, label: "Jobs" },
+  { to: "/admin/storage", icon: HardDrive, label: "Storage" },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
@@ -52,6 +54,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/settings": "Settings",
   "/admin/system": "System Status",
   "/admin/jobs": "Jobs",
+  "/admin/storage": "Storage",
 };
 
 // ── NavItem ──
