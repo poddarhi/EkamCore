@@ -1,0 +1,129 @@
+{
+  "summary": {
+    "passed": 20,
+    "total": 20,
+    "failed": 0
+  },
+  "items": [
+    {
+      "id": "SEC-01",
+      "title": "JWT authentication on all protected endpoints",
+      "status": "PASS",
+      "details": "get_current_user dependency found in auth middleware"
+    },
+    {
+      "id": "SEC-02",
+      "title": "CSRF double-submit cookie on state-changing methods",
+      "status": "PASS",
+      "details": "validate_csrf dependency found"
+    },
+    {
+      "id": "SEC-03",
+      "title": "CSRF enforced on all state-changing routes",
+      "status": "PASS",
+      "details": "All write routers import validate_csrf"
+    },
+    {
+      "id": "SEC-04",
+      "title": "Brute-force rate limiting on auth endpoints",
+      "status": "PASS",
+      "details": "Lockout threshold defined in rate_limiter.py"
+    },
+    {
+      "id": "SEC-05",
+      "title": "Password hashing with strong KDF",
+      "status": "PASS",
+      "details": "Argon2/bcrypt found in auth service"
+    },
+    {
+      "id": "SEC-06",
+      "title": "Refresh token rotation on use",
+      "status": "PASS",
+      "details": "Old session revoked during refresh"
+    },
+    {
+      "id": "SEC-07",
+      "title": "Refresh token replay detection",
+      "status": "PASS",
+      "details": "Replay detection logic found"
+    },
+    {
+      "id": "SEC-08",
+      "title": "Workspace isolation on all data queries",
+      "status": "PASS",
+      "details": "workspace_id referenced across codebase"
+    },
+    {
+      "id": "SEC-09",
+      "title": "No raw SQL (parameterized only)",
+      "status": "PASS",
+      "details": "No f-string SQL found"
+    },
+    {
+      "id": "SEC-10",
+      "title": "Structured error responses (no bare HTTPException)",
+      "status": "PASS",
+      "details": "No bare HTTPException in routers"
+    },
+    {
+      "id": "SEC-11",
+      "title": "HTML escape on LLM output",
+      "status": "PASS",
+      "details": "html.escape found in output_parser.py"
+    },
+    {
+      "id": "SEC-12",
+      "title": "LLM prompt injection prevention (XML tags)",
+      "status": "PASS",
+      "details": "XML-tagged prompt structure found"
+    },
+    {
+      "id": "SEC-13",
+      "title": "Source hallucination detection",
+      "status": "PASS",
+      "details": "Hallucination check found in output_parser.py"
+    },
+    {
+      "id": "SEC-14",
+      "title": "No PII in logs (correlation_id only)",
+      "status": "PASS",
+      "details": "No raw PII logged"
+    },
+    {
+      "id": "SEC-15",
+      "title": "Feature flags gate new endpoints",
+      "status": "PASS",
+      "details": "Feature gate middleware found"
+    },
+    {
+      "id": "SEC-16",
+      "title": "Workspace isolation tests exist",
+      "status": "PASS",
+      "details": "Workspace isolation assertions found in tests"
+    },
+    {
+      "id": "SEC-17",
+      "title": "CSRF tests exist",
+      "status": "PASS",
+      "details": "CSRF test assertions found"
+    },
+    {
+      "id": "SEC-18",
+      "title": "Auth security tests exist",
+      "status": "PASS",
+      "details": "Auth validation tests found"
+    },
+    {
+      "id": "SEC-19",
+      "title": "Input validation tests exist",
+      "status": "PASS",
+      "details": "Input validation test assertions found"
+    },
+    {
+      "id": "SEC-20",
+      "title": "Rate limiting tests exist",
+      "status": "PASS",
+      "details": "Rate limit test assertions found"
+    }
+  ]
+}
