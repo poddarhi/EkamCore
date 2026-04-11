@@ -34,6 +34,7 @@ from api.services.query.confidence_scorer import score_confidence
 from api.services.query.llm_client import call_llm, SMALL_MODEL, LARGE_MODEL
 from api.services.query.output_parser import parse_output, LLMOutput
 from api.services.query.prompts.grounded_qa_v1 import build_messages
+from api.services.query.sanitizer import detect_injection_patterns, sanitize_query
 
 logger = structlog.get_logger()
 
@@ -102,8 +103,12 @@ async def post_query(
             message="You do not have access to this workspace.",
         )
 
+    # Step 0: sanitize + detect injection patterns (observability only)
+    clean_query = sanitize_query(body.query)
+    detect_injection_patterns(clean_query)
+
     # Step 1: pattern match
-    intent = classify_query(body.query)
+    intent = classify_query(clean_query)
 
     if intent is not None:
         logger.info(
@@ -117,7 +122,7 @@ async def post_query(
     t0 = time.perf_counter()
 
     cards, _facets = await search_all(
-        body.query,
+        clean_query,
         body.workspace_id,
         db,
         limit=20,
@@ -127,7 +132,7 @@ async def post_query(
     if cards and "llm_query_enabled" in _ENABLED_FLAGS:
         # Step 3: assemble context
         context_text, source_titles = assemble_context(cards)
-        messages = build_messages(context_text, body.query)
+        messages = build_messages(context_text, clean_query)
 
         llm_out = None
         model_path = "small_model"

@@ -1,0 +1,7 @@
+{
+  "grounded_qa": "v1",
+  "query_classify": "v1",
+  "recap_summary": "v1",
+  "person_context": "v1",
+  "embed_preprocess": "v1"
+}
