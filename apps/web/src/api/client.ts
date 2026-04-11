@@ -60,19 +60,9 @@ export function unregisterAuthCallbacks() {
   _onRefreshFailed = null;
 }
 
-// ── Error code → user-friendly message ──
-const ERROR_MESSAGES: Record<string, string> = {
-  AUTH_INVALID_CREDENTIALS: "Invalid email or password.",
-  AUTH_ACCOUNT_LOCKED:
-    "Account temporarily locked due to too many failed attempts. Try again later.",
-  AUTH_TOKEN_EXPIRED: "Your session has expired. Please sign in again.",
-  AUTH_UNAUTHORIZED: "You must be signed in to access this.",
-  INTERNAL_ERROR: "Something went wrong. Please try again.",
-};
-
-export function getUserMessage(errorCode: string): string {
-  return ERROR_MESSAGES[errorCode] ?? "An unexpected error occurred.";
-}
+// ── Error messages (delegated to utils/errorMessages.ts) ──
+import { getUserMessage as _getUserMessage } from "../utils/errorMessages";
+export const getUserMessage = _getUserMessage;
 
 // ── Core fetch wrapper ──
 async function rawFetch(
