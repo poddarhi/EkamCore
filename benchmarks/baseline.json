@@ -1,0 +1,307 @@
+{
+  "timestamp": "2026-04-11T13:54:54.873869+00:00",
+  "commit": "542739a",
+  "iterations": 5,
+  "benchmarks": [
+    {
+      "name": "api/today",
+      "stats": {
+        "p50": 1.31,
+        "p95": 2.38,
+        "p99": 2.56,
+        "mean": 1.55,
+        "stddev": 0.54,
+        "count": 5
+      },
+      "target_p50_ms": 200,
+      "target_p95_ms": 500,
+      "status": "PASS"
+    },
+    {
+      "name": "api/search",
+      "stats": {
+        "p50": 1.64,
+        "p95": 1.68,
+        "p99": 1.69,
+        "mean": 1.56,
+        "stddev": 0.13,
+        "count": 5
+      },
+      "target_p50_ms": 300,
+      "target_p95_ms": 800,
+      "status": "PASS"
+    },
+    {
+      "name": "api/query_deterministic",
+      "stats": {
+        "p50": 1.5,
+        "p95": 2.34,
+        "p99": 2.48,
+        "mean": 1.61,
+        "stddev": 0.49,
+        "count": 5
+      },
+      "target_p50_ms": 500,
+      "target_p95_ms": 2000,
+      "status": "PASS"
+    },
+    {
+      "name": "api/health",
+      "stats": {
+        "p50": 27.34,
+        "p95": 31.01,
+        "p99": 31.49,
+        "mean": 27.62,
+        "stddev": 2.39,
+        "count": 5
+      },
+      "target_p50_ms": 100,
+      "target_p95_ms": 300,
+      "status": "PASS"
+    },
+    {
+      "name": "api/settings",
+      "stats": {
+        "p50": 1.36,
+        "p95": 2.08,
+        "p99": 2.18,
+        "mean": 1.51,
+        "stddev": 0.37,
+        "count": 5
+      },
+      "target_p50_ms": 100,
+      "target_p95_ms": 300,
+      "status": "PASS"
+    },
+    {
+      "name": "db/sources_list",
+      "stats": {
+        "p50": 0.28,
+        "p95": 0.64,
+        "p99": 0.71,
+        "mean": 0.37,
+        "stddev": 0.18,
+        "count": 5
+      },
+      "target_p50_ms": 50,
+      "target_p95_ms": 100,
+      "status": "PASS"
+    },
+    {
+      "name": "db/files_fulltext_search",
+      "stats": {
+        "p50": 0.21,
+        "p95": 0.54,
+        "p99": 0.6,
+        "mean": 0.29,
+        "stddev": 0.16,
+        "count": 5
+      },
+      "target_p50_ms": 100,
+      "target_p95_ms": 200,
+      "status": "PASS"
+    },
+    {
+      "name": "db/today_card_assembly",
+      "stats": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "mean": 0,
+        "stddev": 0,
+        "count": 0
+      },
+      "target_p50_ms": 150,
+      "target_p95_ms": 300,
+      "status": "PASS"
+    },
+    {
+      "name": "db/photo_assets_by_location",
+      "stats": {
+        "p50": 0.19,
+        "p95": 0.3,
+        "p99": 0.32,
+        "mean": 0.22,
+        "stddev": 0.05,
+        "count": 5
+      },
+      "target_p50_ms": 50,
+      "target_p95_ms": 100,
+      "status": "PASS"
+    },
+    {
+      "name": "db/settings_lookup",
+      "stats": {
+        "p50": 0.63,
+        "p95": 1.58,
+        "p99": 1.75,
+        "mean": 0.86,
+        "stddev": 0.47,
+        "count": 5
+      },
+      "target_p50_ms": 20,
+      "target_p95_ms": 50,
+      "status": "PASS"
+    },
+    {
+      "name": "ingestion/sha256_hash_100kb",
+      "stats": {
+        "p50": 0.05,
+        "p95": 0.07,
+        "p99": 0.07,
+        "mean": 0.06,
+        "stddev": 0.01,
+        "count": 5
+      },
+      "target_p50_ms": 1,
+      "target_p95_ms": 5,
+      "status": "PASS"
+    },
+    {
+      "name": "ingestion/text_chunking_10kb",
+      "stats": {
+        "p50": 0.0,
+        "p95": 0.01,
+        "p99": 0.01,
+        "mean": 0.0,
+        "stddev": 0.0,
+        "count": 5
+      },
+      "target_p50_ms": 1,
+      "target_p95_ms": 5,
+      "status": "PASS"
+    },
+    {
+      "name": "ingestion/embedding_single_chunk",
+      "stats": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "mean": 0,
+        "stddev": 0,
+        "count": 0
+      },
+      "target_p50_ms": 200,
+      "target_p95_ms": 500,
+      "status": "PASS"
+    },
+    {
+      "name": "memory/ekamcore-postgres",
+      "stats": {
+        "p50": 9.89,
+        "p95": 11.05,
+        "p99": 11.05,
+        "mean": 10.31,
+        "stddev": 0.6,
+        "count": 5
+      },
+      "target_p50_ms": 80,
+      "target_p95_ms": 90,
+      "status": "PASS"
+    },
+    {
+      "name": "memory/ekamcore-redis",
+      "stats": {
+        "p50": 6.4,
+        "p95": 6.53,
+        "p99": 6.53,
+        "mean": 6.44,
+        "stddev": 0.07,
+        "count": 5
+      },
+      "target_p50_ms": 80,
+      "target_p95_ms": 90,
+      "status": "PASS"
+    },
+    {
+      "name": "memory/ekamcore-qdrant",
+      "stats": {
+        "p50": 9.27,
+        "p95": 9.27,
+        "p99": 9.27,
+        "mean": 9.26,
+        "stddev": 0.01,
+        "count": 5
+      },
+      "target_p50_ms": 80,
+      "target_p95_ms": 90,
+      "status": "PASS"
+    },
+    {
+      "name": "memory/ekamcore-paperless",
+      "stats": {
+        "p50": 53.2,
+        "p95": 53.21,
+        "p99": 53.21,
+        "mean": 53.2,
+        "stddev": 0.01,
+        "count": 5
+      },
+      "target_p50_ms": 80,
+      "target_p95_ms": 90,
+      "status": "PASS"
+    },
+    {
+      "name": "memory/ekamcore-api",
+      "stats": {
+        "p50": 56.08,
+        "p95": 56.08,
+        "p99": 56.08,
+        "mean": 55.76,
+        "stddev": 0.63,
+        "count": 5
+      },
+      "target_p50_ms": 80,
+      "target_p95_ms": 90,
+      "status": "PASS"
+    },
+    {
+      "name": "memory/ekamcore-workers",
+      "stats": {
+        "p50": 2.15,
+        "p95": 2.15,
+        "p99": 2.15,
+        "mean": 2.15,
+        "stddev": 0.0,
+        "count": 5
+      },
+      "target_p50_ms": 80,
+      "target_p95_ms": 90,
+      "status": "PASS"
+    },
+    {
+      "name": "memory/ekamcore-web",
+      "stats": {
+        "p50": 5.57,
+        "p95": 5.57,
+        "p99": 5.57,
+        "mean": 5.57,
+        "stddev": 0.0,
+        "count": 5
+      },
+      "target_p50_ms": 80,
+      "target_p95_ms": 90,
+      "status": "PASS"
+    },
+    {
+      "name": "memory/ekamcore-proxy",
+      "stats": {
+        "p50": 8.57,
+        "p95": 8.57,
+        "p99": 8.57,
+        "mean": 8.57,
+        "stddev": 0.0,
+        "count": 5
+      },
+      "target_p50_ms": 80,
+      "target_p95_ms": 90,
+      "status": "PASS"
+    }
+  ],
+  "summary": {
+    "total": 21,
+    "passed": 21,
+    "failed": 0,
+    "regressions": 0
+  }
+}
