@@ -60,6 +60,12 @@ export interface ApiErrorBody {
   details?: Record<string, unknown>;
 }
 
+// ── Search ──
+
+// Request/response types live in search.ts — this section only adds the
+// endpoint constant.  See src/types/search.ts for SearchRequest, SearchResponse,
+// SearchFilters, and CachedSearchResult.
+
 // ── Endpoint paths (for type-safe routing) ──
 
 export const ENDPOINTS = {
@@ -68,6 +74,7 @@ export const ENDPOINTS = {
   AUTH_LOGOUT: '/auth/logout',
   TODAY: '/today',
   RECAP: '/recap',
+  SEARCH: '/search',
   HEALTH: '/health',
   FLAGS: '/flags',
 } as const;
