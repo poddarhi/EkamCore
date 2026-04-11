@@ -9,6 +9,7 @@ import TodayPage from "./pages/TodayPage";
 import SearchPage from "./pages/SearchPage";
 import SystemStatusPage from "./pages/SystemStatusPage";
 import RecapPage from "./pages/RecapPage";
+import JobsPage from "./pages/admin/JobsPage";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -62,6 +63,7 @@ function AppRoutes() {
           element={<PlaceholderPage title="Settings" />}
         />
         <Route path="/admin/system" element={<SystemStatusPage />} />
+        <Route path="/admin/jobs" element={<JobsPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
