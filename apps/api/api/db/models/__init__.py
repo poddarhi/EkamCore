@@ -14,6 +14,7 @@ from api.db.models.reminder import Reminder
 from api.db.models.audit_log import AuditLog
 from api.db.models.correspondent_candidate import CorrespondentContactCandidate
 from api.db.models.photo_asset import PhotoAsset
+from api.db.models.notification import Notification
 
 __all__ = [
     "Base",
@@ -32,4 +33,5 @@ __all__ = [
     "AuditLog",
     "CorrespondentContactCandidate",
     "PhotoAsset",
+    "Notification",
 ]

@@ -18,6 +18,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { Avatar } from "../design-system/components";
 import { useAuth } from "../contexts/AuthContext";
+import NotificationBell from "../components/NotificationBell";
 
 // ── Nav config ──
 
@@ -292,6 +293,7 @@ export default function MainLayout() {
                 aria-label="Search (coming soon)"
               />
             </div>
+            <NotificationBell />
             <Avatar name={user?.id ? "User" : undefined} size="sm" />
           </div>
         </header>

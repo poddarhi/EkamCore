@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { FlagProvider } from "./contexts/FlagContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import MainLayout from "./layouts/MainLayout";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -77,7 +78,9 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <FlagProvider>
-          <AppRoutes />
+          <NotificationProvider>
+            <AppRoutes />
+          </NotificationProvider>
         </FlagProvider>
       </AuthProvider>
     </BrowserRouter>
