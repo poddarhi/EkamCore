@@ -144,7 +144,9 @@ class PaperlessClient:
     async def health_check(self) -> bool:
         """Return True if Paperless is reachable and the API token is valid."""
         try:
-            await self._get("/")
+            # Use /documents/?page_size=1 — the root /api/ redirects to the schema
+            # browser which triggers a warning; a concrete endpoint is more reliable.
+            await self._get("/documents/", page_size=1)
             return True
         except (ServiceUnavailableError, AuthenticationError):
             return False

@@ -61,7 +61,7 @@ services:
     restart: unless-stopped
 
   ekamcore-qdrant:
-    image: qdrant/qdrant:v1.9.0
+    image: qdrant/qdrant:v1.12.6
     container_name: ekamcore-qdrant
     environment:
       QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-ekamcore_qdrant_dev}
@@ -167,6 +167,8 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-ekamcore-dev-jwt-secret-change-in-production}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ekamcore-api-data:/app/data
     networks:
       - ekamcore-net
     ports:
@@ -269,3 +271,4 @@ volumes:
   ekamcore-caddy-config:
   ekamcore-paperless-data:
   ekamcore-paperless-media:
+  ekamcore-api-data:

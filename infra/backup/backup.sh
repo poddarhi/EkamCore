@@ -64,7 +64,7 @@ fi
 # Verify stack is up
 # ---------------------------------------------------------------------------
 
-if ! docker compose ps --status running ekamcore-postgres 2>/dev/null | grep -q "running"; then
+if ! docker compose ps --status running ekamcore-postgres 2>/dev/null | grep -qE "Up|running"; then
     echo "ERROR: ekamcore-postgres is not running. Start the stack first." >&2
     exit 1
 fi
@@ -140,7 +140,7 @@ docker compose cp "ekamcore-qdrant:/qdrant/snapshots" "$BACKUP_DIR/qdrant/" 2>/d
 log "Backing up Paperless documents..."
 mkdir -p "$BACKUP_DIR/paperless-export"
 
-if docker compose ps --status running ekamcore-paperless 2>/dev/null | grep -q "running"; then
+if docker compose ps --status running ekamcore-paperless 2>/dev/null | grep -qE "Up|running"; then
     # document_exporter writes to an internal directory; we then cp it out
     docker compose exec -T ekamcore-paperless \
         document_exporter /usr/src/paperless/export/ \

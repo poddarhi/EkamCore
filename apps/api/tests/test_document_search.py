@@ -140,12 +140,14 @@ async def test_embed_query_returns_none_on_generic_exception():
 async def test_semantic_search_passes_workspace_filter():
     workspace_id = _uuid()
     mock_qdrant = AsyncMock()
-    mock_qdrant.search = AsyncMock(return_value=[])
+    mock_response = MagicMock()
+    mock_response.points = []
+    mock_qdrant.query_points = AsyncMock(return_value=mock_response)
 
     with patch("api.services.search.document_search.get_qdrant", return_value=mock_qdrant):
         await _semantic_search([0.1] * 768, workspace_id)
 
-    call_kwargs = mock_qdrant.search.call_args.kwargs
+    call_kwargs = mock_qdrant.query_points.call_args.kwargs
     assert call_kwargs["collection_name"] == "document_embeddings"
     assert call_kwargs["with_payload"] is True
     filter_obj = call_kwargs["query_filter"]
@@ -159,7 +161,9 @@ async def test_semantic_search_returns_points_on_success():
     file_id = _uuid()
     mock_point = _make_scored_point(file_id, score=0.9)
     mock_qdrant = AsyncMock()
-    mock_qdrant.search = AsyncMock(return_value=[mock_point])
+    mock_response = MagicMock()
+    mock_response.points = [mock_point]
+    mock_qdrant.query_points = AsyncMock(return_value=mock_response)
 
     with patch("api.services.search.document_search.get_qdrant", return_value=mock_qdrant):
         result = await _semantic_search([0.1] * 768, workspace_id)
@@ -171,7 +175,7 @@ async def test_semantic_search_returns_points_on_success():
 async def test_semantic_search_returns_empty_on_qdrant_error():
     workspace_id = _uuid()
     mock_qdrant = AsyncMock()
-    mock_qdrant.search = AsyncMock(side_effect=Exception("connection refused"))
+    mock_qdrant.query_points = AsyncMock(side_effect=Exception("connection refused"))
 
     with patch("api.services.search.document_search.get_qdrant", return_value=mock_qdrant):
         result = await _semantic_search([0.1] * 768, workspace_id)

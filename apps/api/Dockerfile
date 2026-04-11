@@ -26,7 +26,9 @@ COPY api/ ./api/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./alembic.ini
 
-RUN useradd --create-home --shell /bin/bash appuser
+RUN useradd --create-home --shell /bin/bash appuser && \
+    mkdir -p /app/data/thumbnails && \
+    chown -R appuser:appuser /app/data
 USER appuser
 
 EXPOSE 8420

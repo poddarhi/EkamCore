@@ -92,9 +92,9 @@ async def _semantic_search(
 ) -> list[ScoredPoint]:
     """Search Qdrant with workspace_id payload filter.  Returns [] on any error."""
     try:
-        hits = await get_qdrant().search(
+        result = await get_qdrant().query_points(
             collection_name=_COLLECTION,
-            query_vector=vector,
+            query=vector,
             query_filter=Filter(
                 must=[
                     FieldCondition(
@@ -106,7 +106,7 @@ async def _semantic_search(
             limit=limit,
             with_payload=True,
         )
-        return hits
+        return result.points
     except Exception:
         logger.warning("document_search_qdrant_failed", exc_info=True)
         return []
