@@ -194,6 +194,16 @@ ERROR_CODES: dict[str, ErrorDef] = {
         ),
         "category": "auth",
     },
+    "BACKFILL_ALREADY_RUNNING": {
+        "status": 409,
+        "message": "A face backfill is already in progress for this workspace.",
+        "category": "resource",
+    },
+    "BACKFILL_NOT_RUNNING": {
+        "status": 404,
+        "message": "No face backfill is currently running for this workspace.",
+        "category": "resource",
+    },
     "CONSENT_NOT_ACCEPTED": {
         "status": 409,
         "message": "Consent must be explicitly accepted.",

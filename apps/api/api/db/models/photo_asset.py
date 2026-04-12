@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,4 +33,11 @@ class PhotoAsset(Base):
     perceptual_hash: Mapped[str | None] = mapped_column(String(16), nullable=True)
     exif_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     face_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # S11-007: nullable "has face detection run against this photo?" marker.
+    # Populated by process_photo_for_faces on every successful run (including
+    # zero-face). Cleared by hard_delete on consent revocation so backfill
+    # can rediscover these photos after re-consent. NULL = never processed.
+    face_processed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)

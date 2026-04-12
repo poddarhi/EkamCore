@@ -34,6 +34,7 @@ analogous ``face_ingestion.*`` family with the same discipline.
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
@@ -216,6 +217,11 @@ async def process_photo_for_faces(
 
     if not faces:
         photo.face_count = 0
+        # S11-007: stamp the backfill horizon even when no faces are
+        # found — "we ran detection, outcome was zero" is distinct from
+        # "we never ran detection", and backfill must not keep picking
+        # this photo up on every run.
+        photo.face_processed_at = datetime.now(timezone.utc)
         await db.flush()
         logger.info(
             "face_ingestion_no_faces_found",
@@ -277,6 +283,7 @@ async def process_photo_for_faces(
         raise
 
     photo.face_count = len(pending_rows)
+    photo.face_processed_at = datetime.now(timezone.utc)
     await db.flush()
 
     logger.info(

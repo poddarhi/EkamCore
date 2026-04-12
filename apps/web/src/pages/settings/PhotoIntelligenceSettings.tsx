@@ -11,18 +11,26 @@
  * core.face_clustering_consent boolean setting that was removed in S11-002.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { Brain, ShieldCheck, ShieldOff } from "lucide-react";
 import { ApiError, apiFetch, swrFetcher } from "../../api/client";
 import { useFlag } from "../../contexts/FlagContext";
-import { Button, FeatureComingSoon, Modal, Skeleton } from "../../design-system/components";
+import {
+  Button,
+  FeatureComingSoon,
+  Modal,
+  ProgressBar,
+  Skeleton,
+} from "../../design-system/components";
 import ErrorBanner from "../../components/ErrorBanner";
 import Toast from "../../components/Toast";
 import ConsentDialog from "../../components/face/ConsentDialog";
 import { t } from "../../i18n";
 
 const CONSENT_ENDPOINT = "/api/v1/settings/face-clustering/consent";
+const BACKFILL_ENDPOINT = "/api/v1/settings/face-clustering/backfill";
+const BACKFILL_POLL_INTERVAL_MS = 5_000;
 
 interface ConsentStateResponse {
   accepted: boolean;
@@ -38,6 +46,20 @@ interface DeleteReportResponse {
   cluster_count: number;
   qdrant_point_count: number;
   duration_ms: number;
+}
+
+type BackfillState = "running" | "completed" | "failed" | "cancelled";
+
+interface BackfillJobResponse {
+  id: string;
+  workspace_id: string;
+  state: BackfillState;
+  started_at: string;
+  finished_at: string | null;
+  total_photos: number;
+  processed_photos: number;
+  failed_photos: number;
+  error_message: string | null;
 }
 
 type ToastState =
@@ -259,17 +281,8 @@ function EnabledStateCard({
               </dd>
             </div>
           </dl>
+          <BackfillControls />
           <div className="mt-[var(--space-4)] flex flex-wrap items-center gap-[var(--space-3)]">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled
-              title={t(
-                "settings.photoIntelligence.enabled.processHistoricalTooltip",
-              )}
-            >
-              {t("settings.photoIntelligence.enabled.processHistorical")}
-            </Button>
             <Button variant="danger" size="sm" onClick={onDisableClick}>
               <ShieldOff size={14} className="mr-1.5" aria-hidden="true" />
               {t("settings.photoIntelligence.enabled.disableButton")}
@@ -277,6 +290,168 @@ function EnabledStateCard({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Backfill controls (S11-007) ─────────────────────────────────────────
+//
+// Fetches the latest face_backfill_jobs row for the workspace, shows
+// the right control surface for its state, and polls every 5s while
+// a job is running. Polling stops automatically when the job reaches
+// a terminal state, so a settled page is quiet.
+
+function BackfillControls() {
+  const { data, error, mutate } = useSWR<BackfillJobResponse | null>(
+    BACKFILL_ENDPOINT,
+    swrFetcher,
+  );
+
+  const [starting, setStarting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const isRunning = data?.state === "running";
+
+  // Poll while running. We use a manual setInterval rather than SWR's
+  // refreshInterval so the cadence is exactly what we want and the
+  // interval clears the instant the job settles.
+  const mutateRef = useRef(mutate);
+  useEffect(() => {
+    mutateRef.current = mutate;
+  }, [mutate]);
+
+  useEffect(() => {
+    if (!isRunning) return;
+    const h = setInterval(() => {
+      mutateRef.current();
+    }, BACKFILL_POLL_INTERVAL_MS);
+    return () => clearInterval(h);
+  }, [isRunning]);
+
+  const handleStart = useCallback(async () => {
+    setStarting(true);
+    setLocalError(null);
+    try {
+      await apiFetch<BackfillJobResponse>(BACKFILL_ENDPOINT, {
+        method: "POST",
+      });
+      mutate();
+    } catch (err) {
+      const e = err as ApiError;
+      setLocalError(
+        e.message ?? t("settings.photoIntelligence.backfill.startError"),
+      );
+    } finally {
+      setStarting(false);
+    }
+  }, [mutate]);
+
+  const handleCancel = useCallback(async () => {
+    setCancelling(true);
+    setLocalError(null);
+    try {
+      await apiFetch<BackfillJobResponse>(BACKFILL_ENDPOINT, {
+        method: "DELETE",
+      });
+      mutate();
+    } catch (err) {
+      const e = err as ApiError;
+      setLocalError(
+        e.message ?? t("settings.photoIntelligence.backfill.cancelError"),
+      );
+    } finally {
+      setCancelling(false);
+    }
+  }, [mutate]);
+
+  // Loading SWR: render nothing until first response lands. Error on
+  // fetch (e.g. consent was revoked in another tab): fail silently
+  // — the surrounding disabled state will catch it on the next mutate.
+  if (error) return null;
+
+  // RUNNING — show progress bar + cancel button
+  if (isRunning && data) {
+    const pct =
+      data.total_photos === 0
+        ? 100
+        : (data.processed_photos / data.total_photos) * 100;
+    return (
+      <div className="mt-[var(--space-4)] space-y-[var(--space-2)]">
+        <ProgressBar
+          value={pct}
+          label={t("settings.photoIntelligence.backfill.progressLabel", {
+            processed: data.processed_photos,
+            total: data.total_photos,
+          })}
+        />
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleCancel}
+          loading={cancelling}
+        >
+          {t("settings.photoIntelligence.backfill.cancelButton")}
+        </Button>
+      </div>
+    );
+  }
+
+  // COMPLETED — show a summary + a "Run again" affordance
+  if (data?.state === "completed") {
+    return (
+      <div className="mt-[var(--space-4)] space-y-[var(--space-2)]">
+        <p className="text-[var(--text-small-size)] text-[var(--color-neutral-500)]">
+          {t("settings.photoIntelligence.backfill.completedSummary", {
+            processed: data.processed_photos,
+            total: data.total_photos,
+          })}
+        </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleStart}
+          loading={starting}
+        >
+          {t("settings.photoIntelligence.backfill.runAgainButton")}
+        </Button>
+        {localError && (
+          <p className="text-[var(--text-caption-size)] text-[var(--color-danger)]">
+            {localError}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // DEFAULT / first-run / cancelled / failed — show the start button
+  return (
+    <div className="mt-[var(--space-4)] space-y-[var(--space-2)]">
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={handleStart}
+        loading={starting}
+      >
+        {t("settings.photoIntelligence.enabled.processHistorical")}
+      </Button>
+      {data?.state === "cancelled" && (
+        <p className="text-[var(--text-caption-size)] text-[var(--color-neutral-500)]">
+          {t("settings.photoIntelligence.backfill.cancelledSummary", {
+            processed: data.processed_photos,
+          })}
+        </p>
+      )}
+      {data?.state === "failed" && (
+        <p className="text-[var(--text-caption-size)] text-[var(--color-danger)]">
+          {t("settings.photoIntelligence.backfill.failedSummary")}
+        </p>
+      )}
+      {localError && (
+        <p className="text-[var(--text-caption-size)] text-[var(--color-danger)]">
+          {localError}
+        </p>
+      )}
     </div>
   );
 }

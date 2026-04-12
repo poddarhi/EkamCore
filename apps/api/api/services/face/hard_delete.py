@@ -250,12 +250,15 @@ async def delete_all_face_data(
             message="PG delete of face_clusters failed. Revocation rolled back.",
         ) from exc
 
-    # ── Step 6 ── Zero photo_asset.face_count
+    # ── Step 6 ── Zero photo_asset.face_count AND clear face_processed_at.
+    # S11-007: clearing face_processed_at resets the backfill horizon so
+    # that if consent is granted again later, the backfill service can
+    # rediscover these photos and re-process them cleanly.
     try:
         await db.execute(
             update(PhotoAsset)
             .where(PhotoAsset.workspace_id == workspace_id)
-            .values(face_count=0)
+            .values(face_count=0, face_processed_at=None)
         )
     except Exception as exc:
         logger.warning(
