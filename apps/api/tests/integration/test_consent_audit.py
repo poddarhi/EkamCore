@@ -93,8 +93,17 @@ class TestConsentAuditTrail:
             )
             rows = result.scalars().all()
 
-        assert len(rows) == 2
-        grant_row, revoke_row = rows
+        # S11-003: revoke now also emits a face_data_hard_deleted row between
+        # grant and revoke (from the atomic hard-delete step).
+        actions = [r.action for r in rows]
+        assert actions == [
+            "face_consent_granted",
+            "face_data_hard_deleted",
+            "face_consent_revoked",
+        ]
+
+        grant_row = rows[0]
+        revoke_row = rows[2]
         assert grant_row.action == "face_consent_granted"
         assert revoke_row.action == "face_consent_revoked"
 

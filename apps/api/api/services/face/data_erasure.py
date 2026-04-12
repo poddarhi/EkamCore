@@ -1,21 +1,20 @@
-"""Hard deletion of face pipeline data (S11-002 stub, S11-003 implementation).
+"""Hard deletion of face pipeline data (S11-003 implementation).
 
-This module is called by ConsentService.revoke() to erase all face data
-for a workspace BEFORE the revocation is committed. If hard_delete raises,
-revocation is rolled back (partial state is forbidden by ART-15 §3).
+Thin adapter that delegates to api.services.face.hard_delete.delete_all_face_data.
 
-STATUS: STUB. S11-002 provides a callable no-op so the ConsentService can
-be implemented and tested end-to-end. S11-003 replaces the body of
-`hard_delete_all_face_data` with the real cascade:
-    - DELETE FROM face_detections WHERE workspace_id = :ws
-    - DELETE FROM face_clusters   WHERE workspace_id = :ws
-    - Qdrant scroll + delete all face_embedding points where
-      workspace_id = :ws
-    - Emit a terminal audit_log row recording the erasure
+Why this indirection? S11-002 established `data_erasure.hard_delete_all_face_data`
+as the contract surface that ConsentService.revoke() calls and that tests
+monkeypatch for failure injection. S11-003 ships the real implementation
+in a separate `hard_delete.py` module so the logic can be unit-tested
+directly without going through ConsentService. This module preserves the
+contract signature and forwards to the real implementation, so S11-002
+tests that monkeypatch `data_erasure.hard_delete_all_face_data` continue
+to work unchanged.
 
-Tests that want to simulate a failed erasure (to verify the rollback
-contract) MUST monkeypatch this function — not its internals — so the
-contract surface is stable across S11-002 and S11-003.
+ART-15 §3 row 3: "Right to delete — Synchronous, verified". The real
+implementation deletes Qdrant points FIRST (irreplaceable ciphertext),
+verifies Qdrant is empty, then cascades to PG metadata in a single
+transaction. See hard_delete.py for the full failure-mode analysis.
 """
 
 from __future__ import annotations
@@ -25,37 +24,34 @@ from uuid import UUID
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.services.face.hard_delete import (
+    DeleteReport,
+    delete_all_face_data,
+)
+
 logger = structlog.get_logger()
 
 
 async def hard_delete_all_face_data(
     workspace_id: UUID,
     db: AsyncSession,
-) -> None:
+) -> DeleteReport:
     """Erase all face pipeline data for a workspace.
 
-    STUB: S11-003 implements the actual DELETE + Qdrant scroll cascade.
-    For S11-002, this is a no-op that logs a structured warning so that
-    accidental reliance on it in production is loud.
+    Forwards to :func:`api.services.face.hard_delete.delete_all_face_data`.
 
     Args:
         workspace_id: The workspace whose face data should be erased.
-        db: Async session — S11-003 will use this to run the cascading
-            deletes atomically with the caller's transaction.
+        db: Async session used for the atomic PG cascade.
+
+    Returns:
+        DeleteReport with deletion counts and duration.
 
     Raises:
-        Any exception raised by this function propagates to the caller,
-        which MUST roll back its transaction. ConsentService.revoke()
-        relies on this contract.
+        ServiceUnavailableError with error_code starting in
+        FACE_HARD_DELETE_ on any failure. The caller MUST roll back.
     """
-    logger.warning(
-        "face_data_erasure_stub_invoked",
-        workspace_id=str(workspace_id),
-        message=(
-            "hard_delete_all_face_data is a STUB (S11-002). "
-            "S11-003 will implement actual deletion. "
-            "No face data has been erased."
-        ),
+    return await delete_all_face_data(
+        workspace_id=workspace_id,
+        db=db,
     )
-    # Intentionally a no-op until S11-003 lands.
-    return None

@@ -176,6 +176,62 @@ ERROR_CODES: dict[str, ErrorDef] = {
         "message": "A source with this name already exists.",
         "category": "resource",
     },
+    "CONSENT_VERSION_STALE": {
+        "status": 409,
+        "message": (
+            "The consent text has been updated. "
+            "Please review the new text and re-submit."
+        ),
+        "category": "auth",
+    },
+    "CONSENT_NOT_ACCEPTED": {
+        "status": 409,
+        "message": "Consent must be explicitly accepted.",
+        "category": "auth",
+    },
+    "FACE_HARD_DELETE_PRECOUNT_FAILED": {
+        "status": 503,
+        "message": "Could not read face data counts prior to deletion.",
+        "category": "service",
+    },
+    "FACE_HARD_DELETE_QDRANT_FAILED": {
+        "status": 503,
+        "message": "Qdrant delete-by-filter failed. Revocation rolled back.",
+        "category": "service",
+    },
+    "FACE_HARD_DELETE_QDRANT_VERIFY_FAILED": {
+        "status": 503,
+        "message": "Qdrant post-delete count failed. Revocation rolled back.",
+        "category": "service",
+    },
+    "FACE_HARD_DELETE_QDRANT_RESIDUE": {
+        "status": 503,
+        "message": (
+            "Qdrant still reports points after delete-by-filter. "
+            "Revocation rolled back."
+        ),
+        "category": "service",
+    },
+    "FACE_HARD_DELETE_PG_DETECTIONS_FAILED": {
+        "status": 503,
+        "message": "PG delete of face_detections failed. Revocation rolled back.",
+        "category": "service",
+    },
+    "FACE_HARD_DELETE_PG_CLUSTERS_FAILED": {
+        "status": 503,
+        "message": "PG delete of face_clusters failed. Revocation rolled back.",
+        "category": "service",
+    },
+    "FACE_HARD_DELETE_PG_PHOTO_COUNT_FAILED": {
+        "status": 503,
+        "message": "PG update of photo_asset.face_count failed. Revocation rolled back.",
+        "category": "service",
+    },
+    "FACE_HARD_DELETE_AUDIT_FAILED": {
+        "status": 503,
+        "message": "Audit row write failed after successful deletion. Revocation rolled back.",
+        "category": "service",
+    },
 
     # ── Rate Limiting ──
     "RATE_LIMIT_EXCEEDED": {

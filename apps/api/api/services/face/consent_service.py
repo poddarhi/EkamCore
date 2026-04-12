@@ -32,8 +32,11 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from api.services.face.hard_delete import DeleteReport
 
 import structlog
 from pydantic import BaseModel, ConfigDict
@@ -307,12 +310,12 @@ async def revoke(
     ip: str,
     user_agent: str,
     db: AsyncSession,
-) -> None:
+) -> "DeleteReport | None":
     """Revoke consent and hard-delete all face data atomically.
 
     Order of operations (ART-15 §3):
       1. Load the existing active consent. If none, this is a no-op
-         but still safe to call (idempotent).
+         but still safe to call (idempotent) — returns None.
       2. Synchronously call hard_delete_all_face_data(). If it raises,
          the caller's transaction is rolled back and the revocation
          never took effect. Partial state is legally forbidden.
@@ -323,6 +326,11 @@ async def revoke(
     The caller owns the transaction. On any exception above step 3,
     the caller MUST roll back. This function does not catch exceptions
     from hard_delete — they propagate for the rollback contract.
+
+    Returns:
+        The DeleteReport from the hard-delete step (for the DELETE API
+        endpoint to echo back to the caller), or None if there was no
+        active consent to revoke.
     """
     existing = await get_active_consent(workspace_id, db)
     if existing is None:
@@ -331,13 +339,13 @@ async def revoke(
             workspace_id=str(workspace_id),
             reason="no_active_consent",
         )
-        return
+        return None
 
     now = datetime.now(timezone.utc)
 
     # Step 1 — hard delete. Must succeed BEFORE the revocation is committed.
     # Any exception here bubbles up and rolls back the caller's transaction.
-    await data_erasure.hard_delete_all_face_data(
+    delete_report = await data_erasure.hard_delete_all_face_data(
         workspace_id=workspace_id,
         db=db,
     )
@@ -380,3 +388,4 @@ async def revoke(
         user_id=str(user_id),
         revoked_version=existing.version,
     )
+    return delete_report
