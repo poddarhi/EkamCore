@@ -311,6 +311,21 @@ ERROR_CODES: dict[str, ErrorDef] = {
         ),
         "category": "auth",
     },
+    "FACE_MODEL_NOT_LOADED": {
+        "status": 503,
+        "message": "Face detection model is not loaded yet. Try again shortly.",
+        "category": "service",
+    },
+    "FACE_MODEL_LOAD_FAILED": {
+        "status": 503,
+        "message": "Face detection model could not be loaded. Check server logs.",
+        "category": "service",
+    },
+    "FACE_MODEL_INVALID_IMAGE": {
+        "status": 422,
+        "message": "Face detection could not decode the provided image.",
+        "category": "validation",
+    },
 
     # ── Internal ──
     "INTERNAL_ERROR": {

@@ -30,6 +30,14 @@ piexif = "^1.1.3"
 imagehash = "^4.3.2"
 reverse_geocoder = "^1.5.1"
 
+# Phase 3 face pipeline (S11-005). These pulls ~500MB of wheels on first
+# install and may take several minutes on ARM macOS. Import is lazy
+# inside api.services.face.face_model.load() so the rest of the codebase
+# remains importable even without these packages installed.
+insightface = "^0.7.3"
+onnxruntime = "^1.17.0"
+opencv-python-headless = "^4.9.0"
+
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 pytest-asyncio = "^0.25.0"
@@ -56,6 +64,9 @@ warn_unused_configs = true
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 testpaths = ["tests"]
+markers = [
+  "requires_insightface_models: integration tests that require insightface + buffalo_l ONNX models + a face fixture image; skipped unless all three are present",
+]
 
 [build-system]
 requires = ["poetry-core"]

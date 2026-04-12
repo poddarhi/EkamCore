@@ -74,6 +74,38 @@ async def _check_ollama() -> dict[str, Any]:
         return {"status": "unhealthy", "error": type(e).__name__}
 
 
+def _check_face_model() -> dict[str, Any]:
+    """Check InsightFace singleton state (S11-005).
+
+    Reads `FaceModel.instance().loaded` + any recorded load error.
+    Never triggers a load — status is observational only. Safe to call
+    before the model has ever been touched.
+
+    Treated as OPTIONAL (same as Ollama/Paperless): face_model failure
+    does NOT flip the overall /health status to "degraded".
+    """
+    try:
+        from api.services.face.face_model import face_model_status
+
+        snap = face_model_status()
+        return {
+            "status": "healthy" if snap.get("loaded") else "unhealthy",
+            "loaded": snap.get("loaded"),
+            "load_error": snap.get("load_error"),
+            "detector_version": snap.get("detector_version"),
+            "recognizer_version": snap.get("recognizer_version"),
+        }
+    except Exception as e:
+        # Module-level import failure (pyproject deps not installed) is
+        # surfaced as unhealthy but never raises.
+        logger.warning("face_model_health_failed", error_type=type(e).__name__)
+        return {
+            "status": "unhealthy",
+            "loaded": False,
+            "load_error": f"{type(e).__name__}: {e}",
+        }
+
+
 @router.get("/health")
 async def health_check() -> dict[str, Any]:
     """Health check endpoint that verifies connectivity to all backend services."""
@@ -82,6 +114,7 @@ async def health_check() -> dict[str, Any]:
     qdrant = await _check_qdrant()
     paperless = await _check_paperless()
     ollama = await _check_ollama()
+    face_model = _check_face_model()
 
     services = {
         "postgres": postgres,
@@ -89,9 +122,12 @@ async def health_check() -> dict[str, Any]:
         "qdrant": qdrant,
         "paperless": paperless,
         "ollama": ollama,
+        "face_model": face_model,
     }
 
-    # Core services: postgres, redis, qdrant. Paperless and Ollama are optional.
+    # Core services: postgres, redis, qdrant. Paperless, Ollama, and
+    # face_model are optional — their failure does NOT degrade overall
+    # status.
     core_healthy = all(
         services[s]["status"] == "healthy" for s in ("postgres", "redis", "qdrant")
     )

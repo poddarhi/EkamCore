@@ -1,0 +1,27 @@
+# InsightFace buffalo_l pack — SHA-256 checksums
+#
+# Release source:
+#   https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip
+#
+# This file is the integrity anchor for `make download-face-models`.
+# The download script refuses to run while any hash starts with
+# `PLACEHOLDER_`. Populate these values BEFORE the first download by
+# computing the real SHA-256 from the official release page, or — if
+# you trust the mirror once — download manually, run
+# `shasum -a 256 buffalo_l.zip` and paste the hash here.
+#
+# Format: <64-char hex hash>  <relative path under models/insightface>
+#
+# When bumping to a newer buffalo_l release:
+#   1. Update the release URL in scripts/face/download_models.sh
+#   2. Replace ALL hashes below with the new ones
+#   3. Commit the updated CHECKSUMS.txt alongside the script change
+#
+# These placeholders are intentionally invalid and MUST be replaced.
+
+PLACEHOLDER_ZIP_HASH_REPLACE_BEFORE_DOWNLOAD                       buffalo_l.zip
+PLACEHOLDER_DET_10G_HASH_REPLACE_BEFORE_DOWNLOAD                   buffalo_l/det_10g.onnx
+PLACEHOLDER_W600K_R50_HASH_REPLACE_BEFORE_DOWNLOAD                 buffalo_l/w600k_r50.onnx
+PLACEHOLDER_1K3D68_HASH_REPLACE_BEFORE_DOWNLOAD                    buffalo_l/1k3d68.onnx
+PLACEHOLDER_2D106DET_HASH_REPLACE_BEFORE_DOWNLOAD                  buffalo_l/2d106det.onnx
+PLACEHOLDER_GENDERAGE_HASH_REPLACE_BEFORE_DOWNLOAD                 buffalo_l/genderage.onnx

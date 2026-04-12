@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     # Loaded from FACE_EMBED_KEY env var. Empty = face pipeline disabled.
     FACE_EMBED_KEY: str = ""
 
+    # Phase 3 (S11-005): InsightFace buffalo_l model directory. Bind-mounted
+    # into the workers container at /models/insightface. Download the pack
+    # with `make download-face-models` before the first container start.
+    INSIGHTFACE_MODEL_DIR: str = "/models/insightface"
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

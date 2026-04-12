@@ -67,3 +67,8 @@ sbom/*.json
 apps/api/.coverage.*
 htmlcov/
 coverage.xml
+
+# Phase 3: InsightFace model weights (S11-005)
+# Downloaded on demand by `make download-face-models`; never committed.
+infra/docker/workers/models/insightface/**/*.onnx
+infra/docker/workers/models/insightface/**/*.zip

@@ -5,6 +5,7 @@
        ollama-start ollama-stop ollama-status \
        paperless-logs paperless-token paperless-shell \
        backup restore backup-list \
+       download-face-models verify-face-models \
        dev-api dev-web help
 
 # === Setup ===
@@ -112,6 +113,13 @@ ollama-stop: ## Stop Ollama
 
 ollama-status: ## Show loaded Ollama models
 	@ollama list 2>/dev/null || echo "Ollama not running"
+
+# === InsightFace models (S11-005) ===
+download-face-models: ## Download + SHA-256 verify the InsightFace buffalo_l pack
+	@bash scripts/face/download_models.sh
+
+verify-face-models: ## Re-verify existing InsightFace files against CHECKSUMS.txt
+	@bash scripts/face/download_models.sh --verify-only
 
 # === PaperlessNGX ===
 paperless-logs: ## Tail PaperlessNGX logs

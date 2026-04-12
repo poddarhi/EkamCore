@@ -75,3 +75,40 @@ class FaceConsentRequiredError(EkamCoreError):
 
     status_code = 403
     error_code = "FACE_CONSENT_REQUIRED"
+
+
+class FaceModelNotLoadedError(EkamCoreError):
+    """Raised when detect_and_embed is called before FaceModel.load() (S11-005).
+
+    Face pipeline workers must explicitly load the InsightFace model
+    before processing photos. Calling detect_and_embed on an unloaded
+    singleton is a programming error, but we expose it as a structured
+    503 so upstream callers can retry or degrade gracefully.
+    """
+
+    status_code = 503
+    error_code = "FACE_MODEL_NOT_LOADED"
+
+
+class FaceModelLoadFailedError(EkamCoreError):
+    """Raised when FaceModel.load() fails to initialize the InsightFace app (S11-005).
+
+    Causes include: missing ONNX files, corrupted model pack, onnxruntime
+    provider failure, insufficient memory, or missing bind mount. The
+    full error message is logged; callers see a generic 503.
+    """
+
+    status_code = 503
+    error_code = "FACE_MODEL_LOAD_FAILED"
+
+
+class FaceModelInvalidImageError(EkamCoreError):
+    """Raised when OpenCV cannot decode the provided image bytes (S11-005).
+
+    Distinct from a detection failure (zero faces is a valid result).
+    This is a malformed input error — unsupported format, truncated
+    file, or non-image bytes passed to detect_and_embed.
+    """
+
+    status_code = 422
+    error_code = "FACE_MODEL_INVALID_IMAGE"

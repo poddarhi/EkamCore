@@ -209,6 +209,13 @@ services:
       PAPERLESS_URL: ${PAPERLESS_URL:-http://ekamcore-paperless:8000}
       PAPERLESS_API_TOKEN: ${PAPERLESS_API_TOKEN}
       ENVIRONMENT: ${ENVIRONMENT:-development}
+      # Phase 3 (S11-005): InsightFace buffalo_l model directory
+      INSIGHTFACE_MODEL_DIR: ${INSIGHTFACE_MODEL_DIR:-/models/insightface}
+      FACE_EMBED_KEY: ${FACE_EMBED_KEY:-}
+    volumes:
+      # Phase 3 (S11-005): bind-mount the downloaded InsightFace pack.
+      # Populate with `make download-face-models` before first start.
+      - ./infra/docker/workers/models/insightface:/models/insightface:ro
     networks:
       - ekamcore-net
     depends_on:
@@ -217,7 +224,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${WORKERS_MEM_LIMIT:-768M}
+          # S11-005: bumped from 768M to hold FaceAnalysis (~500MB)
+          # plus workspace overhead. Override via WORKERS_MEM_LIMIT.
+          memory: ${WORKERS_MEM_LIMIT:-1400M}
           cpus: "1.0"
     restart: unless-stopped
 
