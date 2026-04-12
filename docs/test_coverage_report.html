@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EkamCore Test Coverage Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.25rem; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; }
+  h3 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
+  .meta { color: #64748b; font-size: 0.875rem; margin-bottom: 2rem; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .card { background: white; border-radius: 0.75rem; padding: 1.25rem; border: 1px solid #e2e8f0; }
+  .card .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+  .card .value { font-size: 2rem; font-weight: 700; margin-top: 0.25rem; }
+  .card .value.green { color: #22c55e; }
+  .card .value.amber { color: #f59e0b; }
+  .card .value.red { color: #ef4444; }
+  .bar { height: 8px; border-radius: 4px; background: #e2e8f0; overflow: hidden; margin-top: 0.5rem; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 0.75rem; overflow: hidden; border: 1px solid #e2e8f0; margin-bottom: 1rem; }
+  th { background: #f1f5f9; text-align: left; padding: 0.75rem 1rem; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { padding: 0.75rem 1rem; border-top: 1px solid #f1f5f9; font-size: 0.875rem; vertical-align: top; }
+  tr:hover td { background: #f8fafc; }
+  .badge { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+  .badge-full { background: #dcfce7; color: #166534; }
+  .badge-partial { background: #fef3c7; color: #92400e; }
+  .badge-none { background: #fee2e2; color: #991b1b; }
+  .badge-cp { background: #dbeafe; color: #1e40af; font-size: 0.625rem; margin-left: 0.25rem; }
+  .test-list { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+  .phase-bar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+  .phase-label { font-size: 0.875rem; min-width: 200px; }
+  .phase-pct { font-size: 0.875rem; font-weight: 600; min-width: 50px; text-align: right; }
+  .phase-bar-track { flex: 1; height: 20px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+  .phase-bar-fill { height: 100%; border-radius: 4px; }
+  .issues { background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.75rem; padding: 1rem; margin-top: 1rem; }
+  .issues h3 { color: #991b1b; }
+  .issues li { font-size: 0.875rem; margin: 0.25rem 0; }
+  .notes { font-size: 0.75rem; color: #94a3b8; font-style: italic; }
+</style>
+</head>
+<body>
+<h1>EkamCore Test Coverage Report</h1>
+<p class="meta">Generated: 2026-04-12 00:57 UTC | Source: docs/test_traceability.json (ART-18)</p>
+
+<!-- Summary Cards -->
+<div class="summary-grid">
+  <div class="card"><div class="label">Total Stories</div><div class="value">48</div></div>
+  <div class="card"><div class="label">Fully Covered</div><div class="value green">28</div></div>
+  <div class="card"><div class="label">Partially Covered</div><div class="value amber">2</div></div>
+  <div class="card"><div class="label">Uncovered</div><div class="value red">18</div></div>
+  <div class="card"><div class="label">Test Functions</div><div class="value">742</div></div>
+  <div class="card"><div class="label">Implemented Coverage (P0-P2)</div><div class="value amber">65.2%</div></div>
+</div>
+
+<!-- Phase Coverage Bars -->
+<h2>Coverage by Phase</h2>
+<div class="phase-bar">
+  <span class="phase-label">Phase 0 — Foundation</span>
+  <div class="phase-bar-track"><div class="phase-bar-fill" style="width:68.2%;background:#f59e0b"></div></div>
+  <span class="phase-pct" style="color:#f59e0b">68.2%</span>
+  <span class="notes">(8/11)</span>
+</div>
+<div class="phase-bar">
+  <span class="phase-label">Phase 1 — Core Features</span>
+  <div class="phase-bar-track"><div class="phase-bar-fill" style="width:72.7%;background:#f59e0b"></div></div>
+  <span class="phase-pct" style="color:#f59e0b">72.7%</span>
+  <span class="notes">(8/11)</span>
+</div>
+<div class="phase-bar">
+  <span class="phase-label">Phase 2 — File & Search</span>
+  <div class="phase-bar-track"><div class="phase-bar-fill" style="width:96.4%;background:#22c55e"></div></div>
+  <span class="phase-pct" style="color:#22c55e">96.4%</span>
+  <span class="notes">(14/14)</span>
+</div>
+<div class="phase-bar">
+  <span class="phase-label">Phase 3 — Face & People</span>
+  <div class="phase-bar-track"><div class="phase-bar-fill" style="width:0.0%;background:#ef4444"></div></div>
+  <span class="phase-pct" style="color:#ef4444">0.0%</span>
+  <span class="notes">(0/6)</span>
+</div>
+<div class="phase-bar">
+  <span class="phase-label">Phase 4 — Polish & Release</span>
+  <div class="phase-bar-track"><div class="phase-bar-fill" style="width:0.0%;background:#ef4444"></div></div>
+  <span class="phase-pct" style="color:#ef4444">0.0%</span>
+  <span class="notes">(0/4)</span>
+</div>
+<h2>Coverage by Sprint</h2>
+<table><thead><tr><th>Sprint</th><th>Stories</th><th>Covered</th><th>Coverage</th><th>Bar</th></tr></thead><tbody>
+<tr><td>Sprint Gap (G-*)</td><td>5</td><td>4</td><td style="color:#22c55e;font-weight:600">80.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:80.0%;background:#22c55e"></div></div></td></tr>
+<tr><td>Sprint 1</td><td>7</td><td>4</td><td style="color:#f59e0b;font-weight:600">57.1%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:57.1%;background:#f59e0b"></div></div></td></tr>
+<tr><td>Sprint 10</td><td>2</td><td>1</td><td style="color:#f59e0b;font-weight:600">50.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:50.0%;background:#f59e0b"></div></div></td></tr>
+<tr><td>Sprint 11</td><td>3</td><td>0</td><td style="color:#ef4444;font-weight:600">0.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:0.0%;background:#ef4444"></div></div></td></tr>
+<tr><td>Sprint 12</td><td>2</td><td>0</td><td style="color:#ef4444;font-weight:600">0.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:0.0%;background:#ef4444"></div></div></td></tr>
+<tr><td>Sprint 13</td><td>3</td><td>0</td><td style="color:#ef4444;font-weight:600">0.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:0.0%;background:#ef4444"></div></div></td></tr>
+<tr><td>Sprint 15</td><td>2</td><td>0</td><td style="color:#ef4444;font-weight:600">0.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:0.0%;background:#ef4444"></div></div></td></tr>
+<tr><td>Sprint 16</td><td>2</td><td>0</td><td style="color:#ef4444;font-weight:600">0.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:0.0%;background:#ef4444"></div></div></td></tr>
+<tr><td>Sprint 2</td><td>7</td><td>4</td><td style="color:#f59e0b;font-weight:600">57.1%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:57.1%;background:#f59e0b"></div></div></td></tr>
+<tr><td>Sprint 3</td><td>4</td><td>3</td><td style="color:#f59e0b;font-weight:600">75.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:75.0%;background:#f59e0b"></div></div></td></tr>
+<tr><td>Sprint 4</td><td>4</td><td>2</td><td style="color:#f59e0b;font-weight:600">50.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:50.0%;background:#f59e0b"></div></div></td></tr>
+<tr><td>Sprint 5</td><td>4</td><td>4</td><td style="color:#22c55e;font-weight:600">100.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:100.0%;background:#22c55e"></div></div></td></tr>
+<tr><td>Sprint 6</td><td>2</td><td>2</td><td style="color:#22c55e;font-weight:600">100.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:100.0%;background:#22c55e"></div></div></td></tr>
+<tr><td>Sprint 7</td><td>4</td><td>4</td><td style="color:#22c55e;font-weight:600">100.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:100.0%;background:#22c55e"></div></div></td></tr>
+<tr><td>Sprint 8</td><td>3</td><td>2</td><td style="color:#f59e0b;font-weight:600">66.7%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:66.7%;background:#f59e0b"></div></div></td></tr>
+<tr><td>Sprint 9</td><td>2</td><td>1</td><td style="color:#f59e0b;font-weight:600">50.0%</td>
+<td><div class="bar" style="width:200px"><div class="bar-fill" style="width:50.0%;background:#f59e0b"></div></div></td></tr>
+</tbody></table>
+<h2>Phase 0 — Foundation</h2>
+<table><thead><tr><th>Story</th><th>Title</th><th>Status</th><th>Test Files</th><th>Tests</th></tr></thead><tbody>
+<tr>
+  <td><strong>S01-001</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Docker Compose full stack</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_health.py<br>tests/acceptance/verify_art02.py</td>
+  <td>4</td>
+</tr>
+<tr>
+  <td><strong>S01-002</strong> <span class="badge badge-cp">CP</span></td>
+  <td>PostgreSQL initial schema</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>tests/acceptance/verify_art02.py</td>
+  <td>5</td>
+</tr>
+<tr>
+  <td><strong>S01-003</strong> <span class="badge badge-cp">CP</span></td>
+  <td>OpenAPI 3.1 spec<br><span class="notes">Envelope shape tested; spec file validation not automated</span></td>
+  <td><span class="badge badge-partial">Partial</span></td>
+  <td>apps/api/tests/test_envelope.py</td>
+  <td>4</td>
+</tr>
+<tr>
+  <td><strong>S01-004</strong> <span class="badge badge-cp">CP</span></td>
+  <td>CI/CD pipeline<br><span class="notes">CI pipeline is infrastructure — verified by CI runs, not unit tests</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S01-006</strong> <span class="badge badge-cp">CP</span></td>
+  <td>FastAPI scaffold</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_health.py<br>apps/api/tests/test_logging.py<br>apps/api/tests/test_diagnostics.py</td>
+  <td>3</td>
+</tr>
+<tr>
+  <td><strong>S01-007</strong></td>
+  <td>Caddy reverse proxy<br><span class="notes">Caddy routing is infrastructure — verified by integration/e2e tests</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S01-008</strong></td>
+  <td>Qdrant collection init<br><span class="notes">Collections verified via health check; init idempotency tested implicitly</span></td>
+  <td><span class="badge badge-partial">Partial</span></td>
+  <td>apps/api/tests/test_health.py<br>tests/acceptance/verify_art02.py</td>
+  <td>2</td>
+</tr>
+<tr>
+  <td><strong>S02-001</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Auth: login/refresh/logout</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_auth_login.py<br>apps/api/tests/test_auth_refresh.py<br>apps/api/tests/test_auth_logout.py<br>apps/api/tests/test_auth_middleware.py<br>apps/api/tests/security/test_auth_security.py<br>tests/acceptance/verify_art02.py</td>
+  <td>15</td>
+</tr>
+<tr>
+  <td><strong>S02-002</strong></td>
+  <td>Brute-force protection</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_bruteforce.py<br>apps/api/tests/security/test_rate_limiting.py<br>tests/acceptance/verify_art02.py</td>
+  <td>7</td>
+</tr>
+<tr>
+  <td><strong>S02-003</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Ingestion state machine</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_state_machine.py<br>tests/acceptance/verify_art02.py</td>
+  <td>8</td>
+</tr>
+<tr>
+  <td><strong>S02-004</strong></td>
+  <td>Design system tokens<br><span class="notes">Design tokens are visual — verified via Storybook and visual review</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S02-005</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Performance baseline<br><span class="notes">Benchmarks are operational scripts, not test functions. Verified by running scripts/benchmark/harness.py</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S02-007</strong></td>
+  <td>CSRF protection</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_csrf.py<br>apps/api/tests/security/test_csrf_extended.py<br>tests/acceptance/verify_art02.py</td>
+  <td>12</td>
+</tr>
+<tr>
+  <td><strong>S02-009</strong></td>
+  <td>Web scaffold + design system<br><span class="notes">Frontend scaffold — verified by TypeScript compilation (tsc --noEmit) and dev server</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S02-010</strong></td>
+  <td>Mobile scaffold<br><span class="notes">Mobile scaffold — verified by RN build and manual testing</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+</tbody></table>
+<h2>Phase 1 — Core Features</h2>
+<table><thead><tr><th>Story</th><th>Title</th><th>Status</th><th>Test Files</th><th>Tests</th></tr></thead><tbody>
+<tr>
+  <td><strong>S03-001</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Calendar import</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_calendar_sync.py<br>apps/api/tests/test_sources.py<br>tests/acceptance/verify_art02.py</td>
+  <td>8</td>
+</tr>
+<tr>
+  <td><strong>S03-002</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Reminders import</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_reminder_sync.py<br>tests/acceptance/verify_art02.py</td>
+  <td>6</td>
+</tr>
+<tr>
+  <td><strong>S03-003</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Today card assembly</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_today.py<br>tests/acceptance/verify_art02.py</td>
+  <td>11</td>
+</tr>
+<tr>
+  <td><strong>S03-005</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Manager setup wizard<br><span class="notes">Manager app (Tauri/Rust) — tested via manager-app integration tests</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S03-006</strong></td>
+  <td>Startup sequence<br><span class="notes">Manager app startup — tested via Tauri integration tests</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S04-001</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Resource controller</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_resource_controller.py<br>tests/acceptance/verify_art02.py</td>
+  <td>6</td>
+</tr>
+<tr>
+  <td><strong>S04-002</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Web Today view<br><span class="notes">Frontend component — verified via TypeScript compilation and manual testing</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S04-004</strong></td>
+  <td>Mobile cached Today<br><span class="notes">Mobile app — verified via RN testing tools</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S04-005</strong></td>
+  <td>Watchdog supervisor<br><span class="notes">Manager app watchdog — tested via Tauri integration</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S05-001</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Deterministic query routing</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_query.py<br>apps/api/tests/test_query_expanded.py</td>
+  <td>5</td>
+</tr>
+<tr>
+  <td><strong>S05-002</strong></td>
+  <td>Exact search</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_search.py<br>tests/acceptance/verify_art02.py</td>
+  <td>11</td>
+</tr>
+<tr>
+  <td><strong>S05-003</strong></td>
+  <td>Write-through reminders</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_write_through.py<br>tests/acceptance/verify_art02.py</td>
+  <td>5</td>
+</tr>
+<tr>
+  <td><strong>S05-004</strong></td>
+  <td>Manager health dashboard<br><span class="notes">Manager app frontend — verified via manual testing</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S06-004</strong></td>
+  <td>All deterministic patterns</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_query.py<br>apps/api/tests/test_query_expanded.py</td>
+  <td>5</td>
+</tr>
+<tr>
+  <td><strong>S06-005</strong></td>
+  <td>FSEvents monitoring</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_fs_handler.py</td>
+  <td>5</td>
+</tr>
+</tbody></table>
+<h2>Phase 2 — File & Search</h2>
+<table><thead><tr><th>Story</th><th>Title</th><th>Status</th><th>Test Files</th><th>Tests</th></tr></thead><tbody>
+<tr>
+  <td><strong>G-04</strong></td>
+  <td>LLM Prompt Template Library</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_prompt_templates.py<br>apps/api/tests/test_sanitizer.py</td>
+  <td>6</td>
+</tr>
+<tr>
+  <td><strong>G-05</strong></td>
+  <td>Security Controls Verification</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/security/test_auth_security.py<br>apps/api/tests/security/test_csrf_extended.py<br>apps/api/tests/security/test_input_validation.py<br>apps/api/tests/security/test_rate_limiting.py<br>apps/api/tests/security/test_workspace_isolation.py</td>
+  <td>6</td>
+</tr>
+<tr>
+  <td><strong>G-06</strong></td>
+  <td>Performance Benchmark Infrastructure<br><span class="notes">Benchmark infrastructure — verified by running scripts/benchmark/harness.py</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>G-09</strong></td>
+  <td>In-App Notification System</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_notifications.py<br>tests/acceptance/verify_art02.py</td>
+  <td>7</td>
+</tr>
+<tr>
+  <td><strong>G-10</strong></td>
+  <td>Settings API with Registry-Based Validation</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_settings_api.py<br>tests/acceptance/verify_art02.py</td>
+  <td>10</td>
+</tr>
+<tr>
+  <td><strong>S07-001</strong> <span class="badge badge-cp">CP</span></td>
+  <td>PaperlessNGX API Client</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_paperless_client.py<br>tests/acceptance/verify_art02.py</td>
+  <td>8</td>
+</tr>
+<tr>
+  <td><strong>S07-002</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Paperless Document Sync + Embedding Generation</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_paperless_sync.py<br>apps/api/tests/test_chunker.py<br>apps/api/tests/test_embedder.py</td>
+  <td>9</td>
+</tr>
+<tr>
+  <td><strong>S07-003</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Hybrid Semantic Search</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_document_search.py</td>
+  <td>8</td>
+</tr>
+<tr>
+  <td><strong>S07-004</strong></td>
+  <td>Paperless Correspondent → People Graph Mapping</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_correspondent_bridge.py</td>
+  <td>6</td>
+</tr>
+<tr>
+  <td><strong>S08-001</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Photo metadata + thumbnails</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_photo_extractor.py<br>apps/api/tests/test_photo_pipeline.py<br>apps/api/tests/test_photo_search.py<br>apps/api/tests/test_dedup_photos.py<br>tests/acceptance/verify_art02.py</td>
+  <td>9</td>
+</tr>
+<tr>
+  <td><strong>S08-004</strong></td>
+  <td>Automated daily backup</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_backup_rotate.py</td>
+  <td>6</td>
+</tr>
+<tr>
+  <td><strong>S08-006</strong></td>
+  <td>Paperless Setup in Manager Wizard<br><span class="notes">Manager app wizard step — tested via Tauri integration</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S09-001</strong> <span class="badge badge-cp">CP</span></td>
+  <td>LLM grounded QA (Steps 3-5)</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_llm_query.py<br>apps/api/tests/test_prompt_templates.py<br>apps/api/tests/test_sanitizer.py<br>tests/acceptance/verify_art02.py</td>
+  <td>15</td>
+</tr>
+<tr>
+  <td><strong>S09-002</strong></td>
+  <td>Mobile full query+search<br><span class="notes">Mobile app screens — verified via RN testing tools</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S10-001</strong></td>
+  <td>Mobile accessibility<br><span class="notes">Mobile accessibility — verified via VoiceOver testing on device</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S10-002</strong></td>
+  <td>Error taxonomy standardization</td>
+  <td><span class="badge badge-full">Full</span></td>
+  <td>apps/api/tests/test_errors_registry.py<br>tests/acceptance/verify_art02.py</td>
+  <td>5</td>
+</tr>
+</tbody></table>
+<h2>Phase 3 — Face & People</h2>
+<table><thead><tr><th>Story</th><th>Title</th><th>Status</th><th>Test Files</th><th>Tests</th></tr></thead><tbody>
+<tr>
+  <td><strong>S11-001</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Biometric consent flow<br><span class="notes">Phase 3 — not yet implemented</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S11-002</strong> <span class="badge badge-cp">CP</span></td>
+  <td>Face detection+embedding<br><span class="notes">Phase 3 — not yet implemented</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S11-003</strong></td>
+  <td>HDBSCAN clustering + candidates<br><span class="notes">Phase 3 — not yet implemented</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S12-001</strong> <span class="badge badge-cp">CP</span></td>
+  <td>People Graph review queue<br><span class="notes">Phase 3 — not yet implemented</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S12-002</strong></td>
+  <td>Merge/split/undo<br><span class="notes">Phase 3 — not yet implemented</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S13-001</strong> <span class="badge badge-cp">CP</span></td>
+  <td>PLA Pack core workflows<br><span class="notes">Phase 3 — not yet implemented</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S13-002</strong></td>
+  <td>Skill execution sandbox<br><span class="notes">Phase 3 — not yet implemented</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S13-003</strong></td>
+  <td>72-hour soak test<br><span class="notes">Phase 3 soak test — verified by running infrastructure/chaos scripts</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+</tbody></table>
+<h2>Phase 4 — Polish & Release</h2>
+<table><thead><tr><th>Story</th><th>Title</th><th>Status</th><th>Test Files</th><th>Tests</th></tr></thead><tbody>
+<tr>
+  <td><strong>S15-001</strong></td>
+  <td>Performance optimization<br><span class="notes">Phase 4 — not yet implemented</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S15-002</strong></td>
+  <td>Chaos testing all scenarios<br><span class="notes">Phase 4 — not yet implemented</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S16-001</strong></td>
+  <td>User documentation<br><span class="notes">Phase 4 documentation — not testable via automated tests</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+<tr>
+  <td><strong>S16-002</strong></td>
+  <td>Release candidate validation<br><span class="notes">Phase 4 — release gating process</span></td>
+  <td><span class="badge badge-none">None</span></td>
+  <td><span class="notes">—</span></td>
+  <td>0</td>
+</tr>
+</tbody></table>
+<h2>Uncovered Stories</h2>
+<table><thead><tr><th>Story</th><th>Title</th><th>Phase</th><th>Notes</th></tr></thead><tbody>
+<tr><td>G-06</td><td>Performance Benchmark Infrastructure</td><td>2</td><td class="notes">Benchmark infrastructure — verified by running scripts/benchmark/harness.py</td></tr>
+<tr><td>S01-004</td><td>CI/CD pipeline</td><td>0</td><td class="notes">CI pipeline is infrastructure — verified by CI runs, not unit tests</td></tr>
+<tr><td>S01-007</td><td>Caddy reverse proxy</td><td>0</td><td class="notes">Caddy routing is infrastructure — verified by integration/e2e tests</td></tr>
+<tr><td>S02-004</td><td>Design system tokens</td><td>0</td><td class="notes">Design tokens are visual — verified via Storybook and visual review</td></tr>
+<tr><td>S02-005</td><td>Performance baseline</td><td>0</td><td class="notes">Benchmarks are operational scripts, not test functions. Verified by running scripts/benchmark/harness.py</td></tr>
+<tr><td>S02-009</td><td>Web scaffold + design system</td><td>0</td><td class="notes">Frontend scaffold — verified by TypeScript compilation (tsc --noEmit) and dev server</td></tr>
+<tr><td>S02-010</td><td>Mobile scaffold</td><td>0</td><td class="notes">Mobile scaffold — verified by RN build and manual testing</td></tr>
+<tr><td>S03-005</td><td>Manager setup wizard</td><td>1</td><td class="notes">Manager app (Tauri/Rust) — tested via manager-app integration tests</td></tr>
+<tr><td>S03-006</td><td>Startup sequence</td><td>1</td><td class="notes">Manager app startup — tested via Tauri integration tests</td></tr>
+<tr><td>S04-002</td><td>Web Today view</td><td>1</td><td class="notes">Frontend component — verified via TypeScript compilation and manual testing</td></tr>
+<tr><td>S04-004</td><td>Mobile cached Today</td><td>1</td><td class="notes">Mobile app — verified via RN testing tools</td></tr>
+<tr><td>S04-005</td><td>Watchdog supervisor</td><td>1</td><td class="notes">Manager app watchdog — tested via Tauri integration</td></tr>
+<tr><td>S05-004</td><td>Manager health dashboard</td><td>1</td><td class="notes">Manager app frontend — verified via manual testing</td></tr>
+<tr><td>S08-006</td><td>Paperless Setup in Manager Wizard</td><td>2</td><td class="notes">Manager app wizard step — tested via Tauri integration</td></tr>
+<tr><td>S09-002</td><td>Mobile full query+search</td><td>2</td><td class="notes">Mobile app screens — verified via RN testing tools</td></tr>
+<tr><td>S10-001</td><td>Mobile accessibility</td><td>2</td><td class="notes">Mobile accessibility — verified via VoiceOver testing on device</td></tr>
+<tr><td>S11-001</td><td>Biometric consent flow</td><td>3</td><td class="notes">Phase 3 — not yet implemented</td></tr>
+<tr><td>S11-002</td><td>Face detection+embedding</td><td>3</td><td class="notes">Phase 3 — not yet implemented</td></tr>
+<tr><td>S11-003</td><td>HDBSCAN clustering + candidates</td><td>3</td><td class="notes">Phase 3 — not yet implemented</td></tr>
+<tr><td>S12-001</td><td>People Graph review queue</td><td>3</td><td class="notes">Phase 3 — not yet implemented</td></tr>
+<tr><td>S12-002</td><td>Merge/split/undo</td><td>3</td><td class="notes">Phase 3 — not yet implemented</td></tr>
+<tr><td>S13-001</td><td>PLA Pack core workflows</td><td>3</td><td class="notes">Phase 3 — not yet implemented</td></tr>
+<tr><td>S13-002</td><td>Skill execution sandbox</td><td>3</td><td class="notes">Phase 3 — not yet implemented</td></tr>
+<tr><td>S13-003</td><td>72-hour soak test</td><td>3</td><td class="notes">Phase 3 soak test — verified by running infrastructure/chaos scripts</td></tr>
+<tr><td>S15-001</td><td>Performance optimization</td><td>4</td><td class="notes">Phase 4 — not yet implemented</td></tr>
+<tr><td>S15-002</td><td>Chaos testing all scenarios</td><td>4</td><td class="notes">Phase 4 — not yet implemented</td></tr>
+<tr><td>S16-001</td><td>User documentation</td><td>4</td><td class="notes">Phase 4 documentation — not testable via automated tests</td></tr>
+<tr><td>S16-002</td><td>Release candidate validation</td><td>4</td><td class="notes">Phase 4 — release gating process</td></tr>
+</tbody></table>
+</body>
+</html>
