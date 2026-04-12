@@ -62,3 +62,16 @@ class FeatureDisabledError(EkamCoreError):
 class AccountLockedError(EkamCoreError):
     status_code = 423
     error_code = "AUTH_ACCOUNT_LOCKED"
+
+
+class FaceConsentRequiredError(EkamCoreError):
+    """Raised when a face pipeline endpoint is called without active consent (S11-002).
+
+    Biometric data processing is gated by explicit, revocable consent per
+    ART-15 §3. A 403 response signals that the workspace has not granted
+    (or has revoked) face clustering consent — no retry will help until
+    the user re-grants via Settings → Photo Intelligence.
+    """
+
+    status_code = 403
+    error_code = "FACE_CONSENT_REQUIRED"

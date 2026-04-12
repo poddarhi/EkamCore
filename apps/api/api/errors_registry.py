@@ -247,6 +247,14 @@ ERROR_CODES: dict[str, ErrorDef] = {
         "message": "A stored face embedding appears to be corrupt.",
         "category": "service",
     },
+    "FACE_CONSENT_REQUIRED": {
+        "status": 403,
+        "message": (
+            "Face clustering requires your explicit consent. "
+            "Enable it in Settings \u2192 Photo Intelligence."
+        ),
+        "category": "auth",
+    },
 
     # ── Internal ──
     "INTERNAL_ERROR": {

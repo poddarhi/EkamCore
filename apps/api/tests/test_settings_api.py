@@ -69,12 +69,14 @@ class TestValidation:
         """Integers should not be accepted for boolean settings (0/1 trick)."""
         from api.errors import ValidationError
         with pytest.raises(ValidationError):
-            validate_setting("face_clustering_consent", 1)
+            validate_setting("backup_enabled", 1)
 
     def test_registry_has_all_expected_keys(self):
+        # S11-002: face_clustering_consent is no longer a registry key —
+        # consent is owned by ConsentService in namespace='privacy'.
         expected = {
             "date_format", "time_format", "theme",
-            "face_clustering_consent", "backup_enabled", "backup_retention_days",
+            "backup_enabled", "backup_retention_days",
         }
         assert set(SETTINGS_REGISTRY.keys()) == expected
 
@@ -103,7 +105,8 @@ async def test_get_settings_returns_defaults(client, auth_tokens):
     assert data["settings"]["theme"] == "light"
     assert data["settings"]["backup_enabled"] is True
     assert data["settings"]["backup_retention_days"] == 7
-    assert data["settings"]["face_clustering_consent"] is False
+    # S11-002: face_clustering_consent is no longer in the settings
+    # registry — it is owned by ConsentService (namespace='privacy').
 
     # Registry schema included
     assert "registry" in data

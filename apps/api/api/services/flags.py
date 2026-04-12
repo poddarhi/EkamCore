@@ -74,15 +74,21 @@ async def face_pipeline_active(workspace_id: UUID, db: AsyncSession) -> bool:
 
     Three conditions must ALL hold:
       1. `face_clustering_enabled` flag is in the runtime active set
-      2. `face_clustering_consent` setting is True for the workspace
-      3. `FACE_EMBED_KEY` is configured (non-empty)
+      2. `FACE_EMBED_KEY` is configured (non-empty)
+      3. An active face consent record exists for the workspace
+         (see api.services.face.consent_service)
 
     All face endpoints and workers must call this — do not build a
     partial check elsewhere. One gate, one audit trail.
 
+    The consent check is delegated to ConsentService, which is the sole
+    reader/writer of consent state. S11-001 used a simple boolean in the
+    core namespace; S11-002 replaced that with a rich JSONB record in
+    the privacy namespace owned by ConsentService.
+
     Args:
         workspace_id: The workspace to check consent for.
-        db: Async session for reading settings.
+        db: Async session for reading consent state.
 
     Returns:
         True if all three gates are satisfied, False otherwise.
@@ -99,17 +105,12 @@ async def face_pipeline_active(workspace_id: UUID, db: AsyncSession) -> bool:
         )
         return False
 
-    # Gate 3: per-workspace consent (workspace-scoped setting)
+    # Gate 3: per-workspace consent, owned by ConsentService.
     # Import locally to avoid circular dependencies.
-    from api.services.settings_service import get_setting
+    from api.services.face import consent_service
 
     try:
-        consent = await get_setting(
-            key="face_clustering_consent",
-            user_id=workspace_id,  # ignored for workspace-scoped settings
-            workspace_id=workspace_id,
-            db=db,
-        )
+        return await consent_service.is_consent_active(workspace_id, db)
     except Exception:
         logger.warning(
             "face_pipeline_gate_consent_read_failed",
@@ -117,5 +118,3 @@ async def face_pipeline_active(workspace_id: UUID, db: AsyncSession) -> bool:
             exc_info=True,
         )
         return False
-
-    return bool(consent)

@@ -40,6 +40,7 @@ async def log_event(
     old_state: dict | None = None,
     new_state: dict | None = None,
     ip: str | None = None,
+    user_agent: str | None = None,
     metadata: dict | None = None,
 ) -> None:
     """Append an audit event within the caller's transaction.
@@ -57,6 +58,7 @@ async def log_event(
         new_state=new_state,
         metadata_json=metadata,
         source_ip=ip,
+        user_agent=user_agent,
     )
     db.add(entry)
     await db.flush()
@@ -79,6 +81,7 @@ async def log_event_now(
     old_state: dict | None = None,
     new_state: dict | None = None,
     ip: str | None = None,
+    user_agent: str | None = None,
     metadata: dict | None = None,
 ) -> None:
     """Append an audit event using an independent session that commits immediately.
@@ -108,6 +111,7 @@ async def log_event_now(
                 new_state=new_state,
                 metadata_json=metadata,
                 source_ip=ip,
+                user_agent=user_agent,
             )
             db.add(entry)
             await db.commit()

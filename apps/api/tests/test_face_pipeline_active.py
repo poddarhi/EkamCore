@@ -1,7 +1,10 @@
-"""Tests for face_pipeline_active (S11-001).
+"""Tests for face_pipeline_active (S11-001, updated for S11-002).
 
 Verifies all 4 combinations of flag / consent / key state and that the
 function is the single source of truth for the Phase 3 face gate.
+
+S11-002 note: consent is now granted via ConsentService.grant() instead
+of writing a boolean setting directly. The flag/key gates are unchanged.
 """
 
 from __future__ import annotations
@@ -12,8 +15,8 @@ from uuid import uuid4
 import pytest
 
 from api.services import flags
+from api.services.face import consent_service
 from api.services.flags import face_pipeline_active, is_flag_enabled
-from api.services.settings_service import set_setting
 
 
 @pytest.fixture
@@ -73,11 +76,11 @@ class TestFacePipelineActive:
     ):
         # Set consent to true
         async with test_session_factory() as db:
-            await set_setting(
-                key="face_clustering_consent",
-                value=True,
-                user_id=workspace_id,  # ignored for workspace-scoped
+            await consent_service.grant(
                 workspace_id=workspace_id,
+                user_id=workspace_id,  # using workspace_id as a stand-in user id
+                ip="127.0.0.1",
+                user_agent="pytest",
                 db=db,
             )
             await db.commit()
@@ -94,11 +97,11 @@ class TestFacePipelineActive:
         self, test_session_factory, workspace_id
     ):
         async with test_session_factory() as db:
-            await set_setting(
-                key="face_clustering_consent",
-                value=True,
-                user_id=workspace_id,
+            await consent_service.grant(
                 workspace_id=workspace_id,
+                user_id=workspace_id,
+                ip="127.0.0.1",
+                user_agent="pytest",
                 db=db,
             )
             await db.commit()
@@ -115,11 +118,11 @@ class TestFacePipelineActive:
     ):
         # Set consent
         async with test_session_factory() as db:
-            await set_setting(
-                key="face_clustering_consent",
-                value=True,
-                user_id=workspace_id,
+            await consent_service.grant(
                 workspace_id=workspace_id,
+                user_id=workspace_id,
+                ip="127.0.0.1",
+                user_agent="pytest",
                 db=db,
             )
             await db.commit()
@@ -139,11 +142,11 @@ class TestFacePipelineActive:
 
         # Grant consent only to workspace_id
         async with test_session_factory() as db:
-            await set_setting(
-                key="face_clustering_consent",
-                value=True,
-                user_id=workspace_id,
+            await consent_service.grant(
                 workspace_id=workspace_id,
+                user_id=workspace_id,
+                ip="127.0.0.1",
+                user_agent="pytest",
                 db=db,
             )
             await db.commit()

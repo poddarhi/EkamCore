@@ -66,7 +66,10 @@ SETTINGS_REGISTRY: dict[str, SettingDef] = {
         default="light",
         scope="user",
     ),
-    "face_clustering_consent": _BoolDef(default=False, scope="workspace"),
+    # face_clustering_consent was a Phase 2 placeholder boolean. S11-002
+    # supersedes it with a rich ConsentRecord stored in namespace='privacy'
+    # and owned by api.services.face.consent_service. Do NOT re-add it to
+    # this registry — consent state is the ConsentService's responsibility.
     "backup_enabled": _BoolDef(default=True, scope="workspace"),
     "backup_retention_days": _IntDef(default=7, scope="workspace", min_val=1, max_val=90),
 }
