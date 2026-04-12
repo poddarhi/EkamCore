@@ -226,6 +226,28 @@ ERROR_CODES: dict[str, ErrorDef] = {
         "category": "service",
     },
 
+    # ── Face pipeline (S11-001) ──
+    "FACE_ENCRYPTION_KEY_MISSING": {
+        "status": 503,
+        "message": "Face pipeline is not configured. Contact your administrator.",
+        "category": "service",
+    },
+    "FACE_ENCRYPTION_KEY_INVALID": {
+        "status": 503,
+        "message": "Face pipeline encryption key is invalid.",
+        "category": "service",
+    },
+    "FACE_EMBEDDING_DECRYPT_FAILED": {
+        "status": 503,
+        "message": "Could not decrypt a face embedding. Key may have changed.",
+        "category": "service",
+    },
+    "FACE_EMBEDDING_CORRUPT": {
+        "status": 503,
+        "message": "A stored face embedding appears to be corrupt.",
+        "category": "service",
+    },
+
     # ── Internal ──
     "INTERNAL_ERROR": {
         "status": 500,

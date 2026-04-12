@@ -15,7 +15,8 @@ from api.middleware.correlation import CorrelationIdMiddleware
 from api.middleware.error_handler import ekamcore_error_handler, unhandled_error_handler
 from api.middleware.feature_gate import _ENABLED_FLAGS
 from api.middleware.logging import LoggingMiddleware
-from api.routers import admin, auth, health, internal, notifications, photos, query, recap, reminders, search, settings, sources, today
+from api.middleware.metrics_middleware import MetricsMiddleware
+from api.routers import admin, auth, health, internal, metrics, notifications, photos, query, recap, reminders, search, settings, sources, today
 
 configure_logging()
 logger = structlog.get_logger()
@@ -62,6 +63,26 @@ async def _paperless_sync_loop() -> None:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan: startup and shutdown."""
     logger.info("ekamcore_api_starting")
+
+    # Phase 3 safety check: if the face pipeline could ever be activated
+    # but FACE_EMBED_KEY is missing, log CRITICAL. The face_pipeline_active()
+    # gate will return False for all workspaces, so no crash occurs — this
+    # is observability only.
+    from api.config import settings as _app_settings
+
+    if not _app_settings.FACE_EMBED_KEY:
+        logger.critical(
+            "face_embed_key_missing",
+            message=(
+                "FACE_EMBED_KEY env var is not set. The face clustering "
+                "pipeline will remain disabled for all workspaces, even "
+                "if face_clustering_enabled is activated and consent is "
+                "granted. Generate a key with: python -c 'from "
+                "cryptography.fernet import Fernet; "
+                "print(Fernet.generate_key().decode())'"
+            ),
+        )
+
     try:
         from api.services.qdrant_init import init_collections
 
@@ -73,13 +94,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     sync_task = asyncio.create_task(_paperless_sync_loop())
     logger.info("paperless_sync_scheduler_started")
 
+    # Metrics flusher (G-15): Redis aggregates → PostgreSQL every hour
+    from api.services.metrics_service import metrics_flush_loop
+
+    metrics_task = asyncio.create_task(metrics_flush_loop())
+    logger.info("metrics_flush_scheduler_started")
+
     yield
 
     sync_task.cancel()
-    try:
-        await sync_task
-    except asyncio.CancelledError:
-        pass
+    metrics_task.cancel()
+    for task in (sync_task, metrics_task):
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
     from api.services.qdrant_client import close as close_qdrant
     from api.services.redis_client import close_all as close_redis
@@ -116,6 +145,7 @@ def create_app() -> FastAPI:
 
     # Middleware (order matters: last added = first executed)
     app.add_middleware(LoggingMiddleware)
+    app.add_middleware(MetricsMiddleware)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -143,6 +173,7 @@ def create_app() -> FastAPI:
     app.include_router(photos.router)
     app.include_router(settings.router)
     app.include_router(notifications.router)
+    app.include_router(metrics.router)
 
     return app
 

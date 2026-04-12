@@ -15,6 +15,10 @@ from api.db.models.audit_log import AuditLog
 from api.db.models.correspondent_candidate import CorrespondentContactCandidate
 from api.db.models.photo_asset import PhotoAsset
 from api.db.models.notification import Notification
+from api.db.models.metric import Metric
+from api.db.models.trusted_person import TrustedPerson
+from api.db.models.face_cluster import FaceCluster
+from api.db.models.face_detection import FaceDetection
 
 __all__ = [
     "Base",
@@ -34,4 +38,8 @@ __all__ = [
     "CorrespondentContactCandidate",
     "PhotoAsset",
     "Notification",
+    "Metric",
+    "TrustedPerson",
+    "FaceCluster",
+    "FaceDetection",
 ]

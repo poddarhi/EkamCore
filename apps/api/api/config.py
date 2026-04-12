@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     # Photo thumbnails
     THUMBNAIL_DIR: str = "./data/thumbnails"
 
+    # Phase 3: face clustering encryption key (Fernet, base64-encoded 32 bytes)
+    # Loaded from FACE_EMBED_KEY env var. Empty = face pipeline disabled.
+    FACE_EMBED_KEY: str = ""
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

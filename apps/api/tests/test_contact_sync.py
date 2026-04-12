@@ -124,8 +124,10 @@ async def test_upsert_new_contacts(test_session_factory, seed_user: dict) -> Non
     assert inserted == 3
     assert updated == 0
     assert unchanged == 0
-    # trusted_persons table doesn't exist yet (Phase 3), so always 0
-    assert tp == 0
+    # Phase 3 (S11-001): trusted_persons table exists, so high-quality
+    # contacts (name + email + phone) produce trusted_persons rows.
+    # _contact() is high-quality; _minimal_contact() is not. Two of three.
+    assert tp == 2
 
 
 @pytest.mark.asyncio
@@ -477,7 +479,9 @@ async def test_ingest_contacts_endpoint_success(
     assert data["inserted"] == 1
     assert data["updated"] == 0
     assert data["unchanged"] == 0
-    assert data["trusted_persons_created"] == 0  # table doesn't exist yet
+    # Phase 3 (S11-001): Eve Johnson has name + email + phone = high quality,
+    # so contact_sync creates a trusted_person for her.
+    assert data["trusted_persons_created"] == 1
 
 
 @pytest.mark.asyncio
