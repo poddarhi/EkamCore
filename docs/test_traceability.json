@@ -935,49 +935,233 @@
       "coverage_status": "full"
     },
     "S11-001": {
-      "title": "Biometric consent flow",
+      "title": "Phase 3 activation: face pipeline migrations + Qdrant face_embeddings collection",
       "sprint": 11,
       "phase": 3,
       "critical_path": true,
       "acceptance_criteria": [
-        "Consent prompt before face clustering enabled",
-        "Consent stored in settings table",
-        "Revocation deletes all face data"
+        "face_detections, face_clusters, trusted_persons tables created via Alembic 013",
+        "Qdrant face_embeddings collection with mandatory workspace_id payload index",
+        "Fernet encryption helpers for embeddings (FACE_EMBED_KEY)",
+        "face_pipeline_active three-way gate (flag + key + consent)"
       ],
-      "test_files": [],
-      "test_functions": [],
-      "coverage_status": "none",
-      "coverage_notes": "Phase 3 — not yet implemented"
+      "test_files": [
+        "apps/api/tests/integration/test_face_migrations.py",
+        "apps/api/tests/test_face_crypto.py",
+        "apps/api/tests/test_face_pipeline_active.py"
+      ],
+      "test_functions": [
+        "TestFaceMigrations::test_face_detections_table_exists",
+        "TestFaceMigrations::test_face_clusters_table_exists",
+        "TestFaceCrypto::test_encrypt_decrypt_roundtrip",
+        "TestFacePipelineActive::test_all_three_gates_on_returns_true",
+        "TestFacePipelineActive::test_workspace_isolation"
+      ],
+      "coverage_status": "full"
     },
     "S11-002": {
-      "title": "Face detection+embedding",
+      "title": "ConsentService with full audit trail",
       "sprint": 11,
       "phase": 3,
       "critical_path": true,
       "acceptance_criteria": [
-        "RetinaFace detection (ONNX)",
-        "ArcFace embedding (512-dim)",
-        "Encrypted storage of embeddings"
+        "is_consent_active / grant / revoke with Redis cache + audit_log rows",
+        "Atomic revoke + hard-delete (ART-15 §3): any hard_delete failure rolls the revoke back",
+        "Workspace isolation: consent in A never enables pipeline in B",
+        "Cross-workspace consent isolation security test"
       ],
-      "test_files": [],
-      "test_functions": [],
-      "coverage_status": "none",
-      "coverage_notes": "Phase 3 — not yet implemented"
+      "test_files": [
+        "apps/api/tests/test_consent_service.py",
+        "apps/api/tests/test_consent_audit.py",
+        "apps/api/tests/security/test_consent_isolation.py"
+      ],
+      "test_functions": [
+        "TestConsentService::test_grant_is_idempotent_for_same_version",
+        "TestConsentService::test_revoke_calls_hard_delete_in_order",
+        "TestConsentAudit::test_grant_writes_audit_row",
+        "TestConsentAudit::test_revoke_writes_second_audit_row_with_correlation",
+        "TestConsentIsolation::test_consent_in_a_does_not_activate_pipeline_for_b"
+      ],
+      "coverage_status": "full"
     },
     "S11-003": {
-      "title": "HDBSCAN clustering + candidates",
+      "title": "Consent API endpoints + synchronous transactional hard-delete",
+      "sprint": 11,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "GET / POST / DELETE /api/v1/settings/face-clustering/consent",
+        "CSRF required on POST/DELETE; 10/min/user rate limit",
+        "Version-stale grant → 409 CONSENT_VERSION_STALE",
+        "DELETE runs hard_delete synchronously inside the request transaction",
+        "Workspace isolation: hard_delete in A leaves B's face data untouched"
+      ],
+      "test_files": [
+        "apps/api/tests/integration/test_consent_endpoints.py",
+        "apps/api/tests/test_hard_delete.py",
+        "apps/api/tests/security/test_hard_delete_isolation.py"
+      ],
+      "test_functions": [
+        "TestGetConsent::test_no_consent_returns_text_and_accepted_false",
+        "TestPostConsent::test_grant_happy_path_returns_200_and_records_consent",
+        "TestPostConsent::test_grant_stale_version_returns_409_consent_version_stale",
+        "TestDeleteConsent::test_delete_revokes_and_reports_zeros_when_empty",
+        "TestHardDeleteIsolation::test_delete_workspace_a_leaves_workspace_b_intact"
+      ],
+      "coverage_status": "full"
+    },
+    "S11-004": {
+      "title": "Face clustering consent UI (ConsentDialog + PhotoIntelligenceSettings)",
+      "sprint": 11,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "Scroll-to-bottom enforcement before Accept button enables",
+        "State A (disabled) / State B (enabled) cards on Photo Intelligence settings",
+        "Two-step disable confirmation modal",
+        "CSRF auto-send fix in apiFetch wrapper"
+      ],
+      "test_files": [
+        "apps/web/src/__tests__/components/face/ConsentDialog.test.tsx",
+        "apps/web/src/__tests__/pages/settings/PhotoIntelligenceSettings.test.tsx"
+      ],
+      "test_functions": [
+        "ConsentDialog > enables accept button only after scroll",
+        "ConsentDialog > version staleness blocks accept",
+        "PhotoIntelligenceSettings > state machine transitions",
+        "PhotoIntelligenceSettings > two-step disable confirmation"
+      ],
+      "coverage_status": "full"
+    },
+    "S11-005": {
+      "title": "InsightFace SCRFD detector + ArcFace recognizer singleton",
+      "sprint": 11,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "FaceModel singleton with fail-closed load() (no raise on missing deps)",
+        "detect_and_embed returns list[FaceResult] with bbox/score/embedding",
+        "PII-safe logging: whitelist enforced for every face_model.* event",
+        "buffalo_l model download script with SHA-256 verification"
+      ],
+      "test_files": [
+        "apps/api/tests/test_face_model.py",
+        "apps/api/tests/test_face_logging.py"
+      ],
+      "test_functions": [
+        "TestSingleton::test_instance_returns_same_object_on_repeated_calls",
+        "TestDetectAndEmbedContract::test_detect_and_embed_happy_path_returns_face_result",
+        "TestErrorPaths::test_invalid_image_bytes_raise_invalid_image_error",
+        "TestDetectLoggingPIISafety::test_detect_event_contains_only_safe_fields",
+        "TestRealModelIntegration::test_real_model_detects_face"
+      ],
+      "coverage_status": "full",
+      "coverage_notes": "Tier 3 real-model test skipped unless INSIGHTFACE_MODEL_DIR + fixture present"
+    },
+    "S11-006": {
+      "title": "Consent-gated face detection ingestion stage with workspace isolation",
+      "sprint": 11,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "FACE_DETECTION stage inserted into photo pipeline after METADATA_EXTRACTED",
+        "process_photo_for_faces re-checks consent inside the worker",
+        "Idempotent re-runs (PG + Qdrant wipe before re-insert)",
+        "Qdrant failure rolls back in-session PG rows",
+        "Workspace isolation: two consented workspaces do not leak face rows"
+      ],
+      "test_files": [
+        "apps/api/tests/integration/test_face_ingestion.py",
+        "apps/api/tests/security/test_face_workspace_isolation.py"
+      ],
+      "test_functions": [
+        "TestProcessPhotoForFaces::test_consent_active_inserts_row_and_upserts_qdrant",
+        "TestProcessPhotoForFaces::test_midflight_revocation_blocks_writes",
+        "TestProcessPhotoForFaces::test_rerun_is_idempotent",
+        "TestFaceWorkspaceIsolation::test_two_consented_workspaces_do_not_leak_face_data",
+        "TestFaceWorkspaceIsolation::test_consent_in_a_does_not_enable_pipeline_in_b"
+      ],
+      "coverage_status": "full"
+    },
+    "S11-007": {
+      "title": "User-initiated historical photo face backfill",
+      "sprint": 11,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "photo_assets.face_processed_at marker replaces ambiguous face_count=0",
+        "face_backfill_jobs table + worker with per-batch consent re-check",
+        "POST / GET / DELETE /api/v1/settings/face-clustering/backfill",
+        "1/hour/workspace rate limit on start",
+        "Redis cancel flag flips job state immediately",
+        "PhotoIntelligenceSettings backfill controls with 5s polling"
+      ],
+      "test_files": [
+        "apps/api/tests/integration/test_backfill.py"
+      ],
+      "test_functions": [
+        "TestBackfillWorker::test_processes_all_unprocessed_photos",
+        "TestBackfillWorker::test_midflight_cancel_flag_stops_worker",
+        "TestBackfillWorker::test_consent_revocation_stops_worker",
+        "TestBackfillWorker::test_start_rejects_when_running_job_exists",
+        "TestBackfillEndpoints::test_post_requires_active_consent",
+        "TestBackfillEndpoints::test_duplicate_post_returns_409"
+      ],
+      "coverage_status": "full"
+    },
+    "S11-008": {
+      "title": "Face pipeline observability — health, status, metrics, PII-safe logs",
       "sprint": 11,
       "phase": 3,
       "critical_path": false,
       "acceptance_criteria": [
-        "HDBSCAN clustering of face embeddings",
-        "Candidate link generation",
-        "Cluster quality metrics"
+        "/health face_model block extended with consent count + active backfills + last_detection_at",
+        "GET /api/v1/face/status returns per-workspace aggregate",
+        "record_face_event / record_face_detection_latency helpers flushed into metrics table",
+        "Admin StoragePage tile visible only when consent is active somewhere",
+        "Full-pipeline PII sweep test"
       ],
-      "test_files": [],
-      "test_functions": [],
-      "coverage_status": "none",
-      "coverage_notes": "Phase 3 — not yet implemented"
+      "test_files": [
+        "apps/api/tests/integration/test_face_status_endpoint.py",
+        "apps/api/tests/security/test_face_logs_no_pii.py",
+        "apps/api/tests/integration/test_face_metrics.py"
+      ],
+      "test_functions": [
+        "TestFaceStatusEndpoint::test_requires_consent",
+        "TestFaceStatusEndpoint::test_returns_counts_when_consent_active",
+        "TestFaceStatusEndpoint::test_backfill_state_reflected",
+        "TestFacePipelineLogsNoPII::test_full_detect_path_logs_are_pii_safe",
+        "TestFaceMetrics::test_process_photo_emits_counter_and_latency",
+        "TestFaceMetrics::test_consent_grant_emits_counter"
+      ],
+      "coverage_status": "full"
+    },
+    "S11-009": {
+      "title": "Phase 3 end-to-end foundation tests + face detection ML eval baseline",
+      "sprint": 11,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "7-scenario Phase 3 e2e integration test file",
+        "scripts/eval/eval_face_detection.py with graceful skip + JSON baseline output",
+        "apps/api/tests/fixtures/face_eval/ layout documented (not committed)",
+        "Traceability matrix updated for S11-001..009"
+      ],
+      "test_files": [
+        "apps/api/tests/integration/test_phase3_e2e_foundation.py",
+        "scripts/eval/eval_face_detection.py"
+      ],
+      "test_functions": [
+        "TestPhase3E2EFoundation::test_consent_grant_to_first_face",
+        "TestPhase3E2EFoundation::test_consent_revoke_hard_delete",
+        "TestPhase3E2EFoundation::test_consent_revoke_during_backfill",
+        "TestPhase3E2EFoundation::test_workspace_isolation_face_search",
+        "TestPhase3E2EFoundation::test_face_pipeline_off_when_consent_off",
+        "TestPhase3E2EFoundation::test_consent_required_endpoints",
+        "TestPhase3E2EFoundation::test_logs_pii_free_full_pipeline"
+      ],
+      "coverage_status": "full",
+      "coverage_notes": "ML eval baseline targets enforced by the script; real-model eval skipped in CI until dataset + models are provisioned locally"
     },
     "S12-001": {
       "title": "People Graph review queue",

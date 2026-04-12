@@ -5,7 +5,7 @@
        ollama-start ollama-stop ollama-status \
        paperless-logs paperless-token paperless-shell \
        backup restore backup-list \
-       download-face-models verify-face-models \
+       download-face-models verify-face-models eval-face \
        dev-api dev-web help
 
 # === Setup ===
@@ -120,6 +120,9 @@ download-face-models: ## Download + SHA-256 verify the InsightFace buffalo_l pac
 
 verify-face-models: ## Re-verify existing InsightFace files against CHECKSUMS.txt
 	@bash scripts/face/download_models.sh --verify-only
+
+eval-face: ## Run the face detection ML eval baseline (S11-009). Skips gracefully if deps or fixtures are missing.
+	@cd apps/api && poetry run python ../../scripts/eval/eval_face_detection.py
 
 # === PaperlessNGX ===
 paperless-logs: ## Tail PaperlessNGX logs
