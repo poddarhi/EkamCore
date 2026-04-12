@@ -21,6 +21,9 @@ PIPELINE_STAGES: list[str] = [
     "DISCOVERED",
     "FINGERPRINTED",
     "METADATA_EXTRACTED",
+    # Photos only: consent-gated face detection (S11-006). For non-photo
+    # files this stage is a no-op advance — there is no image to decode.
+    "FACE_DETECTION",
     "TEXT_EXTRACTED",
     "OCR_COMPLETED",
     "EMBEDDING_QUEUED",

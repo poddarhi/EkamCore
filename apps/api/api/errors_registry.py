@@ -159,6 +159,16 @@ ERROR_CODES: dict[str, ErrorDef] = {
         "message": "Photo not found.",
         "category": "resource",
     },
+    "PHOTO_ASSET_NOT_FOUND": {
+        "status": 404,
+        "message": "Photo asset record not found.",
+        "category": "resource",
+    },
+    "PHOTO_FILE_NOT_FOUND": {
+        "status": 404,
+        "message": "Underlying file row for photo asset is missing.",
+        "category": "resource",
+    },
     "THUMBNAIL_NOT_FOUND": {
         "status": 404,
         "message": "Photo thumbnail not found.",

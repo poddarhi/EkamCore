@@ -274,6 +274,47 @@ async def trigger_photo_ingest(body: PhotoIngestRequest) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Manual face processing trigger (S11-006)
+# ---------------------------------------------------------------------------
+
+
+class FaceProcessPhotoRequest(BaseModel):
+    photo_asset_id: UUID
+
+
+class FaceProcessPhotoResponse(BaseModel):
+    photo_asset_id: UUID
+    face_count: int
+
+
+@router.post("/face/process-photo", response_model=FaceProcessPhotoResponse)
+async def trigger_face_processing(
+    body: FaceProcessPhotoRequest,
+    db: AsyncSession = Depends(get_db),
+) -> FaceProcessPhotoResponse:
+    """Manually run face detection for a single photo.
+
+    Consent is re-checked inside ``process_photo_for_faces`` — if the
+    face pipeline is not active for the photo's workspace, the call
+    returns ``face_count=0`` and writes nothing. Not exposed externally —
+    Caddy does not route /api/v1/internal/*.
+    """
+    from api.services.face.face_ingestion import process_photo_for_faces
+
+    count = await process_photo_for_faces(body.photo_asset_id, db)
+    await db.commit()
+    logger.info(
+        "face_process_photo_triggered",
+        photo_asset_id=str(body.photo_asset_id),
+        face_count=count,
+    )
+    return FaceProcessPhotoResponse(
+        photo_asset_id=body.photo_asset_id,
+        face_count=count,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Near-duplicate photo detection endpoint
 # ---------------------------------------------------------------------------
 

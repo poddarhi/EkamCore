@@ -458,7 +458,7 @@ async def test_backup_rotation_logic(test_session_factory):
     from api.services.ingestion.state_machine import PIPELINE_STAGES
     assert PIPELINE_STAGES[0] == "DISCOVERED"
     assert PIPELINE_STAGES[-1] == "COMPLETED"
-    assert len(PIPELINE_STAGES) == 8
+    assert len(PIPELINE_STAGES) == 9  # S11-006 added FACE_DETECTION
 
     # Import rotate.py from infra/backup using spec loader
     rotate_path = Path(__file__).resolve().parents[4] / "infra" / "backup" / "rotate.py"

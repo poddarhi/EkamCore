@@ -46,8 +46,11 @@ logger = structlog.get_logger()
 
 _PHOTO_SUFFIXES = frozenset({".jpg", ".jpeg", ".png", ".tiff", ".tif", ".webp", ".heic", ".heif"})
 
-# Stages to advance through with no work (photos have no text/embeddings yet)
-_NO_OP_STAGES = ["METADATA_EXTRACTED", "TEXT_EXTRACTED", "OCR_COMPLETED", "EMBEDDING_QUEUED"]
+# Stages to advance through with no work (photos have no text/embeddings yet).
+# METADATA_EXTRACTED is NOT in this list — S11-006 injects consent-gated face
+# detection there. FACE_DETECTION *is* a no-op here because the work has
+# already happened by the time we re-enter the advance loop.
+_NO_OP_STAGES = ["FACE_DETECTION", "TEXT_EXTRACTED", "OCR_COMPLETED", "EMBEDDING_QUEUED"]
 
 
 def _save_thumbnail_sync(thumb_bytes: bytes, workspace_id: UUID, photo_id: UUID) -> str:
@@ -189,7 +192,40 @@ async def ingest_photo(
         db.add(photo_asset)
         await advance_stage(file_id, "FINGERPRINTED", db)
 
-    # ── No-op stages: METADATA_EXTRACTED through EMBEDDING_QUEUED ──────────
+    # ── Stage: METADATA_EXTRACTED → FACE_DETECTION (S11-006) ───────────────
+    # Consent-gated face detection. process_photo_for_faces does its own
+    # re-check of face_pipeline_active() so revocation between queue and
+    # run is honored. Failures here are logged and swallowed — face data
+    # is explicitly non-critical to photo searchability; a backfill story
+    # (S11-007) can re-run this for photos that missed it.
+    state_r = await db.execute(
+        select(IngestionState).where(IngestionState.file_id == file_id)
+    )
+    refreshed = state_r.scalar_one_or_none()
+    if refreshed is not None and refreshed.current_stage == "METADATA_EXTRACTED":
+        photo_asset_row = (
+            await db.execute(
+                select(PhotoAsset).where(PhotoAsset.file_id == file_id)
+            )
+        ).scalar_one_or_none()
+
+        if photo_asset_row is not None:
+            try:
+                from api.services.face.face_ingestion import (
+                    process_photo_for_faces,
+                )
+
+                await process_photo_for_faces(photo_asset_row.id, db)
+            except Exception:
+                logger.warning(
+                    "photo_pipeline_face_detection_failed",
+                    file_id=str(file_id),
+                    exc_info=True,
+                )
+
+        await advance_stage(file_id, "METADATA_EXTRACTED", db)
+
+    # ── No-op stages: FACE_DETECTION through EMBEDDING_QUEUED ──────────────
     # Re-fetch state once, then advance through no-op stages sequentially.
     state_r = await db.execute(select(IngestionState).where(IngestionState.file_id == file_id))
     refreshed = state_r.scalar_one_or_none()
