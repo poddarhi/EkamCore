@@ -67,12 +67,23 @@ Use this reference to find the specification for any story by ID. Then load the 
 | S10-001 | Mobile accessibility | mobile |
 | S10-002 | Error taxonomy standardization | backend+frontend+mobile |
 
-## Sprint 11-12 (Weeks 21-24) — Phase 3
+## Sprint 11 (Weeks 21-22) — Phase 3 — SHIPPED
+| Story | Title | What shipped |
+|---|---|---|
+| S11-001 [CP] | Phase 3 activation | Alembic 013, face_detections / face_clusters / trusted_persons tables, Qdrant face_embeddings with mandatory workspace_id payload index, Fernet helpers, three-gate `face_pipeline_active(flag + key + consent)` |
+| S11-002 [CP] | ConsentService | `is_consent_active / grant / revoke` with 60s Redis cache, audit_log writes, atomic revoke+hard_delete contract (ART-15 §3) |
+| S11-003 [CP] | Consent API + hard-delete | GET/POST/DELETE `/api/v1/settings/face-clustering/consent`, CSRF + 10/min rate limit, synchronous transactional hard_delete (Qdrant-first, PG cascade) |
+| S11-004 [CP] | Consent dialog UI | `ConsentDialog` with scroll-to-bottom enforcement, `PhotoIntelligenceSettings` state machine, two-step disable, apiFetch CSRF auto-send fix |
+| S11-005 [CP] | InsightFace singleton | `FaceModel` fail-closed load, SCRFD-10g + ArcFace-R100 (buffalo_l), PII-safe log whitelist, SHA-256 download script |
+| S11-006 [CP] | Face ingestion stage | `FACE_DETECTION` pipeline stage, `process_photo_for_faces` worker with in-worker consent re-check + idempotent wipe + workspace isolation |
+| S11-007 | Historical backfill | `photo_assets.face_processed_at` marker, `face_backfill_jobs` table + worker, 3 endpoints (1/hr/ws rate limit), UI progress bar + cancel |
+| S11-008 | Observability | `/health` extension, `GET /api/v1/face/status`, `record_face_event/latency` metrics + flushers, admin StoragePage tile, full-pipeline PII log sweep |
+| S11-009 | E2E + eval baseline | `tests/integration/test_phase3_e2e_foundation.py` (7 scenarios), `scripts/eval/eval_face_detection.py` with graceful skip, traceability matrix update |
+| S11-010 | Gate review | skills + legal brief + phase-3 status doc, Sprint 12 readiness |
+
+## Sprint 12 (Weeks 23-24) — Phase 3 — UPCOMING
 | Story | Title | Workstream |
 |---|---|---|
-| S11-001 [CP] | Biometric consent flow | backend+frontend+mobile |
-| S11-002 [CP] | Face detection+embedding | ml-ai |
-| S11-003 | HDBSCAN clustering + candidates | ml-ai+backend |
 | S12-001 [CP] | People Graph review queue | backend+frontend+mobile |
 | S12-002 | Merge/split/undo | backend |
 

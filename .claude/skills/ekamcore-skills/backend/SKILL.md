@@ -80,9 +80,64 @@ class File(Base):
 ```
 
 ### Ingestion State Machine
-Stages: DISCOVERED → FINGERPRINTED → METADATA_EXTRACTED → TEXT_EXTRACTED → OCR_COMPLETED → EMBEDDING_QUEUED → EMBEDDED → COMPLETED. Also: FAILED, SKIPPED.
-Transition: UPDATE ingestion_states SET current_stage=:new WHERE file_id=:fid AND current_stage=:expected. If 0 rows: already advanced (idempotent).
+Stages: DISCOVERED → FINGERPRINTED → METADATA_EXTRACTED → **FACE_DETECTION** → TEXT_EXTRACTED → OCR_COMPLETED → EMBEDDING_QUEUED → EMBEDDED → COMPLETED. Also: FAILED, SKIPPED.
+FACE_DETECTION stage (S11-006) is a photo-only no-op advance in the state machine — the actual work happens in `process_photo_for_faces()` invoked by photo_pipeline after METADATA_EXTRACTED. Non-photo files pass through it as a no-op advance.
+Transition: UPDATE ingestion_states SET current_stage=:new WHERE file_id=:fid AND current_stage=:expected. If 0 rows: already advanced (idempotent). `ck_ingestion_states_stage` CHECK constraint enumerates the 9 stages (see alembic 015).
 Per-file error isolation: one file's failure never blocks another.
+
+### Consent-Gated Endpoints (S11-002..008)
+Face pipeline endpoints must be gated on **active consent**, NOT just on a feature flag. Two working patterns:
+
+**Pattern A — derive workspace from user (preferred for consent-related endpoints)**
+```python
+# Mirrors api/routers/face_consent.py, face_backfill.py, face_status.py
+def _resolve_workspace(user: CurrentUser) -> UUID:
+    if not user.workspace_ids:
+        raise AuthorizationError(error_code="NO_WORKSPACE", ...)
+    return user.workspace_ids[0]
+
+async def _require_consent(workspace_id: UUID, db: AsyncSession) -> None:
+    if not await consent_service.is_consent_active(workspace_id, db):
+        raise FaceConsentRequiredError(error_code="FACE_CONSENT_REQUIRED", ...)
+
+@router.get("/api/v1/face/status")
+async def get_status(user=Depends(get_current_user), db=Depends(get_db)):
+    ws = _resolve_workspace(user)
+    await _require_consent(ws, db)
+    ...
+```
+Use this when the endpoint is logically "about the user's workspace" — guards against confused-deputy attacks via tampered query parameters.
+
+**Pattern B — `require_face_consent` dependency (query-param workspace_id)**
+```python
+# api/dependencies/face_consent.py
+@router.post("/api/v1/photos/faces/reindex",
+             dependencies=[Depends(require_face_consent)])
+async def reindex(workspace_id: UUID = Query(...), ...):
+    ...
+```
+Use this when the endpoint is explicitly per-workspace and the caller legitimately selects the workspace via query.
+
+**Audit trail**: every grant/revoke emits an `object_audit_log` row with `action` in:
+  - `face_consent_granted`
+  - `face_consent_revoked`
+  - `face_data_hard_deleted`
+Hard-delete runs inside the revoke transaction (ART-15 §3) — any failure rolls back the revocation.
+
+**Error codes** (api/errors_registry.py):
+  - FACE_CONSENT_REQUIRED (403)
+  - CONSENT_VERSION_STALE (409)
+  - BACKFILL_ALREADY_RUNNING (409)
+  - BACKFILL_NOT_RUNNING (404)
+  - FACE_MODEL_NOT_LOADED (503), FACE_MODEL_LOAD_FAILED (503), FACE_MODEL_INVALID_IMAGE (422)
+  - FACE_HARD_DELETE_* (503 family — see hard_delete.py for failure-mode analysis)
+
+**Rate limits** on face endpoints use Redis DB_CACHE:
+  - Consent grant/revoke: 10/min/user
+  - Backfill start: 1/hour/workspace
+Inline pattern in router (see face_consent.py `_check_rate_limit`). Not a dependency — called explicitly.
+
+**PII rule in face service logs**: counts, ids, durations, error_type, version strings only. Never bbox, embeddings, filenames, image bytes. Enforced by tests/test_face_logging.py, tests/security/test_face_logs_no_pii.py, and tests/integration/test_phase3_e2e_foundation.py::test_logs_pii_free_full_pipeline.
 
 ### Query Router Decision Tree
 1. Regex/keyword match → deterministic SQL (no LLM, confidence=deterministic)
