@@ -17,8 +17,11 @@ import structlog
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.db.models.face_cluster import FaceCluster
+from api.db.models.face_detection import FaceDetection
 from api.db.models.file import File
 from api.db.models.photo_asset import PhotoAsset
+from api.db.models.setting import Setting
 
 logger = structlog.get_logger()
 
@@ -94,6 +97,58 @@ async def get_storage_stats(db: AsyncSession) -> dict:
     )
     photos_with_gps = gps_result.scalar_one()
 
+    # ── Face data (S11-008) ─────────────────────────────────────────────
+    # We surface the aggregate face counts on the admin storage page
+    # ONLY when at least one workspace has active consent — this keeps
+    # the tile invisible to owners who have never enabled the feature,
+    # matching the consent-gated posture of the pipeline itself.
+    face_consent_result = await db.execute(
+        select(func.count()).select_from(Setting).where(
+            Setting.namespace == "privacy",
+            Setting.key == "face_clustering_consent",
+            Setting.value_json["accepted"].astext == "true",
+            Setting.value_json["revoked_at"].astext.is_(None),
+        )
+    )
+    face_consent_active = int(face_consent_result.scalar() or 0)
+
+    face_counts: dict | None = None
+    if face_consent_active > 0:
+        det_count = int(
+            (
+                await db.execute(
+                    select(func.count()).select_from(FaceDetection).where(
+                        FaceDetection.deleted_at.is_(None)
+                    )
+                )
+            ).scalar_one()
+        )
+        cluster_count = int(
+            (
+                await db.execute(
+                    select(func.count()).select_from(FaceCluster).where(
+                        FaceCluster.deleted_at.is_(None)
+                    )
+                )
+            ).scalar_one()
+        )
+        photos_processed = int(
+            (
+                await db.execute(
+                    select(func.count()).select_from(PhotoAsset).where(
+                        PhotoAsset.deleted_at.is_(None),
+                        PhotoAsset.face_processed_at.isnot(None),
+                    )
+                )
+            ).scalar_one()
+        )
+        face_counts = {
+            "total_detections": det_count,
+            "total_clusters": cluster_count,
+            "photos_processed": photos_processed,
+            "consent_active_workspaces": face_consent_active,
+        }
+
     # ── Disk free space ──
     total_disk_mb, available_disk_mb = _disk_free_mb("/")
     free_pct = (available_disk_mb / total_disk_mb * 100) if total_disk_mb > 0 else 100
@@ -111,6 +166,7 @@ async def get_storage_stats(db: AsyncSession) -> dict:
             "total": total_photos,
             "with_gps": photos_with_gps,
         },
+        "face_counts": face_counts,
         "total_disk_mb": total_disk_mb,
         "available_disk_mb": available_disk_mb,
         "free_space_pct": round(free_pct, 1),

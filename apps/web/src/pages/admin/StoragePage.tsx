@@ -15,6 +15,7 @@ import {
   Archive,
   AlertTriangle,
   AlertCircle,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { swrFetcher } from "../../api/client";
@@ -37,6 +38,13 @@ interface StorageResponse {
     total: number;
     with_gps: number;
   };
+  // S11-008: only populated when at least one workspace has active consent.
+  face_counts: {
+    total_detections: number;
+    total_clusters: number;
+    photos_processed: number;
+    consent_active_workspaces: number;
+  } | null;
   total_disk_mb: number;
   available_disk_mb: number;
   free_space_pct: number;
@@ -263,6 +271,15 @@ export default function StoragePage() {
           subtitle={`${data.photo_counts.with_gps} with GPS`}
           iconColor="text-[var(--color-warning)]"
         />
+        {data.face_counts && (
+          <StatCard
+            icon={Users}
+            label="Face Data"
+            value={`${data.face_counts.total_detections} faces`}
+            subtitle={`${data.face_counts.total_clusters} groups · ${data.face_counts.photos_processed} photos processed`}
+            iconColor="text-[var(--color-info)]"
+          />
+        )}
         <StatCard
           icon={HardDrive}
           label="Disk Available"

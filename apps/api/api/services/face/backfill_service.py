@@ -54,6 +54,7 @@ from api.db.models.face_backfill_job import FaceBackfillJob
 from api.db.models.photo_asset import PhotoAsset
 from api.db.session import async_session
 from api.errors import ConflictError, NotFoundError
+from api.services import metrics_service
 from api.services.face.face_ingestion import process_photo_for_faces
 from api.services.flags import face_pipeline_active
 from api.services.redis_client import REDIS_DB_CACHE, get_redis
@@ -373,8 +374,20 @@ async def _process_workspace(
             try:
                 await process_photo_for_faces(pid, db)
                 processed += 1
+                try:
+                    await metrics_service.record_face_event(
+                        workspace_id, "backfill_photos_processed"
+                    )
+                except Exception:
+                    logger.debug("face_metric_emit_failed", exc_info=True)
             except Exception:
                 failed += 1
+                try:
+                    await metrics_service.record_face_event(
+                        workspace_id, "backfill_errors"
+                    )
+                except Exception:
+                    logger.debug("face_metric_emit_failed", exc_info=True)
                 logger.warning(
                     "face_backfill_photo_failed",
                     workspace_id=str(workspace_id),

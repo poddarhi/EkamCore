@@ -141,6 +141,52 @@ async def record_page_view(page: str) -> None:
         logger.debug("metrics_record_page_view_failed", exc_info=True)
 
 
+async def record_face_event(
+    workspace_id: UUID, event_name: str, value: int = 1
+) -> None:
+    """Record a face pipeline event as a daily counter per workspace (S11-008).
+
+    event_name is one of the S11-008 canonical set:
+      - detections_created         — counts faces inserted
+      - backfill_photos_processed  — counts photos a backfill touched
+      - backfill_errors            — counts per-photo backfill failures
+      - consent_granted            — count
+      - consent_revoked            — count
+      - hard_deletes_faces         — count of detection rows wiped
+
+    Fire-and-forget: Redis failures are debug-logged and never raise
+    into the caller. Matches the pattern in ``record_request``.
+    """
+    date = _date_key()
+    try:
+        r = get_redis(REDIS_DB_CACHE)
+        key = f"metrics:face:{workspace_id}:{event_name}:{date}"
+        pipe = r.pipeline()
+        pipe.incrby(key, value)
+        pipe.expire(key, 90 * 86400)
+        await pipe.execute()
+    except Exception:
+        logger.debug("metrics_record_face_event_failed", exc_info=True)
+
+
+async def record_face_detection_latency(
+    workspace_id: UUID, latency_ms: float
+) -> None:
+    """Record a single face detect+embed latency into the per-hour
+    sorted set so the hourly flusher can compute P50/P95 (S11-008)."""
+    hour = _hour_key()
+    try:
+        r = get_redis(REDIS_DB_CACHE)
+        score = time.time()
+        key = f"metrics:face_latency:{workspace_id}:{hour}"
+        pipe = r.pipeline()
+        pipe.zadd(key, {f"{score}:{latency_ms}": score})
+        pipe.expire(key, 7 * 86400)
+        await pipe.execute()
+    except Exception:
+        logger.debug("metrics_record_face_latency_failed", exc_info=True)
+
+
 async def record_llm_latency(model: str, latency_ms: float) -> None:
     """Record an LLM inference latency."""
     hour = _hour_key()
@@ -234,7 +280,29 @@ async def flush_hourly_metrics(db: AsyncSession, workspace_id: UUID) -> dict[str
             db.add(metric)
             written += 1
 
-        # 2. LLM latency aggregates
+        # 2. Face detection latency per workspace (S11-008)
+        face_lat_key = f"metrics:face_latency:{workspace_id}:{hour_key}"
+        members = await r.zrange(face_lat_key, 0, -1)
+        face_latencies = _parse_latencies(members)
+        if face_latencies:
+            metric = Metric(
+                metric_key="face_latency.detect_embed",
+                metric_value={
+                    "p50_ms": round(_percentile(face_latencies, 50), 2),
+                    "p95_ms": round(_percentile(face_latencies, 95), 2),
+                    "count": len(face_latencies),
+                    "mean_ms": round(
+                        sum(face_latencies) / len(face_latencies), 2
+                    ),
+                },
+                period_start=period_start,
+                period_end=period_end,
+                workspace_id=workspace_id,
+            )
+            db.add(metric)
+            written += 1
+
+        # 3. LLM latency aggregates
         async for key in r.scan_iter(match=f"metrics:llm_latency:*:{hour_key}"):
             parts = key.split(":")
             if len(parts) < 4:
@@ -372,6 +440,32 @@ async def flush_daily_metrics(db: AsyncSession, workspace_id: UUID) -> dict[str,
             )
         )
         photos_count = photos_result.scalar() or 0
+
+        # 5. Face pipeline daily counters per workspace (S11-008)
+        face_counters: dict[str, int] = {}
+        async for key in r.scan_iter(
+            match=f"metrics:face:{workspace_id}:*:{date_key}"
+        ):
+            parts = key.split(":")
+            # key shape: metrics:face:{ws}:{event}:{date}
+            if len(parts) >= 5:
+                event_name = parts[3]
+                val = await r.get(key)
+                if val:
+                    face_counters[event_name] = int(val)
+        if face_counters:
+            metric = Metric(
+                metric_key="daily.face_events",
+                metric_value={
+                    "counters": face_counters,
+                    "total": sum(face_counters.values()),
+                },
+                period_start=period_start,
+                period_end=period_end,
+                workspace_id=workspace_id,
+            )
+            db.add(metric)
+            written += 1
 
         metric = Metric(
             metric_key="daily.cumulative_totals",

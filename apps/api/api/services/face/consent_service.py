@@ -44,7 +44,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.models.setting import Setting
-from api.services import audit
+from api.services import audit, metrics_service
 from api.services.face import data_erasure
 from api.services.face.consent_text import (
     CURRENT_CONSENT_VERSION,
@@ -294,6 +294,13 @@ async def grant(
     # transaction has not yet committed.
     await _cache_invalidate(workspace_id)
 
+    try:
+        await metrics_service.record_face_event(
+            workspace_id, "consent_granted"
+        )
+    except Exception:
+        logger.debug("face_metric_emit_failed", exc_info=True)
+
     logger.info(
         "face_consent_granted",
         workspace_id=str(workspace_id),
@@ -381,6 +388,13 @@ async def revoke(
 
     # Step 4 — cache invalidation
     await _cache_invalidate(workspace_id)
+
+    try:
+        await metrics_service.record_face_event(
+            workspace_id, "consent_revoked"
+        )
+    except Exception:
+        logger.debug("face_metric_emit_failed", exc_info=True)
 
     logger.info(
         "face_consent_revoked",

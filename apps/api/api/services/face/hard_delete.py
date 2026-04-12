@@ -77,7 +77,7 @@ from api.db.models.face_cluster import FaceCluster
 from api.db.models.face_detection import FaceDetection
 from api.db.models.photo_asset import PhotoAsset
 from api.errors import ServiceUnavailableError
-from api.services import audit
+from api.services import audit, metrics_service
 from api.services.qdrant_client import get_qdrant
 
 logger = structlog.get_logger()
@@ -299,6 +299,13 @@ async def delete_all_face_data(
             error_code="FACE_HARD_DELETE_AUDIT_FAILED",
             message="Audit row write failed after successful deletion. Revocation rolled back.",
         ) from exc
+
+    try:
+        await metrics_service.record_face_event(
+            workspace_id, "hard_deletes_faces", value=detection_rows_deleted
+        )
+    except Exception:
+        logger.debug("face_metric_emit_failed", exc_info=True)
 
     logger.info(
         "face_hard_delete_complete",

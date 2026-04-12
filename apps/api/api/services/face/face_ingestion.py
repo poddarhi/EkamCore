@@ -34,6 +34,7 @@ analogous ``face_ingestion.*`` family with the same discipline.
 from __future__ import annotations
 
 import asyncio
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -47,6 +48,7 @@ from api.db.models.face_detection import FaceDetection
 from api.db.models.file import File
 from api.db.models.photo_asset import PhotoAsset
 from api.errors import FaceModelInvalidImageError, NotFoundError
+from api.services import metrics_service
 from api.services.face import crypto
 from api.services.face.face_model import FaceModel
 from api.services.flags import face_pipeline_active
@@ -208,12 +210,20 @@ async def process_photo_for_faces(
         )
 
     # 6. Detect + embed under the background low-priority slot.
+    detect_started = time.perf_counter()
     async with acquire_slot(Priority.P4_BACKGROUND_LOW):
         faces = await asyncio.to_thread(
             face_model.detect_and_embed,
             image_bytes,
             photo_asset_id=photo_asset_id,
         )
+    detect_latency_ms = (time.perf_counter() - detect_started) * 1000.0
+    try:
+        await metrics_service.record_face_detection_latency(
+            workspace_id, detect_latency_ms
+        )
+    except Exception:
+        logger.debug("face_metric_latency_failed", exc_info=True)
 
     if not faces:
         photo.face_count = 0
@@ -285,6 +295,15 @@ async def process_photo_for_faces(
     photo.face_count = len(pending_rows)
     photo.face_processed_at = datetime.now(timezone.utc)
     await db.flush()
+
+    # S11-008: emit counters + latency for the hourly/daily flushers.
+    # Fire-and-forget — metrics failures never block face processing.
+    try:
+        await metrics_service.record_face_event(
+            workspace_id, "detections_created", value=len(pending_rows)
+        )
+    except Exception:
+        logger.debug("face_metric_emit_failed", exc_info=True)
 
     logger.info(
         "face_ingestion_complete",
