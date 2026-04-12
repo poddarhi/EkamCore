@@ -11,13 +11,14 @@ import { useAuth } from "../contexts/AuthContext";
 import { useFlag } from "../contexts/FlagContext";
 import { Button, FeatureComingSoon, Skeleton } from "../design-system/components";
 import ErrorBanner from "../components/ErrorBanner";
+import { t } from "../i18n";
 
 function groupByDate(cards: Card[]): Map<string, Card[]> {
   const groups = new Map<string, Card[]>();
   for (const card of cards) {
     const p = card.payload as Record<string, unknown>;
     const taken = String(p.taken_at ?? "");
-    const dateKey = taken ? taken.split("T")[0] : "Unknown date";
+    const dateKey = taken ? taken.split("T")[0] : t("photos.unknownDate");
     const list = groups.get(dateKey) ?? [];
     list.push(card);
     groups.set(dateKey, list);
@@ -26,7 +27,7 @@ function groupByDate(cards: Card[]): Map<string, Card[]> {
 }
 
 function formatDateHeader(iso: string): string {
-  if (iso === "Unknown date") return iso;
+  if (iso === t("photos.unknownDate")) return iso;
   try {
     return new Date(iso).toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   } catch {
@@ -52,9 +53,9 @@ export default function PhotosPage() {
     },
   );
 
-  if (!enabled) return <FeatureComingSoon featureName="Photos" />;
+  if (!enabled) return <FeatureComingSoon featureName={t("photos.title")} />;
   if (isLoading && cursor === 0) return <Skeleton variant="card" count={6} />;
-  if (error) return <ErrorBanner message="Failed to load photos." onRetry={() => mutate()} />;
+  if (error) return <ErrorBanner message={t("photos.error")} onRetry={() => mutate()} />;
 
   if (allCards.length === 0) {
     return (
@@ -63,10 +64,10 @@ export default function PhotosPage() {
           <Image size={32} className="text-[var(--color-neutral-400)]" aria-hidden="true" />
         </div>
         <h3 className="font-[var(--text-h3-weight)] text-[var(--text-h3-size)] text-[var(--color-neutral-900)] mb-[var(--space-2)]">
-          No photos indexed yet
+          {t("photos.empty.title")}
         </h3>
         <p className="text-[var(--text-body-size)] text-[var(--color-neutral-500)]">
-          Add a photo folder in Settings &gt; Sources.
+          {t("photos.empty.description")}
         </p>
       </div>
     );
@@ -97,7 +98,7 @@ export default function PhotosPage() {
                   {thumbUrl ? (
                     <img
                       src={thumbUrl}
-                      alt={location || "Photo"}
+                      alt={location || t("photos.alt")}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
@@ -116,7 +117,7 @@ export default function PhotosPage() {
       {hasMore && (
         <div className="text-center pt-[var(--space-4)]">
           <Button variant="secondary" size="sm" onClick={() => setCursor((c) => c + 40)}>
-            Load More Photos
+            {t("photos.loadMore")}
           </Button>
         </div>
       )}

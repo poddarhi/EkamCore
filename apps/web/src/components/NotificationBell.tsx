@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, Check, CheckCheck, FileText, HardDrive, AlertTriangle, Zap } from "lucide-react";
 import { useNotifications } from "../contexts/NotificationContext";
+import { t } from "../i18n";
 
 const ICON_MAP: Record<string, typeof Bell> = {
   INGESTION_COMPLETE: FileText,
@@ -18,13 +19,13 @@ const ICON_MAP: Record<string, typeof Bell> = {
 
 function relativeTime(iso: string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
+  if (seconds < 60) return t("common.time.justNow");
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return t("common.time.minutesAgo", { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t("common.time.hoursAgo", { count: hours });
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return t("common.time.daysAgo", { count: days });
 }
 
 export default function NotificationBell() {
@@ -51,7 +52,7 @@ export default function NotificationBell() {
       <button
         onClick={() => setOpen((v) => !v)}
         className="relative p-2 rounded-[var(--radius-md)] text-[var(--color-neutral-500)] hover:bg-[var(--color-neutral-100)] transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-light)]"
-        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+        aria-label={t("notifications.ariaLabel") + (unreadCount > 0 ? t("notifications.unread", { count: unreadCount }) : "")}
         aria-expanded={open}
       >
         <Bell size={20} aria-hidden="true" />
@@ -68,7 +69,7 @@ export default function NotificationBell() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-neutral-200)]">
             <h3 className="font-medium text-[var(--text-body-size)] text-[var(--color-neutral-900)]">
-              Notifications
+              {t("notifications.title")}
             </h3>
             {unreadCount > 0 && (
               <button
@@ -76,7 +77,7 @@ export default function NotificationBell() {
                 className="inline-flex items-center gap-1 text-[var(--text-caption-size)] text-[var(--color-primary)] hover:underline cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-light)] rounded"
               >
                 <CheckCheck size={14} aria-hidden="true" />
-                Mark all read
+                {t("notifications.markAllRead")}
               </button>
             )}
           </div>
@@ -85,7 +86,7 @@ export default function NotificationBell() {
           <div className="overflow-y-auto max-h-80">
             {notifications.length === 0 ? (
               <p className="px-4 py-8 text-center text-[var(--text-small-size)] text-[var(--color-neutral-400)]">
-                No notifications yet.
+                {t("notifications.empty")}
               </p>
             ) : (
               notifications.map((n) => {
@@ -127,7 +128,7 @@ export default function NotificationBell() {
                       <button
                         onClick={(e) => { e.stopPropagation(); markRead(n.id); }}
                         className="shrink-0 p-1 rounded text-[var(--color-neutral-400)] hover:text-[var(--color-primary)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-light)]"
-                        aria-label="Mark as read"
+                        aria-label={t("notifications.markAsRead")}
                       >
                         <Check size={14} aria-hidden="true" />
                       </button>

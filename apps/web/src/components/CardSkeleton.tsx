@@ -1,3 +1,5 @@
+import { t } from "../i18n";
+
 interface CardSkeletonProps {
   count?: number;
 }
@@ -23,7 +25,7 @@ function SingleSkeleton() {
 
 export default function CardSkeleton({ count = 5 }: CardSkeletonProps) {
   return (
-    <div className="space-y-[var(--space-3)]" role="status" aria-label="Loading cards">
+    <div className="space-y-[var(--space-3)]" role="status" aria-label={t("common.loading")}>
       {Array.from({ length: count }, (_, i) => (
         <SingleSkeleton key={i} />
       ))}

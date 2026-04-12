@@ -8,6 +8,7 @@ import CardRenderer from "../components/CardRenderer";
 import CardSkeleton from "../components/CardSkeleton";
 import ErrorBanner from "../components/ErrorBanner";
 import EmptyState from "../components/EmptyState";
+import { t } from "../i18n";
 
 type Period = "daily" | "weekly";
 
@@ -42,8 +43,8 @@ function formatDailyDate(dateStr: string): string {
   target.setHours(0, 0, 0, 0);
 
   const diff = Math.round((today.getTime() - target.getTime()) / 86400000);
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Yesterday";
+  if (diff === 0) return t("recap.date.today");
+  if (diff === 1) return t("recap.date.yesterday");
   return d.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
 }
 
@@ -163,20 +164,20 @@ export default function RecapPage() {
   const canGoNext = shiftDate(dateParam, step) <= toISODate(new Date());
 
   if (!recapEnabled) {
-    return <EmptyState title="Recap" description="Coming in a future update" />;
+    return <EmptyState title={t("recap.title")} description={t("recap.comingSoon")} />;
   }
 
   return (
     <div>
       {/* Header */}
       <h2 className="text-[var(--text-display-size)] leading-[var(--text-display-height)] font-[var(--text-display-weight)] text-[var(--color-neutral-900)] mb-[var(--space-4)]">
-        Recap
+        {t("recap.title")}
       </h2>
 
       {/* Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-[var(--space-4)] mb-[var(--space-6)]">
         {/* Period toggle */}
-        <div className="inline-flex rounded-[var(--radius-md)] border border-[var(--color-neutral-200)] overflow-hidden" role="radiogroup" aria-label="Period">
+        <div className="inline-flex rounded-[var(--radius-md)] border border-[var(--color-neutral-200)] overflow-hidden" role="radiogroup" aria-label={t("recap.period.ariaLabel")}>
           {(["daily", "weekly"] as const).map((p) => (
             <button
               key={p}
@@ -192,7 +193,7 @@ export default function RecapPage() {
                   : "bg-[var(--color-white)] text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-100)]",
               ].join(" ")}
             >
-              {p === "daily" ? "Daily" : "Weekly"}
+              {p === "daily" ? t("recap.period.daily") : t("recap.period.weekly")}
             </button>
           ))}
         </div>
@@ -202,7 +203,7 @@ export default function RecapPage() {
           <button
             onClick={handlePrev}
             className="p-[var(--space-2)] rounded-[var(--radius-md)] text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-100)] transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-light)]"
-            aria-label="Previous period"
+            aria-label={t("recap.nav.previous")}
           >
             <ChevronLeft size={18} aria-hidden="true" />
           </button>
@@ -219,7 +220,7 @@ export default function RecapPage() {
                 ? "text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-100)] cursor-pointer"
                 : "text-[var(--color-neutral-300)] cursor-not-allowed",
             ].join(" ")}
-            aria-label="Next period"
+            aria-label={t("recap.nav.next")}
           >
             <ChevronRight size={18} aria-hidden="true" />
           </button>
@@ -232,7 +233,7 @@ export default function RecapPage() {
       {/* Error */}
       {error && !isLoading && (
         <ErrorBanner
-          message={(error as ApiError).message ?? "Failed to load recap."}
+          message={(error as ApiError).message ?? t("recap.error")}
           correlationId={(error as ApiError).correlationId}
           onRetry={() => mutate()}
         />
@@ -241,8 +242,8 @@ export default function RecapPage() {
       {/* Empty */}
       {!isLoading && !error && totalCards === 0 && (
         <EmptyState
-          title="Nothing to recap for this period"
-          description="Try a different date or switch between daily and weekly."
+          title={t("recap.empty.title")}
+          description={t("recap.empty.description")}
         />
       )}
 
@@ -251,23 +252,23 @@ export default function RecapPage() {
         <>
           {/* Summary */}
           <div className="flex items-center gap-[var(--space-6)] mb-[var(--space-6)] text-[var(--text-small-size)] leading-[var(--text-small-height)] text-[var(--color-neutral-500)]">
-            <span>{totalCards} total item{totalCards !== 1 ? "s" : ""}</span>
+            <span>{totalCards !== 1 ? t("recap.summary.totalItemsPlural", { count: totalCards }) : t("recap.summary.totalItems", { count: totalCards })}</span>
             {completedCount > 0 && (
               <span className="text-[var(--color-success)]">
-                {completedCount} completed
+                {t("recap.summary.completed", { count: completedCount })}
               </span>
             )}
             {overdueCount > 0 && (
               <span className="text-[var(--color-error)]">
-                {overdueCount} overdue
+                {t("recap.summary.overdue", { count: overdueCount })}
               </span>
             )}
           </div>
 
           {/* Sections */}
-          <CardSection title="Events" cards={groups.events} />
-          <CardSection title="Reminders Completed" cards={groups.completed} />
-          <CardSection title="New Overdue" cards={groups.overdue} />
+          <CardSection title={t("recap.section.events")} cards={groups.events} />
+          <CardSection title={t("recap.section.completed")} cards={groups.completed} />
+          <CardSection title={t("recap.section.overdue")} cards={groups.overdue} />
         </>
       )}
     </div>

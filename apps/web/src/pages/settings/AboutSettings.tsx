@@ -6,6 +6,7 @@ import useSWR from "swr";
 import { Info, ExternalLink } from "lucide-react";
 import { swrFetcher, type HealthResponse } from "../../api/client";
 import { Card, Skeleton } from "../../design-system/components";
+import { t } from "../../i18n";
 
 export default function AboutSettings() {
   const { data } = useSWR<HealthResponse>("/health", swrFetcher);
@@ -13,7 +14,7 @@ export default function AboutSettings() {
   return (
     <div className="space-y-[var(--space-6)]">
       <h2 className="font-[var(--text-h2-weight)] text-[var(--text-h2-size)] text-[var(--color-neutral-900)]">
-        About EkamCore
+        {t("settings.about.title")}
       </h2>
 
       <Card>
@@ -24,16 +25,16 @@ export default function AboutSettings() {
           <div className="space-y-[var(--space-2)]">
             <dl className="space-y-[var(--space-2)] text-[var(--text-small-size)]">
               <div className="flex gap-[var(--space-4)]">
-                <dt className="text-[var(--color-neutral-500)] w-32 shrink-0">Version</dt>
+                <dt className="text-[var(--color-neutral-500)] w-32 shrink-0">{t("settings.about.version")}</dt>
                 <dd className="text-[var(--color-neutral-900)] font-medium">{data?.version ?? "—"}</dd>
               </div>
               <div className="flex gap-[var(--space-4)]">
-                <dt className="text-[var(--color-neutral-500)] w-32 shrink-0">RAM Mode</dt>
+                <dt className="text-[var(--color-neutral-500)] w-32 shrink-0">{t("settings.about.ramMode")}</dt>
                 <dd className="text-[var(--color-neutral-900)]">{data?.ram_mode ?? "—"}</dd>
               </div>
               <div className="flex gap-[var(--space-4)]">
-                <dt className="text-[var(--color-neutral-500)] w-32 shrink-0">Architecture</dt>
-                <dd className="text-[var(--color-neutral-900)]">Apple Silicon (local)</dd>
+                <dt className="text-[var(--color-neutral-500)] w-32 shrink-0">{t("settings.about.architecture")}</dt>
+                <dd className="text-[var(--color-neutral-900)]">{t("settings.about.architectureValue")}</dd>
               </div>
             </dl>
           </div>
@@ -48,7 +49,7 @@ export default function AboutSettings() {
           className="flex items-center gap-[var(--space-2)] text-[var(--text-small-size)] text-[var(--color-primary)] hover:underline"
         >
           <ExternalLink size={14} aria-hidden="true" />
-          Documentation
+          {t("settings.about.documentation")}
         </a>
         <a
           href="https://github.com/ekamcore/ekamcore/blob/main/LICENSE"
@@ -57,7 +58,7 @@ export default function AboutSettings() {
           className="flex items-center gap-[var(--space-2)] text-[var(--text-small-size)] text-[var(--color-primary)] hover:underline"
         >
           <ExternalLink size={14} aria-hidden="true" />
-          Open Source Licenses
+          {t("settings.about.licenses")}
         </a>
       </div>
     </div>

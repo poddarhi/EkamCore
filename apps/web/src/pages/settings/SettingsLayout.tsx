@@ -6,19 +6,20 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Settings, FolderOpen, Brain, User, Info } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { t } from "../../i18n";
 
 interface SettingsNavItem {
   to: string;
   icon: LucideIcon;
-  label: string;
+  labelKey: string;
 }
 
 const NAV_ITEMS: SettingsNavItem[] = [
-  { to: "/settings/general", icon: Settings, label: "General" },
-  { to: "/settings/sources", icon: FolderOpen, label: "Sources" },
-  { to: "/settings/photo-intelligence", icon: Brain, label: "Photo Intelligence" },
-  { to: "/settings/account", icon: User, label: "Account" },
-  { to: "/settings/about", icon: Info, label: "About" },
+  { to: "/settings/general", icon: Settings, labelKey: "settings.nav.general" },
+  { to: "/settings/sources", icon: FolderOpen, labelKey: "settings.nav.sources" },
+  { to: "/settings/photo-intelligence", icon: Brain, labelKey: "settings.nav.photoIntelligence" },
+  { to: "/settings/account", icon: User, labelKey: "settings.nav.account" },
+  { to: "/settings/about", icon: Info, labelKey: "settings.nav.about" },
 ];
 
 export default function SettingsLayout() {
@@ -28,7 +29,7 @@ export default function SettingsLayout() {
   return (
     <div className="flex gap-[var(--space-6)] min-h-[400px]">
       {/* Sidebar nav */}
-      <nav className="hidden sm:block w-48 shrink-0" aria-label="Settings navigation">
+      <nav className="hidden sm:block w-48 shrink-0" aria-label={t("settings.nav.ariaLabel")}>
         <ul className="space-y-[var(--space-1)]">
           {NAV_ITEMS.map((item) => {
             const active = location.pathname === item.to;
@@ -47,7 +48,7 @@ export default function SettingsLayout() {
                   aria-current={active ? "page" : undefined}
                 >
                   <item.icon size={16} aria-hidden="true" />
-                  {item.label}
+                  {t(item.labelKey)}
                 </button>
               </li>
             );

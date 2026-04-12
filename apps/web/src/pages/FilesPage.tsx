@@ -11,6 +11,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useFlag } from "../contexts/FlagContext";
 import { Badge, Button, FeatureComingSoon, Skeleton } from "../design-system/components";
 import ErrorBanner from "../components/ErrorBanner";
+import { t } from "../i18n";
 
 function statusIcon(status?: string) {
   switch (status) {
@@ -50,9 +51,9 @@ export default function FilesPage() {
     },
   );
 
-  if (!enabled) return <FeatureComingSoon featureName="Files" />;
+  if (!enabled) return <FeatureComingSoon featureName={t("files.title")} />;
   if (isLoading && cursor === 0) return <Skeleton variant="table-row" count={8} />;
-  if (error) return <ErrorBanner message="Failed to load files." onRetry={() => mutate()} />;
+  if (error) return <ErrorBanner message={t("files.error")} onRetry={() => mutate()} />;
 
   const cards = allCards;
   const hasMore = data?.pagination?.has_more ?? false;
@@ -64,10 +65,10 @@ export default function FilesPage() {
           <FileText size={32} className="text-[var(--color-neutral-400)]" aria-hidden="true" />
         </div>
         <h3 className="font-[var(--text-h3-weight)] text-[var(--text-h3-size)] text-[var(--color-neutral-900)] mb-[var(--space-2)]">
-          No files indexed yet
+          {t("files.empty.title")}
         </h3>
         <p className="text-[var(--text-body-size)] text-[var(--color-neutral-500)]">
-          Add a document folder in Settings &gt; Sources.
+          {t("files.empty.description")}
         </p>
       </div>
     );
@@ -76,17 +77,17 @@ export default function FilesPage() {
   return (
     <div>
       <p className="mb-[var(--space-4)] text-[var(--text-small-size)] text-[var(--color-neutral-500)]">
-        Showing {cards.length} files
+        {t("files.showing", { count: cards.length })}
       </p>
 
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-neutral-200)]">
         <table className="w-full text-[var(--text-body-size)]">
           <thead className="sticky top-0 bg-[var(--color-neutral-50)] border-b border-[var(--color-neutral-200)]">
             <tr>
-              <th className="px-[var(--space-4)] py-[var(--space-3)] text-left font-[var(--text-caption-weight)] text-[var(--text-caption-size)] text-[var(--color-neutral-500)] uppercase tracking-wider">Filename</th>
-              <th className="px-[var(--space-4)] py-[var(--space-3)] text-left font-[var(--text-caption-weight)] text-[var(--text-caption-size)] text-[var(--color-neutral-500)] uppercase tracking-wider">Type</th>
-              <th className="px-[var(--space-4)] py-[var(--space-3)] text-left font-[var(--text-caption-weight)] text-[var(--text-caption-size)] text-[var(--color-neutral-500)] uppercase tracking-wider">Source</th>
-              <th className="px-[var(--space-4)] py-[var(--space-3)] text-left font-[var(--text-caption-weight)] text-[var(--text-caption-size)] text-[var(--color-neutral-500)] uppercase tracking-wider w-16">Status</th>
+              <th className="px-[var(--space-4)] py-[var(--space-3)] text-left font-[var(--text-caption-weight)] text-[var(--text-caption-size)] text-[var(--color-neutral-500)] uppercase tracking-wider">{t("files.table.filename")}</th>
+              <th className="px-[var(--space-4)] py-[var(--space-3)] text-left font-[var(--text-caption-weight)] text-[var(--text-caption-size)] text-[var(--color-neutral-500)] uppercase tracking-wider">{t("files.table.type")}</th>
+              <th className="px-[var(--space-4)] py-[var(--space-3)] text-left font-[var(--text-caption-weight)] text-[var(--text-caption-size)] text-[var(--color-neutral-500)] uppercase tracking-wider">{t("files.table.source")}</th>
+              <th className="px-[var(--space-4)] py-[var(--space-3)] text-left font-[var(--text-caption-weight)] text-[var(--text-caption-size)] text-[var(--color-neutral-500)] uppercase tracking-wider w-16">{t("files.table.status")}</th>
             </tr>
           </thead>
           <tbody>
@@ -123,7 +124,7 @@ export default function FilesPage() {
       {hasMore && (
         <div className="mt-[var(--space-4)] text-center">
           <Button variant="secondary" size="sm" onClick={() => setCursor((c) => c + 20)}>
-            Load More
+            {t("files.loadMore")}
           </Button>
         </div>
       )}

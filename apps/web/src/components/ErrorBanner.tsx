@@ -1,4 +1,5 @@
 import { AlertCircle, RefreshCw } from "lucide-react";
+import { t } from "../i18n";
 
 interface ErrorBannerProps {
   message: string;
@@ -19,7 +20,7 @@ export default function ErrorBanner({ message, correlationId, onRetry }: ErrorBa
         </p>
         {correlationId && (
           <p className="mt-1 text-[var(--text-caption-size)] leading-[var(--text-caption-height)] text-[var(--color-neutral-500)]">
-            Reference ID: {correlationId}
+            {t("error.referenceId", { id: correlationId })}
           </p>
         )}
       </div>
@@ -27,10 +28,10 @@ export default function ErrorBanner({ message, correlationId, onRetry }: ErrorBa
         <button
           onClick={onRetry}
           className="shrink-0 inline-flex items-center gap-[var(--space-1)] px-[var(--space-3)] py-[var(--space-1)] rounded-[var(--radius-md)] border border-[var(--color-error)] text-[var(--color-error)] text-[var(--text-small-size)] hover:bg-[var(--color-error)] hover:text-[var(--color-white)] transition-colors duration-[var(--duration-normal)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-error)]"
-          aria-label="Retry loading"
+          aria-label={t("error.retryLoading")}
         >
           <RefreshCw size={14} aria-hidden="true" />
-          Retry
+          {t("error.retry")}
         </button>
       )}
     </div>

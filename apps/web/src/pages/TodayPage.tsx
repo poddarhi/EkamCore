@@ -6,14 +6,15 @@ import CardRenderer from "../components/CardRenderer";
 import CardSkeleton from "../components/CardSkeleton";
 import ErrorBanner from "../components/ErrorBanner";
 import EmptyState from "../components/EmptyState";
+import { t } from "../i18n";
 
 function timeAgo(ts: number): string {
   const seconds = Math.floor((Date.now() - ts) / 1000);
-  if (seconds < 60) return "just now";
+  if (seconds < 60) return t("common.time.justNow");
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return t("common.time.minutesAgo", { count: minutes });
   const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
+  return t("common.time.hoursAgo", { count: hours });
 }
 
 export default function TodayPage() {
@@ -30,7 +31,7 @@ export default function TodayPage() {
   );
 
   if (!todayEnabled) {
-    return <EmptyState title="Today" description="Coming in a future update" />;
+    return <EmptyState title={t("today.title")} description={t("today.comingSoon")} />;
   }
 
   if (isLoading) return <CardSkeleton count={5} />;
@@ -39,7 +40,7 @@ export default function TodayPage() {
     const apiErr = error as ApiError;
     return (
       <ErrorBanner
-        message={apiErr.message ?? "Failed to load your day."}
+        message={apiErr.message ?? t("today.error")}
         correlationId={apiErr.correlationId}
         onRetry={() => mutate()}
       />
@@ -47,7 +48,7 @@ export default function TodayPage() {
   }
 
   if (!data?.cards.length) {
-    return <EmptyState title="Your day will fill up soon" description="Calendar events and reminders will appear here." />;
+    return <EmptyState title={t("today.empty.title")} description={t("today.empty.description")} />;
   }
 
   const today = new Date();
@@ -63,11 +64,11 @@ export default function TodayPage() {
       <div className="mb-[var(--space-6)]">
         <div className="flex items-baseline gap-[var(--space-3)]">
           <h2 className="text-[var(--text-display-size)] leading-[var(--text-display-height)] font-[var(--text-display-weight)] text-[var(--color-neutral-900)]">
-            Today
+            {t("today.title")}
           </h2>
           {fetchedAtRef.current > 0 && (
             <span className="text-[var(--text-caption-size)] leading-[var(--text-caption-height)] text-[var(--color-neutral-400)]">
-              Updated {timeAgo(fetchedAtRef.current)}
+              {t("today.updated", { time: timeAgo(fetchedAtRef.current) })}
             </span>
           )}
         </div>

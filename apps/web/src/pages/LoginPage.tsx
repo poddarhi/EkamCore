@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Card, Input } from "../design-system/components";
 import { useAuth } from "../contexts/AuthContext";
 import { ApiError, getUserMessage } from "../api/client";
+import { t } from "../i18n";
 
 /** Default lockout countdown when the server doesn't provide one. */
 const DEFAULT_LOCKOUT_SECS = 60;
@@ -69,7 +70,7 @@ export default function LoginPage() {
           setError(getUserMessage(err.errorCode));
         }
       } else {
-        setError("Unable to connect. Check that the server is running.");
+        setError(t("login.connectionError"));
       }
     } finally {
       setLoading(false);
@@ -86,10 +87,10 @@ export default function LoginPage() {
             {/* Header */}
             <div className="text-center space-y-1">
               <h1 className="text-[var(--text-h1-size)] leading-[var(--text-h1-height)] font-[var(--text-h1-weight)] text-[var(--color-primary)]">
-                EkamCore
+                {t("login.title")}
               </h1>
               <p className="text-[var(--text-small-size)] leading-[var(--text-small-height)] text-[var(--color-neutral-500)]">
-                Sign in to your account
+                {t("login.subtitle")}
               </p>
             </div>
 
@@ -102,7 +103,7 @@ export default function LoginPage() {
                 {error}
                 {isLocked && (
                   <span className="ml-1 font-medium">
-                    Try again in {lockoutRemaining}s.
+                    {t("login.lockout", { seconds: lockoutRemaining })}
                   </span>
                 )}
               </div>
@@ -110,10 +111,10 @@ export default function LoginPage() {
 
             {/* Fields */}
             <Input
-              label="Email"
+              label={t("login.email.label")}
               type="email"
               required
-              placeholder="admin@ekamcore.dev"
+              placeholder={t("login.email.placeholder")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
@@ -121,10 +122,10 @@ export default function LoginPage() {
             />
 
             <Input
-              label="Password"
+              label={t("login.password.label")}
               type="password"
               required
-              placeholder="Enter your password"
+              placeholder={t("login.password.placeholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
@@ -140,7 +141,7 @@ export default function LoginPage() {
               disabled={isLocked}
               className="w-full"
             >
-              Sign in
+              {t("login.submit")}
             </Button>
           </form>
         </Card>

@@ -10,31 +10,32 @@ import FilterChips from "../components/FilterChips";
 import CardSkeleton from "../components/CardSkeleton";
 import ErrorBanner from "../components/ErrorBanner";
 import EmptyState from "../components/EmptyState";
+import { t } from "../i18n";
 
 const PER_PAGE = 20;
 const DEBOUNCE_MS = 300;
 
 type SearchMode = "hybrid" | "semantic" | "exact";
 
-const TYPE_OPTIONS: { value: SearchType; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "calendar", label: "Calendar" },
-  { value: "reminder", label: "Reminders" },
-  { value: "contact", label: "Contacts" },
-  { value: "file", label: "Documents" },
-  { value: "photo", label: "Photos" },
+const TYPE_OPTIONS: { value: SearchType; labelKey: string }[] = [
+  { value: "all", labelKey: "search.type.all" },
+  { value: "calendar", labelKey: "search.type.calendar" },
+  { value: "reminder", labelKey: "search.type.reminder" },
+  { value: "contact", labelKey: "search.type.contact" },
+  { value: "file", labelKey: "search.type.file" },
+  { value: "photo", labelKey: "search.type.photo" },
 ];
 
-const SEARCH_MODE_OPTIONS: { value: SearchMode; label: string }[] = [
-  { value: "hybrid", label: "Hybrid" },
-  { value: "semantic", label: "Semantic" },
-  { value: "exact", label: "Exact" },
+const SEARCH_MODE_OPTIONS: { value: SearchMode; labelKey: string }[] = [
+  { value: "hybrid", labelKey: "search.mode.hybrid" },
+  { value: "semantic", labelKey: "search.mode.semantic" },
+  { value: "exact", labelKey: "search.mode.exact" },
 ];
 
-const SEARCH_MODE_DESCRIPTIONS: Record<SearchMode, string> = {
-  hybrid: "Combines keyword and semantic search for the most relevant results.",
-  semantic: "Finds results by meaning, even without exact keyword matches.",
-  exact: "Only returns results containing the exact words you typed.",
+const SEARCH_MODE_DESCRIPTION_KEYS: Record<SearchMode, string> = {
+  hybrid: "search.mode.description.hybrid",
+  semantic: "search.mode.description.semantic",
+  exact: "search.mode.description.exact",
 };
 
 export default function SearchPage() {
@@ -165,7 +166,7 @@ export default function SearchPage() {
     if (opt.value === "file") return filesEnabled;
     if (opt.value === "photo") return photosEnabled;
     return true;
-  });
+  }).map((opt) => ({ value: opt.value, label: t(opt.labelKey) }));
 
   function handleClear() {
     setInputValue("");
@@ -173,26 +174,26 @@ export default function SearchPage() {
   }
 
   function getEmptyStateTitle(): string {
-    if (typeFilter === "file") return "Search your documents";
-    if (typeFilter === "photo") return "Search your photos";
-    return "Search across your data";
+    if (typeFilter === "file") return t("search.empty.documents.title");
+    if (typeFilter === "photo") return t("search.empty.photos.title");
+    return t("search.empty.default.title");
   }
 
   function getEmptyStateDescription(): string {
-    if (typeFilter === "file") return "Find documents by name, content, tags, or correspondent.";
-    if (typeFilter === "photo") return "Find photos by date, location, or camera.";
-    return "Type a query above to search calendar, reminders, contacts, documents, and photos.";
+    if (typeFilter === "file") return t("search.empty.documents.description");
+    if (typeFilter === "photo") return t("search.empty.photos.description");
+    return t("search.empty.default.description");
   }
 
   if (!searchEnabled) {
-    return <EmptyState title="Search" description="Coming in a future update" />;
+    return <EmptyState title={t("search.title")} description={t("search.comingSoon")} />;
   }
 
   return (
     <div>
       {/* Header */}
       <h2 className="text-[var(--text-display-size)] leading-[var(--text-display-height)] font-[var(--text-display-weight)] text-[var(--color-neutral-900)] mb-[var(--space-6)]">
-        Search
+        {t("search.title")}
       </h2>
 
       {/* Search input */}
@@ -207,15 +208,15 @@ export default function SearchPage() {
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Search across your data..."
+            placeholder={t("search.placeholder")}
             className="w-full h-12 pl-12 pr-10 rounded-[var(--radius-lg)] border-2 border-[var(--color-neutral-200)] bg-[var(--color-white)] text-[var(--text-body-size)] leading-[var(--text-body-height)] text-[var(--color-neutral-900)] placeholder:text-[var(--color-neutral-400)] outline-none transition-colors duration-[var(--duration-normal)] focus:border-[var(--color-primary-light)]"
-            aria-label="Search"
+            aria-label={t("search.ariaLabel")}
           />
           {inputValue && (
             <button
               onClick={handleClear}
               className="absolute right-[var(--space-3)] top-1/2 -translate-y-1/2 p-1 rounded-[var(--radius-sm)] text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-100)] transition-colors cursor-pointer"
-              aria-label="Clear search"
+              aria-label={t("search.clear")}
             >
               <X size={18} aria-hidden="true" />
             </button>
@@ -233,10 +234,10 @@ export default function SearchPage() {
             value={searchMode}
             onChange={(e) => setSearchMode(e.target.value as SearchMode)}
             className="h-8 pl-[var(--space-3)] pr-[var(--space-6)] rounded-[var(--radius-full)] border border-[var(--color-neutral-200)] bg-[var(--color-white)] text-[var(--text-small-size)] text-[var(--color-neutral-600)] outline-none focus:border-[var(--color-primary-light)] cursor-pointer appearance-none"
-            aria-label="Search mode"
+            aria-label={t("search.mode.ariaLabel")}
           >
             {SEARCH_MODE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
             ))}
           </select>
           <div className="relative">
@@ -246,14 +247,14 @@ export default function SearchPage() {
               onFocus={() => setShowModeTooltip(true)}
               onBlur={() => setShowModeTooltip(false)}
               className="p-0.5 text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] cursor-pointer transition-colors"
-              aria-label="Search mode info"
+              aria-label={t("search.mode.info")}
               type="button"
             >
               <Info size={14} aria-hidden="true" />
             </button>
             {showModeTooltip && (
               <div className="absolute left-0 top-6 z-10 w-48 p-[var(--space-2)] rounded-[var(--radius-md)] bg-[var(--color-neutral-900)] text-white text-[var(--text-caption-size)] leading-[var(--text-caption-height)] shadow-lg">
-                {SEARCH_MODE_DESCRIPTIONS[searchMode]}
+                {t(SEARCH_MODE_DESCRIPTION_KEYS[searchMode])}
               </div>
             )}
           </div>
@@ -265,7 +266,7 @@ export default function SearchPage() {
           className="inline-flex items-center gap-1 text-[var(--text-small-size)] text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-700)] cursor-pointer transition-colors"
           aria-expanded={showAdvancedFilters}
         >
-          Filters
+          {t("search.filters.toggle")}
           {showAdvancedFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
       </div>
@@ -276,7 +277,7 @@ export default function SearchPage() {
           {/* Date range */}
           <div>
             <label className="block text-[var(--text-caption-size)] text-[var(--color-neutral-500)] mb-[var(--space-1)] font-medium">
-              Date range
+              {t("search.filters.dateRange")}
             </label>
             <div className="flex items-center gap-[var(--space-3)]">
               <input
@@ -284,15 +285,15 @@ export default function SearchPage() {
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
                 className="h-9 px-[var(--space-3)] rounded-[var(--radius-md)] border border-[var(--color-neutral-200)] bg-white text-[var(--text-small-size)] text-[var(--color-neutral-700)] outline-none focus:border-[var(--color-primary-light)]"
-                aria-label="From date"
+                aria-label={t("search.filters.dateFrom")}
               />
-              <span className="text-[var(--text-small-size)] text-[var(--color-neutral-400)]">to</span>
+              <span className="text-[var(--text-small-size)] text-[var(--color-neutral-400)]">{t("search.filters.dateRangeSeparator")}</span>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
                 className="h-9 px-[var(--space-3)] rounded-[var(--radius-md)] border border-[var(--color-neutral-200)] bg-white text-[var(--text-small-size)] text-[var(--color-neutral-700)] outline-none focus:border-[var(--color-primary-light)]"
-                aria-label="To date"
+                aria-label={t("search.filters.dateTo")}
               />
             </div>
           </div>
@@ -301,16 +302,16 @@ export default function SearchPage() {
           {(typeFilter === "file" || typeFilter === "all") && (
             <div>
               <label className="block text-[var(--text-caption-size)] text-[var(--color-neutral-500)] mb-[var(--space-1)] font-medium">
-                Correspondent
+                {t("search.filters.correspondent")}
               </label>
               {correspondentOptions ? (
                 <select
                   value={correspondent}
                   onChange={(e) => setCorrespondent(e.target.value)}
                   className="w-full h-9 px-[var(--space-3)] rounded-[var(--radius-md)] border border-[var(--color-neutral-200)] bg-white text-[var(--text-small-size)] text-[var(--color-neutral-700)] outline-none focus:border-[var(--color-primary-light)] cursor-pointer"
-                  aria-label="Correspondent filter"
+                  aria-label={t("search.filters.correspondentAriaLabel")}
                 >
-                  <option value="">Any correspondent</option>
+                  <option value="">{t("search.filters.correspondentAny")}</option>
                   {correspondentOptions.map((c) => (
                     <option key={c.id} value={c.name}>{c.name}</option>
                   ))}
@@ -320,9 +321,9 @@ export default function SearchPage() {
                   type="text"
                   value={correspondent}
                   onChange={(e) => setCorrespondent(e.target.value)}
-                  placeholder="e.g. Bank of America"
+                  placeholder={t("search.filters.correspondentPlaceholder")}
                   className="w-full h-9 px-[var(--space-3)] rounded-[var(--radius-md)] border border-[var(--color-neutral-200)] bg-white text-[var(--text-small-size)] text-[var(--color-neutral-700)] placeholder:text-[var(--color-neutral-400)] outline-none focus:border-[var(--color-primary-light)]"
-                  aria-label="Correspondent filter"
+                  aria-label={t("search.filters.correspondentAriaLabel")}
                 />
               )}
             </div>
@@ -332,15 +333,15 @@ export default function SearchPage() {
           {(typeFilter === "file" || typeFilter === "all") && (
             <div>
               <label className="block text-[var(--text-caption-size)] text-[var(--color-neutral-500)] mb-[var(--space-1)] font-medium">
-                Tags
+                {t("search.filters.tags")}
               </label>
               <input
                 type="text"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="e.g. invoice, tax (comma-separated)"
+                placeholder={t("search.filters.tagsPlaceholder")}
                 className="w-full h-9 px-[var(--space-3)] rounded-[var(--radius-md)] border border-[var(--color-neutral-200)] bg-white text-[var(--text-small-size)] text-[var(--color-neutral-700)] placeholder:text-[var(--color-neutral-400)] outline-none focus:border-[var(--color-primary-light)]"
-                aria-label="Tags filter"
+                aria-label={t("search.filters.tagsAriaLabel")}
               />
             </div>
           )}
@@ -351,8 +352,10 @@ export default function SearchPage() {
       {query && !isLoading && !error && allCards.length > 0 && (
         <p className="text-[var(--text-caption-size)] leading-[var(--text-caption-height)] text-[var(--color-neutral-500)] mb-[var(--space-4)]">
           {totalCount && totalCount > allCards.length
-            ? `Showing 1–${allCards.length} of ${totalCount} results`
-            : `Showing ${allCards.length} result${allCards.length !== 1 ? "s" : ""}`}
+            ? t("search.results.showingRange", { shown: allCards.length, total: totalCount })
+            : allCards.length !== 1
+              ? t("search.results.showingCountPlural", { count: allCards.length })
+              : t("search.results.showingCount", { count: allCards.length })}
         </p>
       )}
 
@@ -368,7 +371,7 @@ export default function SearchPage() {
 
       {query && error && !isLoading && (
         <ErrorBanner
-          message={(error as { message?: string }).message ?? "Search failed."}
+          message={(error as { message?: string }).message ?? t("search.error")}
           onRetry={() => mutate()}
         />
       )}
@@ -377,13 +380,13 @@ export default function SearchPage() {
         <EmptyState
           title={
             typeFilter === "file"
-              ? "No documents match your search."
-              : `No results for "${query}"`
+              ? t("search.noResults.documents")
+              : t("search.noResults.default", { query })
           }
           description={
             typeFilter === "file"
-              ? "Try different keywords or clear filters."
-              : "Try different keywords or broaden your filters."
+              ? t("search.noResults.documentsDescription")
+              : t("search.noResults.defaultDescription")
           }
         />
       )}
