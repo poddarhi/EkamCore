@@ -64,6 +64,30 @@ export function unregisterAuthCallbacks() {
 import { getUserMessage as _getUserMessage } from "../utils/errorMessages";
 export const getUserMessage = _getUserMessage;
 
+// ── CSRF helpers ──
+
+const CSRF_COOKIE_NAME = "ekamcore_csrf";
+const CSRF_HEADER_NAME = "X-CSRF-Token";
+const MUTATING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
+
+/**
+ * Read a cookie value by name from document.cookie. Returns null if
+ * the cookie is not set or if we're in an SSR/test context without
+ * document.
+ */
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const pairs = document.cookie ? document.cookie.split("; ") : [];
+  for (const pair of pairs) {
+    const eq = pair.indexOf("=");
+    if (eq === -1) continue;
+    if (pair.slice(0, eq) === name) {
+      return decodeURIComponent(pair.slice(eq + 1));
+    }
+  }
+  return null;
+}
+
 // ── Core fetch wrapper ──
 async function rawFetch(
   url: string,
@@ -81,6 +105,23 @@ async function rawFetch(
     !headers.has("Content-Type")
   ) {
     headers.set("Content-Type", "application/json");
+  }
+
+  // CSRF: auto-send the ekamcore_csrf cookie as X-CSRF-Token for
+  // mutating methods. The server validates double-submit by comparing
+  // the header against the same-named cookie set at login time.
+  // Skipped for /auth/login (CSRF-exempt because no session yet);
+  // explicit header overrides remain intact.
+  const method = (options.method || "GET").toUpperCase();
+  if (
+    MUTATING_METHODS.has(method) &&
+    !headers.has(CSRF_HEADER_NAME) &&
+    !url.endsWith("/auth/login")
+  ) {
+    const csrfToken = readCookie(CSRF_COOKIE_NAME);
+    if (csrfToken) {
+      headers.set(CSRF_HEADER_NAME, csrfToken);
+    }
   }
 
   return fetch(url, { ...options, headers, credentials: "include" });
