@@ -1,0 +1,198 @@
+{
+  "version": "1.0",
+  "description": "Query classification evaluation test cases for ART-25 ML evaluation harness",
+  "cases": [
+    {
+      "id": "cls_001",
+      "query": "When is my next meeting?",
+      "expected_category": "temporal",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_002",
+      "query": "What is John's email address?",
+      "expected_category": "simple",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_003",
+      "query": "Summarize all my meetings this week and highlight action items.",
+      "expected_category": "complex",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_004",
+      "query": "How often do I exercise?",
+      "expected_category": "personal",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_005",
+      "query": "What did I do last Monday?",
+      "expected_category": "temporal",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_006",
+      "query": "What is the project deadline?",
+      "expected_category": "simple",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_007",
+      "query": "Compare the Q2 and Q3 performance reports.",
+      "expected_category": "complex",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_008",
+      "query": "What are my most frequently used apps?",
+      "expected_category": "personal",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_009",
+      "query": "When was the last deployment?",
+      "expected_category": "temporal",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_010",
+      "query": "Who is the engineering manager?",
+      "expected_category": "simple",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_011",
+      "query": "What patterns do I follow when scheduling meetings?",
+      "expected_category": "personal",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_012",
+      "query": "Explain how the authentication system and authorization middleware work together.",
+      "expected_category": "complex",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_013",
+      "query": "What reminders do I have for tomorrow?",
+      "expected_category": "temporal",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_014",
+      "query": "What is the office WiFi password?",
+      "expected_category": "simple",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_015",
+      "query": "What are the key risks and how do they relate to the project timeline?",
+      "expected_category": "complex",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_016",
+      "query": "What topics do I read about most?",
+      "expected_category": "personal",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_017",
+      "query": "What happened in the last sprint retrospective?",
+      "expected_category": "temporal",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_018",
+      "query": "What database does the project use?",
+      "expected_category": "simple",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_019",
+      "query": "Analyze the trends in my productivity over the past month.",
+      "expected_category": "complex",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_020",
+      "query": "Do I tend to schedule meetings in the morning or afternoon?",
+      "expected_category": "personal",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_021",
+      "query": "What files were modified yesterday?",
+      "expected_category": "temporal",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_022",
+      "query": "What is Sarah's phone number?",
+      "expected_category": "simple",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_023",
+      "query": "Summarize the security measures and identify any gaps compared to the compliance requirements.",
+      "expected_category": "complex",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_024",
+      "query": "What kind of food do I usually order?",
+      "expected_category": "personal",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_025",
+      "query": "What events are scheduled for next Friday?",
+      "expected_category": "temporal",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_026",
+      "query": "How much RAM does the server have?",
+      "expected_category": "simple",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_027",
+      "query": "Cross-reference the budget allocations with actual spending and find discrepancies.",
+      "expected_category": "complex",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_028",
+      "query": "What are my typical working hours?",
+      "expected_category": "personal",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_029",
+      "query": "Show me all PRs merged between March 1 and March 15.",
+      "expected_category": "temporal",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_030",
+      "query": "What is the API endpoint for creating a new user?",
+      "expected_category": "simple",
+      "expected_needs_llm": false
+    },
+    {
+      "id": "cls_031",
+      "query": "What is the relationship between the ingestion pipeline failures and the storage capacity alerts?",
+      "expected_category": "complex",
+      "expected_needs_llm": true
+    },
+    {
+      "id": "cls_032",
+      "query": "Which colleagues do I interact with most frequently?",
+      "expected_category": "personal",
+      "expected_needs_llm": true
+    }
+  ]
+}

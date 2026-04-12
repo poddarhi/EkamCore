@@ -1,0 +1,607 @@
+{
+  "version": "1.0",
+  "description": "Grounded QA evaluation test cases for ART-25 ML evaluation harness",
+  "cases": [
+    {
+      "id": "qa_001",
+      "query": "What was Q3 revenue?",
+      "context_chunks": [
+        {"filename": "Q3_Report.pdf", "text": "Revenue for Q3 was $4.2M, representing a 15% increase over Q2."}
+      ],
+      "expected_answer_contains": ["$4.2M"],
+      "expected_sources": ["Q3_Report.pdf"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_002",
+      "query": "What is Sarah's email address?",
+      "context_chunks": [
+        {"filename": "contacts.csv", "text": "Sarah Johnson, Engineering Manager, sarah.johnson@company.com, ext 4501"}
+      ],
+      "expected_answer_contains": ["sarah.johnson@company.com"],
+      "expected_sources": ["contacts.csv"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_003",
+      "query": "What is the office address?",
+      "context_chunks": [
+        {"filename": "company_info.txt", "text": "Our headquarters is located at 123 Main Street, Suite 400, San Francisco, CA 94105."}
+      ],
+      "expected_answer_contains": ["123 Main Street"],
+      "expected_sources": ["company_info.txt"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_004",
+      "query": "How many employees are in the engineering team?",
+      "context_chunks": [
+        {"filename": "org_chart.pdf", "text": "Engineering department headcount: 47 full-time engineers across 6 teams."}
+      ],
+      "expected_answer_contains": ["47"],
+      "expected_sources": ["org_chart.pdf"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_005",
+      "query": "What programming language is the backend written in?",
+      "context_chunks": [
+        {"filename": "tech_stack.md", "text": "Backend: Python 3.12 with FastAPI framework. Database: PostgreSQL 16. Cache: Redis 7."}
+      ],
+      "expected_answer_contains": ["Python"],
+      "expected_sources": ["tech_stack.md"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_006",
+      "query": "What is the current sprint goal?",
+      "context_chunks": [
+        {"filename": "sprint_plan.md", "text": "Sprint 14 Goal: Complete user authentication flow and integrate OAuth2 providers."}
+      ],
+      "expected_answer_contains": ["authentication", "OAuth2"],
+      "expected_sources": ["sprint_plan.md"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_007",
+      "query": "What is the database backup schedule?",
+      "context_chunks": [
+        {"filename": "ops_runbook.md", "text": "PostgreSQL backups run daily at 02:00 UTC via pg_dump. Retention: 30 days. WAL archiving is continuous."}
+      ],
+      "expected_answer_contains": ["daily", "02:00"],
+      "expected_sources": ["ops_runbook.md"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_008",
+      "query": "Who is the project lead?",
+      "context_chunks": [
+        {"filename": "team_roster.pdf", "text": "Project Lead: Marcus Chen. Technical Lead: Priya Patel. Product Manager: Alex Rivera."}
+      ],
+      "expected_answer_contains": ["Marcus Chen"],
+      "expected_sources": ["team_roster.pdf"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_009",
+      "query": "What is the API rate limit?",
+      "context_chunks": [
+        {"filename": "api_docs.md", "text": "Rate limiting: 100 requests per minute per API key. Burst allowance: 20 requests. Headers: X-RateLimit-Remaining."}
+      ],
+      "expected_answer_contains": ["100", "minute"],
+      "expected_sources": ["api_docs.md"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_010",
+      "query": "What version of Node.js is required?",
+      "context_chunks": [
+        {"filename": "package.json", "text": "engines: { node: '>=18.0.0' }. Dependencies include React 18.2, TypeScript 5.3, and Vite 5.0."}
+      ],
+      "expected_answer_contains": ["18"],
+      "expected_sources": ["package.json"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_011",
+      "query": "What is the company's mission statement?",
+      "context_chunks": [
+        {"filename": "about_us.pdf", "text": "Mission: To empower individuals with private, local-first AI tools that respect data sovereignty and enhance daily productivity."}
+      ],
+      "expected_answer_contains": ["private", "local-first"],
+      "expected_sources": ["about_us.pdf"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_012",
+      "query": "What is the minimum RAM requirement?",
+      "context_chunks": [
+        {"filename": "system_requirements.md", "text": "Minimum: 16GB unified memory (Apple Silicon). Recommended: 32GB or more for concurrent LLM inference and embedding generation."}
+      ],
+      "expected_answer_contains": ["16GB"],
+      "expected_sources": ["system_requirements.md"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_013",
+      "query": "What port does the API server run on?",
+      "context_chunks": [
+        {"filename": "docker-compose.yml", "text": "api service ports: 8000:8000. Environment: UVICORN_PORT=8000, UVICORN_HOST=0.0.0.0."}
+      ],
+      "expected_answer_contains": ["8000"],
+      "expected_sources": ["docker-compose.yml"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_014",
+      "query": "What is the default embedding dimension?",
+      "context_chunks": [
+        {"filename": "ml_config.yaml", "text": "Embedding model: nomic-embed-text. Dimension: 768. Collection: document_embeddings. Distance metric: cosine."}
+      ],
+      "expected_answer_contains": ["768"],
+      "expected_sources": ["ml_config.yaml"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_015",
+      "query": "What license is the project under?",
+      "context_chunks": [
+        {"filename": "LICENSE", "text": "This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0)."}
+      ],
+      "expected_answer_contains": ["AGPL"],
+      "expected_sources": ["LICENSE"],
+      "expected_confidence": "high",
+      "category": "simple"
+    },
+    {
+      "id": "qa_016",
+      "query": "Compare Q2 and Q3 revenue performance.",
+      "context_chunks": [
+        {"filename": "Q2_Report.pdf", "text": "Q2 revenue was $3.65M with 8% growth over Q1. Operating expenses totaled $2.1M."},
+        {"filename": "Q3_Report.pdf", "text": "Revenue for Q3 was $4.2M, representing a 15% increase over Q2. Operating expenses were $2.3M."}
+      ],
+      "expected_answer_contains": ["$3.65M", "$4.2M"],
+      "expected_sources": ["Q2_Report.pdf", "Q3_Report.pdf"],
+      "expected_confidence": "high",
+      "category": "complex"
+    },
+    {
+      "id": "qa_017",
+      "query": "Summarize the key decisions from this week's meetings.",
+      "context_chunks": [
+        {"filename": "monday_standup.md", "text": "Decision: Postpone database migration to next sprint. Owner: Marcus."},
+        {"filename": "wednesday_review.md", "text": "Decision: Approve new CI pipeline with parallel test execution. Deploy by Friday."},
+        {"filename": "friday_retro.md", "text": "Decision: Adopt trunk-based development starting Sprint 15. Action item: update branching docs."}
+      ],
+      "expected_answer_contains": ["migration", "CI pipeline", "trunk-based"],
+      "expected_sources": ["monday_standup.md", "wednesday_review.md", "friday_retro.md"],
+      "expected_confidence": "high",
+      "category": "complex"
+    },
+    {
+      "id": "qa_018",
+      "query": "What are the main risks identified in the project?",
+      "context_chunks": [
+        {"filename": "risk_register.xlsx", "text": "Risk 1: Ollama model size exceeds available RAM on 16GB machines (Impact: High, Likelihood: Medium). Risk 2: PostgreSQL full-text search latency degrades above 1M documents (Impact: Medium, Likelihood: Low). Risk 3: Apple Silicon thermal throttling during batch embedding (Impact: Medium, Likelihood: High)."},
+        {"filename": "sprint_retro.md", "text": "Concern raised: test flakiness in CI due to shared database state. Not yet in risk register."}
+      ],
+      "expected_answer_contains": ["RAM", "latency", "thermal"],
+      "expected_sources": ["risk_register.xlsx"],
+      "expected_confidence": "high",
+      "category": "complex"
+    },
+    {
+      "id": "qa_019",
+      "query": "How does the authentication system work end to end?",
+      "context_chunks": [
+        {"filename": "auth_design.md", "text": "Authentication flow: 1) User submits credentials to POST /auth/login. 2) Server validates against bcrypt hash. 3) Issues JWT access token (15min TTL) + refresh token (httpOnly cookie, 7d TTL). 4) CSRF token returned in response body."},
+        {"filename": "middleware_docs.md", "text": "AuthMiddleware extracts JWT from Authorization header, validates signature and expiry. RefreshMiddleware handles token rotation on 401 responses."}
+      ],
+      "expected_answer_contains": ["JWT", "refresh token", "CSRF"],
+      "expected_sources": ["auth_design.md", "middleware_docs.md"],
+      "expected_confidence": "high",
+      "category": "complex"
+    },
+    {
+      "id": "qa_020",
+      "query": "What is the full data ingestion pipeline?",
+      "context_chunks": [
+        {"filename": "ingestion_arch.md", "text": "Pipeline stages: 1) File watcher detects new/modified files. 2) MIME detection and metadata extraction. 3) Text extraction (PDF: pdfplumber, DOCX: python-docx, images: OCR). 4) Chunking (512 tokens, 50 token overlap). 5) Embedding via nomic-embed-text. 6) Storage: chunks in PostgreSQL, vectors in Qdrant."},
+        {"filename": "worker_config.md", "text": "Ingestion workers: 2 concurrent, P2_BACKGROUND priority. Batch size: 20 chunks per embedding call. Checkpoint after each file."}
+      ],
+      "expected_answer_contains": ["chunking", "embedding", "Qdrant"],
+      "expected_sources": ["ingestion_arch.md", "worker_config.md"],
+      "expected_confidence": "high",
+      "category": "complex"
+    },
+    {
+      "id": "qa_021",
+      "query": "What are the differences between the small and large LLM configurations?",
+      "context_chunks": [
+        {"filename": "llm_config.md", "text": "Small model: phi3:mini (3.8B params), 5s timeout, temperature 0.0, used for classification and simple QA. Large model: llama3.1:8b, 15s timeout, temperature 0.1, used for complex synthesis and recap summaries. Both use Ollama /api/chat endpoint."}
+      ],
+      "expected_answer_contains": ["phi3", "llama3.1", "5s", "15s"],
+      "expected_sources": ["llm_config.md"],
+      "expected_confidence": "high",
+      "category": "complex"
+    },
+    {
+      "id": "qa_022",
+      "query": "Explain the search ranking algorithm.",
+      "context_chunks": [
+        {"filename": "search_design.md", "text": "Hybrid search: 1) Full-text search via PostgreSQL ts_rank_cd (weight 0.4). 2) Semantic search via Qdrant cosine similarity (weight 0.6). Results merged by reciprocal rank fusion. Top 10 results returned. Tie-breaking by recency."},
+        {"filename": "relevance_tuning.md", "text": "Boosting rules: exact phrase match +0.2, title match +0.15, recent files (<7 days) +0.1. Penalty: low-quality OCR text -0.1."}
+      ],
+      "expected_answer_contains": ["full-text", "semantic", "cosine"],
+      "expected_sources": ["search_design.md", "relevance_tuning.md"],
+      "expected_confidence": "high",
+      "category": "complex"
+    },
+    {
+      "id": "qa_023",
+      "query": "What cost optimizations have been implemented?",
+      "context_chunks": [
+        {"filename": "perf_improvements.md", "text": "Optimizations: 1) Prompt caching reduces redundant Ollama calls by 40%. 2) Embedding batching (20 chunks) reduces overhead. 3) Connection pooling for PostgreSQL (min 5, max 20). 4) Redis caching for deterministic query results (TTL: 300s)."},
+        {"filename": "resource_controller.md", "text": "Resource controller ensures at most 1 concurrent LLM call (P1) and 2 concurrent embedding calls (P2). Prevents OOM on 16GB machines."}
+      ],
+      "expected_answer_contains": ["caching", "batching", "pooling"],
+      "expected_sources": ["perf_improvements.md", "resource_controller.md"],
+      "expected_confidence": "high",
+      "category": "complex"
+    },
+    {
+      "id": "qa_024",
+      "query": "What CI/CD checks run on every pull request?",
+      "context_chunks": [
+        {"filename": "ci_config.yaml", "text": "PR checks: 1) ruff lint + format. 2) mypy type check. 3) pytest with coverage (min 80%). 4) TypeScript tsc --noEmit. 5) ESLint. 6) Docker build smoke test. 7) OpenAPI schema validation. All must pass for merge."}
+      ],
+      "expected_answer_contains": ["ruff", "pytest", "TypeScript"],
+      "expected_sources": ["ci_config.yaml"],
+      "expected_confidence": "high",
+      "category": "complex"
+    },
+    {
+      "id": "qa_025",
+      "query": "What information do we have about David Kim?",
+      "context_chunks": [
+        {"filename": "contacts.csv", "text": "David Kim, Senior Designer, david.kim@company.com, ext 3302, Design team."},
+        {"filename": "meeting_notes_mar10.md", "text": "David Kim presented the new dashboard mockups. Feedback was positive. Action: David to finalize by March 15."},
+        {"filename": "project_assignments.xlsx", "text": "David Kim: Lead designer for Project Aurora. Also contributing to the design system component library."}
+      ],
+      "expected_answer_contains": ["Designer", "david.kim@company.com"],
+      "expected_sources": ["contacts.csv", "meeting_notes_mar10.md", "project_assignments.xlsx"],
+      "expected_confidence": "high",
+      "category": "person_specific"
+    },
+    {
+      "id": "qa_026",
+      "query": "What meetings has Priya attended this week?",
+      "context_chunks": [
+        {"filename": "calendar_export.ics", "text": "2026-04-07 09:00 Monday Standup - Attendees: Priya Patel, Marcus Chen, Alex Rivera. 2026-04-08 14:00 Architecture Review - Attendees: Priya Patel, Sarah Johnson. 2026-04-10 11:00 Sprint Planning - Attendees: Priya Patel, Full Team."}
+      ],
+      "expected_answer_contains": ["Standup", "Architecture Review", "Sprint Planning"],
+      "expected_sources": ["calendar_export.ics"],
+      "expected_confidence": "high",
+      "category": "person_specific"
+    },
+    {
+      "id": "qa_027",
+      "query": "What is Alex Rivera responsible for?",
+      "context_chunks": [
+        {"filename": "team_roster.pdf", "text": "Alex Rivera - Product Manager. Responsibilities: product roadmap, stakeholder communication, sprint planning, user research coordination."},
+        {"filename": "okr_tracker.xlsx", "text": "Alex Rivera Q2 OKRs: 1) Ship v1.0 by June 30. 2) Achieve 90% user satisfaction in beta. 3) Complete 5 user interviews per sprint."}
+      ],
+      "expected_answer_contains": ["Product Manager", "roadmap"],
+      "expected_sources": ["team_roster.pdf", "okr_tracker.xlsx"],
+      "expected_confidence": "high",
+      "category": "person_specific"
+    },
+    {
+      "id": "qa_028",
+      "query": "Who reported the authentication bug?",
+      "context_chunks": [
+        {"filename": "bug_tracker.csv", "text": "BUG-142: JWT refresh fails after timezone change. Reporter: Lisa Wang. Priority: P1. Assigned: Marcus Chen. Status: In Progress."},
+        {"filename": "slack_thread.txt", "text": "Lisa Wang (Apr 5): Getting 401 errors after laptop woke from sleep. Tried clearing cookies but issue persists. Marcus is looking into it."}
+      ],
+      "expected_answer_contains": ["Lisa Wang"],
+      "expected_sources": ["bug_tracker.csv"],
+      "expected_confidence": "high",
+      "category": "person_specific"
+    },
+    {
+      "id": "qa_029",
+      "query": "What projects is Sarah Johnson involved in?",
+      "context_chunks": [
+        {"filename": "project_assignments.xlsx", "text": "Sarah Johnson: Engineering Manager. Projects: EkamCore API (lead), Infrastructure modernization (sponsor), Intern mentorship program (mentor)."},
+        {"filename": "meeting_notes_apr08.md", "text": "Sarah Johnson reviewed the API performance benchmarks and approved the caching strategy for production deployment."}
+      ],
+      "expected_answer_contains": ["EkamCore API", "Infrastructure"],
+      "expected_sources": ["project_assignments.xlsx", "meeting_notes_apr08.md"],
+      "expected_confidence": "high",
+      "category": "person_specific"
+    },
+    {
+      "id": "qa_030",
+      "query": "What is Tom's availability next week?",
+      "context_chunks": [
+        {"filename": "calendar_export.ics", "text": "Tom Bradley - Out of Office: April 14-16 (conference). Available April 17-18. Note: Tom prefers async communication via Slack during travel."},
+        {"filename": "team_calendar.pdf", "text": "Week of April 14: Tom Bradley attending PyCon US (Mon-Wed). Back in office Thursday."}
+      ],
+      "expected_answer_contains": ["April 14", "conference"],
+      "expected_sources": ["calendar_export.ics", "team_calendar.pdf"],
+      "expected_confidence": "high",
+      "category": "person_specific"
+    },
+    {
+      "id": "qa_031",
+      "query": "What contributions has Marcus made to the codebase recently?",
+      "context_chunks": [
+        {"filename": "git_log_summary.txt", "text": "Marcus Chen commits (last 7 days): feat(api): add JWT refresh rotation (Apr 7), fix(api): resolve CSRF token race condition (Apr 8), refactor(api): extract auth middleware (Apr 9), test(api): add auth integration tests (Apr 10)."}
+      ],
+      "expected_answer_contains": ["JWT refresh", "CSRF"],
+      "expected_sources": ["git_log_summary.txt"],
+      "expected_confidence": "high",
+      "category": "person_specific"
+    },
+    {
+      "id": "qa_032",
+      "query": "What does Mei-Lin specialize in?",
+      "context_chunks": [
+        {"filename": "team_roster.pdf", "text": "Mei-Lin Zhang, ML Engineer. Specializations: face detection/recognition pipelines, ONNX model optimization, vector database operations. Previously at Apple Vision team."},
+        {"filename": "project_assignments.xlsx", "text": "Mei-Lin Zhang: Lead for face clustering pipeline (Phase 3), HDBSCAN integration, ArcFace model tuning."}
+      ],
+      "expected_answer_contains": ["ML Engineer", "face"],
+      "expected_sources": ["team_roster.pdf", "project_assignments.xlsx"],
+      "expected_confidence": "high",
+      "category": "person_specific"
+    },
+    {
+      "id": "qa_033",
+      "query": "What happened at yesterday's standup?",
+      "context_chunks": [
+        {"filename": "standup_apr10.md", "text": "Date: April 10, 2026. Attendees: Full team. Updates: Marcus - auth bug fix deployed. Priya - search ranking tuned. David - design system components done. Blockers: CI runner out of disk space (Sarah investigating)."}
+      ],
+      "expected_answer_contains": ["auth bug", "search ranking", "design system"],
+      "expected_sources": ["standup_apr10.md"],
+      "expected_confidence": "high",
+      "category": "temporal"
+    },
+    {
+      "id": "qa_034",
+      "query": "What were the key events last Monday?",
+      "context_chunks": [
+        {"filename": "calendar_apr07.ics", "text": "April 7, 2026: 09:00 Monday Standup, 11:00 Architecture Review with Priya, 14:00 Vendor call with Ollama team, 16:00 1:1 with Sarah."}
+      ],
+      "expected_answer_contains": ["Standup", "Architecture Review"],
+      "expected_sources": ["calendar_apr07.ics"],
+      "expected_confidence": "high",
+      "category": "temporal"
+    },
+    {
+      "id": "qa_035",
+      "query": "What deadlines are coming up this month?",
+      "context_chunks": [
+        {"filename": "project_timeline.xlsx", "text": "April 2026 deadlines: Apr 15 - Phase 2 feature freeze. Apr 18 - Security audit submission. Apr 22 - Beta release to internal testers. Apr 30 - Performance benchmark baseline established."}
+      ],
+      "expected_answer_contains": ["April 15", "feature freeze"],
+      "expected_sources": ["project_timeline.xlsx"],
+      "expected_confidence": "high",
+      "category": "temporal"
+    },
+    {
+      "id": "qa_036",
+      "query": "What changes were deployed to production last week?",
+      "context_chunks": [
+        {"filename": "deployment_log.md", "text": "Week of March 31 deployments: Mar 31 - v0.8.1: search relevance tuning. Apr 2 - v0.8.2: notification system. Apr 4 - v0.8.3: hotfix for settings API validation."},
+        {"filename": "changelog.md", "text": "v0.8.3 (Apr 4): Fixed settings registry validation for date_format. v0.8.2 (Apr 2): Added in-app notification bell with 6 notification types."}
+      ],
+      "expected_answer_contains": ["v0.8.2", "notification"],
+      "expected_sources": ["deployment_log.md", "changelog.md"],
+      "expected_confidence": "high",
+      "category": "temporal"
+    },
+    {
+      "id": "qa_037",
+      "query": "When was the last database migration applied?",
+      "context_chunks": [
+        {"filename": "migration_history.txt", "text": "Migration log: 009_add_settings_table (Mar 28), 010_add_error_codes (Apr 1), 011_add_notifications (Apr 5). All applied successfully. No pending migrations."}
+      ],
+      "expected_answer_contains": ["011", "notifications", "April 5"],
+      "expected_sources": ["migration_history.txt"],
+      "expected_confidence": "high",
+      "category": "temporal"
+    },
+    {
+      "id": "qa_038",
+      "query": "What PRs were merged this week?",
+      "context_chunks": [
+        {"filename": "github_activity.md", "text": "PRs merged Apr 7-11: #142 feat(api): settings API with registry validation (Marcus). #143 feat(web): design system components (David). #144 perf(infra): benchmark harness (Priya). #145 feat(api): notification system (Alex)."}
+      ],
+      "expected_answer_contains": ["settings API", "design system", "benchmark"],
+      "expected_sources": ["github_activity.md"],
+      "expected_confidence": "high",
+      "category": "temporal"
+    },
+    {
+      "id": "qa_039",
+      "query": "What was discussed in the Q1 board meeting?",
+      "context_chunks": [
+        {"filename": "board_minutes_q1.pdf", "text": "Q1 2026 Board Meeting Minutes: 1) Product roadmap approved through Q3. 2) Budget increase of 20% for ML infrastructure. 3) Hiring plan: 3 engineers, 1 designer by Q2. 4) Privacy compliance audit scheduled for Q2."}
+      ],
+      "expected_answer_contains": ["roadmap", "budget", "hiring"],
+      "expected_sources": ["board_minutes_q1.pdf"],
+      "expected_confidence": "high",
+      "category": "temporal"
+    },
+    {
+      "id": "qa_040",
+      "query": "What is the current weather in Tokyo?",
+      "context_chunks": [
+        {"filename": "travel_itinerary.pdf", "text": "Flight to Tokyo: April 20. Hotel: Shinjuku Hyatt. Conference venue: Tokyo Big Sight."}
+      ],
+      "expected_answer_contains": ["don't have enough information"],
+      "expected_sources": [],
+      "expected_confidence": "low",
+      "category": "no_answer"
+    },
+    {
+      "id": "qa_041",
+      "query": "What is the stock price of Apple?",
+      "context_chunks": [
+        {"filename": "tech_notes.md", "text": "We use Apple Silicon (M2/M3/M4) for local inference. Minimum requirement: M1 with 16GB unified memory."}
+      ],
+      "expected_answer_contains": ["don't have enough information"],
+      "expected_sources": [],
+      "expected_confidence": "low",
+      "category": "no_answer"
+    },
+    {
+      "id": "qa_042",
+      "query": "How do I reset my password?",
+      "context_chunks": [
+        {"filename": "api_docs.md", "text": "POST /auth/login accepts email and password. Returns JWT access token. POST /auth/refresh rotates the refresh token."}
+      ],
+      "expected_answer_contains": ["don't have enough information"],
+      "expected_sources": [],
+      "expected_confidence": "low",
+      "category": "no_answer"
+    },
+    {
+      "id": "qa_043",
+      "query": "What will revenue be in Q4?",
+      "context_chunks": [
+        {"filename": "Q3_Report.pdf", "text": "Revenue for Q3 was $4.2M, representing a 15% increase over Q2."}
+      ],
+      "expected_answer_contains": ["don't have enough information"],
+      "expected_sources": [],
+      "expected_confidence": "low",
+      "category": "no_answer"
+    },
+    {
+      "id": "qa_044",
+      "query": "What is the meaning of life?",
+      "context_chunks": [
+        {"filename": "philosophy_notes.txt", "text": "Reading list for book club: Meditations by Marcus Aurelius, Atomic Habits by James Clear."}
+      ],
+      "expected_answer_contains": ["don't have enough information"],
+      "expected_sources": [],
+      "expected_confidence": "low",
+      "category": "no_answer"
+    },
+    {
+      "id": "qa_045",
+      "query": "What is the total budget across all departments?",
+      "context_chunks": [
+        {"filename": "engineering_budget.xlsx", "text": "Engineering Q2 budget: $1.2M (infrastructure $400K, salaries $650K, tools $150K)."},
+        {"filename": "marketing_budget.xlsx", "text": "Marketing Q2 budget: $350K (campaigns $200K, events $100K, content $50K)."},
+        {"filename": "operations_budget.xlsx", "text": "Operations Q2 budget: $280K (office $150K, travel $80K, supplies $50K)."}
+      ],
+      "expected_answer_contains": ["$1.2M", "$350K", "$280K"],
+      "expected_sources": ["engineering_budget.xlsx", "marketing_budget.xlsx", "operations_budget.xlsx"],
+      "expected_confidence": "high",
+      "category": "multi_source"
+    },
+    {
+      "id": "qa_046",
+      "query": "What technologies are used across the full stack?",
+      "context_chunks": [
+        {"filename": "backend_stack.md", "text": "Backend: Python 3.12, FastAPI, SQLAlchemy 2.0, PostgreSQL 16, Redis 7, Qdrant 1.7."},
+        {"filename": "frontend_stack.md", "text": "Frontend: React 18, TypeScript 5.3, Vite 5, TailwindCSS 3.4, SWR for data fetching."},
+        {"filename": "infra_stack.md", "text": "Infrastructure: Docker Compose, Caddy reverse proxy, Ollama for local LLM, GitHub Actions CI."}
+      ],
+      "expected_answer_contains": ["Python", "React", "Docker"],
+      "expected_sources": ["backend_stack.md", "frontend_stack.md", "infra_stack.md"],
+      "expected_confidence": "high",
+      "category": "multi_source"
+    },
+    {
+      "id": "qa_047",
+      "query": "What security measures are in place?",
+      "context_chunks": [
+        {"filename": "auth_design.md", "text": "Authentication: JWT with 15-min expiry, httpOnly refresh cookies, CSRF tokens on mutating endpoints."},
+        {"filename": "security_policy.md", "text": "Security controls: input sanitization on all user content, parameterized SQL queries only, no PII in logs, bcrypt password hashing with cost factor 12."},
+        {"filename": "network_security.md", "text": "Network: all traffic through Caddy TLS proxy, no external API calls, Ollama bound to localhost only."}
+      ],
+      "expected_answer_contains": ["JWT", "CSRF", "sanitization"],
+      "expected_sources": ["auth_design.md", "security_policy.md", "network_security.md"],
+      "expected_confidence": "high",
+      "category": "multi_source"
+    },
+    {
+      "id": "qa_048",
+      "query": "What monitoring and observability tools do we use?",
+      "context_chunks": [
+        {"filename": "monitoring_setup.md", "text": "Logging: structlog with JSON output, correlation IDs on all requests. No PII in logs."},
+        {"filename": "metrics_config.md", "text": "Metrics: Prometheus endpoint at /metrics. Key metrics: request_latency_seconds, llm_inference_duration, embedding_batch_duration, active_connections."},
+        {"filename": "alerting_rules.md", "text": "Alerts: API P95 latency > 2s, error rate > 5%, disk usage > 80%, Ollama health check failure."}
+      ],
+      "expected_answer_contains": ["structlog", "Prometheus", "latency"],
+      "expected_sources": ["monitoring_setup.md", "metrics_config.md", "alerting_rules.md"],
+      "expected_confidence": "high",
+      "category": "multi_source"
+    },
+    {
+      "id": "qa_049",
+      "query": "What are all the data sources that EkamCore can ingest?",
+      "context_chunks": [
+        {"filename": "ingestion_sources.md", "text": "File sources: PDF, DOCX, TXT, MD, CSV, XLSX. Image sources: JPEG, PNG, HEIC (with EXIF metadata extraction)."},
+        {"filename": "apple_integration.md", "text": "Apple data sources: Calendar events (EventKit), Reminders (EventKit), Contacts (CNContact framework). All accessed via Tauri sidecar."},
+        {"filename": "future_sources.md", "text": "Planned integrations: email (IMAP), browser bookmarks, Notes.app. Not yet implemented."}
+      ],
+      "expected_answer_contains": ["PDF", "Calendar", "Contacts"],
+      "expected_sources": ["ingestion_sources.md", "apple_integration.md"],
+      "expected_confidence": "high",
+      "category": "multi_source"
+    },
+    {
+      "id": "qa_050",
+      "query": "What testing strategies are used across the project?",
+      "context_chunks": [
+        {"filename": "test_strategy.md", "text": "Unit tests: pytest with asyncio, 80% coverage minimum. Mocking: AsyncMock for external services (Ollama, Redis)."},
+        {"filename": "integration_tests.md", "text": "Integration tests: real PostgreSQL via Docker, test database with migrations applied. API tests via httpx AsyncClient."},
+        {"filename": "e2e_tests.md", "text": "E2E tests: Playwright for web UI, Detox for React Native mobile. Run in CI on every PR against staging environment."}
+      ],
+      "expected_answer_contains": ["pytest", "PostgreSQL", "Playwright"],
+      "expected_sources": ["test_strategy.md", "integration_tests.md", "e2e_tests.md"],
+      "expected_confidence": "high",
+      "category": "multi_source"
+    },
+    {
+      "id": "qa_051",
+      "query": "How are backups and disaster recovery handled?",
+      "context_chunks": [
+        {"filename": "backup_policy.md", "text": "PostgreSQL: daily pg_dump at 02:00 UTC, 30-day retention, stored on external encrypted drive. Qdrant: daily snapshot export."},
+        {"filename": "dr_plan.md", "text": "Disaster recovery: restore from latest backup, re-run migrations, re-index Qdrant from PostgreSQL chunks. RTO target: 1 hour. RPO: 24 hours."}
+      ],
+      "expected_answer_contains": ["pg_dump", "daily", "Qdrant"],
+      "expected_sources": ["backup_policy.md", "dr_plan.md"],
+      "expected_confidence": "high",
+      "category": "multi_source"
+    },
+    {
+      "id": "qa_052",
+      "query": "What accessibility features are implemented?",
+      "context_chunks": [
+        {"filename": "accessibility_audit.md", "text": "WCAG 2.1 AA compliance: all interactive elements have aria-labels, color contrast ratio >= 4.5:1, keyboard navigation for all flows, screen reader tested with VoiceOver. Focus indicators visible on all focusable elements."}
+      ],
+      "expected_answer_contains": ["WCAG", "aria-labels", "keyboard"],
+      "expected_sources": ["accessibility_audit.md"],
+      "expected_confidence": "high",
+      "category": "simple"
+    }
+  ]
+}
