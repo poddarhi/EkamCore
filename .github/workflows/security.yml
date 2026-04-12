@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: "0 6 * * 1" # Monday 6am UTC
   workflow_dispatch:
+  release:
+    types: [published]
 
 jobs:
   python-audit:
@@ -43,3 +45,68 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Audit
         run: pnpm audit --prod
+
+  sbom-generation:
+    name: SBOM Generation (ART-24)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install syft
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+      - name: Build Docker images
+        run: docker compose build ekamcore-api ekamcore-workers ekamcore-web ekamcore-migrate
+      - name: Generate SBOMs
+        run: ./scripts/sbom/generate_sbom.sh
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.sha }}
+          path: sbom/*.json
+          retention-days: 90
+      - name: Attach SBOMs to Release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for f in sbom/*.json; do
+            gh release upload "${{ github.event.release.tag_name }}" "$f" --clobber || true
+          done
+
+  license-audit:
+    name: License Audit (ART-24)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Poetry + pip-licenses
+        run: |
+          pip install poetry pip-licenses
+          cd apps/api && poetry install --no-interaction
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install pnpm + node deps
+        run: |
+          npm install -g pnpm@9
+          cd apps/web && pnpm install --frozen-lockfile
+      - name: Run license audit
+        run: ./scripts/sbom/license_audit.sh
+      - name: Upload license report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-audit-${{ github.sha }}
+          path: sbom/license_audit_report.json
+
+  image-pin-check:
+    name: Image Pin Verification (ART-24)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify image digest pins
+        run: ./scripts/verify_image_pins.sh
