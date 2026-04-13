@@ -339,6 +339,7 @@ async def assign_face_to_cluster(
                 .where(FaceDetection.id == face_detection_id)
                 .values(cluster_id=best_cluster_id)
             )
+            new_member_count = old_member_count + 1
             await db.execute(
                 update(FaceCluster)
                 .where(FaceCluster.id == best_cluster_id)
@@ -346,12 +347,20 @@ async def assign_face_to_cluster(
                     centroid_encrypted=crypto.encrypt_embedding(
                         new_centroid.tolist()
                     ),
-                    member_count=old_member_count + 1,
+                    member_count=new_member_count,
                 )
             )
             await db.flush()
             chosen_cluster_id = best_cluster_id
             decision = "matched"
+            # S12-003: once a cluster crosses the scoring floor
+            # (member_count >= 3) tag it for the next batch scoring
+            # pass. Best-effort Redis write — failures are ignored.
+            if old_member_count < 3 <= new_member_count:
+                from api.services.face.candidate_scorer import (
+                    mark_cluster_needs_scoring,
+                )
+                await mark_cluster_needs_scoring(best_cluster_id)
 
     elif top_sim >= WEAK_NEIGHBOR_SIM:
         decision = "weak"

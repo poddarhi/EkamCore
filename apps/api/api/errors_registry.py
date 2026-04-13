@@ -267,6 +267,16 @@ ERROR_CODES: dict[str, ErrorDef] = {
         "message": "Face detection record not found.",
         "category": "resource",
     },
+    "FACE_CLUSTER_NOT_FOUND": {
+        "status": 404,
+        "message": "Face cluster not found.",
+        "category": "resource",
+    },
+    "CANDIDATE_SCORING_FAILED": {
+        "status": 503,
+        "message": "Candidate contact scoring failed. Please try again.",
+        "category": "service",
+    },
 
     # ── Rate Limiting ──
     "RATE_LIMIT_EXCEEDED": {

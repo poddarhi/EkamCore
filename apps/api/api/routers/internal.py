@@ -402,6 +402,87 @@ async def trigger_face_recluster(
 
 
 # ---------------------------------------------------------------------------
+# Candidate contact scoring for face clusters (S12-003)
+# ---------------------------------------------------------------------------
+
+
+class FaceScoreClustersRequest(BaseModel):
+    workspace_id: UUID
+
+
+class FaceScoreClustersResponse(BaseModel):
+    workspace_id: UUID
+    scored_clusters: int
+    skipped_small: int
+    total_candidates_written: int
+    duration_ms: int
+
+
+_SCORE_CLUSTERS_RATE_LIMIT_PREFIX = "rl:face_score_clusters:"
+_SCORE_CLUSTERS_RATE_LIMIT_WINDOW_SECS = 3600
+_SCORE_CLUSTERS_RATE_LIMIT_MAX = 1
+
+
+async def _check_score_clusters_rate_limit(workspace_id: UUID) -> None:
+    """1/hour/workspace. Scoring walks every unconfirmed cluster in the
+    workspace and every contact — heavy enough that a hammering caller
+    shouldn't queue ten of them back-to-back."""
+    from api.errors import RateLimitError
+    from api.services.redis_client import REDIS_DB_CACHE, get_redis
+
+    r = get_redis(REDIS_DB_CACHE)
+    key = f"{_SCORE_CLUSTERS_RATE_LIMIT_PREFIX}{workspace_id}"
+    count_str = await r.get(key)
+    if count_str is not None and int(count_str) >= _SCORE_CLUSTERS_RATE_LIMIT_MAX:
+        ttl = await r.ttl(key)
+        raise RateLimitError(
+            error_code="RATE_LIMIT_EXCEEDED",
+            message=(
+                f"Too many candidate scoring triggers. Try again in "
+                f"{max(ttl, 1)} seconds."
+            ),
+            details={"retry_after_seconds": max(ttl, 1)},
+        )
+    pipe = r.pipeline(transaction=True)
+    pipe.incr(key)
+    pipe.expire(key, _SCORE_CLUSTERS_RATE_LIMIT_WINDOW_SECS)
+    await pipe.execute()
+
+
+@router.post("/face/score-clusters", response_model=FaceScoreClustersResponse)
+async def trigger_face_score_clusters(
+    body: FaceScoreClustersRequest,
+    db: AsyncSession = Depends(get_db),
+) -> FaceScoreClustersResponse:
+    """Score candidate contacts for every unconfirmed cluster in a
+    workspace and cache the top-K on face_clusters.candidates_json.
+
+    Consent is re-checked inside ``score_workspace_clusters``.
+    Rate-limited to 1 call per hour per workspace. Not exposed
+    externally — Caddy does not route /api/v1/internal/*.
+    """
+    from api.services.face.candidate_scorer import score_workspace_clusters
+
+    await _check_score_clusters_rate_limit(body.workspace_id)
+    report = await score_workspace_clusters(body.workspace_id, db)
+    await db.commit()
+    logger.info(
+        "face_score_clusters_triggered",
+        workspace_id=str(body.workspace_id),
+        scored_clusters=report.scored_clusters,
+        skipped_small=report.skipped_small,
+        duration_ms=report.duration_ms,
+    )
+    return FaceScoreClustersResponse(
+        workspace_id=report.workspace_id,
+        scored_clusters=report.scored_clusters,
+        skipped_small=report.skipped_small,
+        total_candidates_written=report.total_candidates_written,
+        duration_ms=report.duration_ms,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Near-duplicate photo detection endpoint
 # ---------------------------------------------------------------------------
 

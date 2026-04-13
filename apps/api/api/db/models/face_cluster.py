@@ -8,6 +8,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, String, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from api.db.models.base import Base
@@ -29,6 +30,7 @@ class FaceCluster(Base):
     cluster_state: Mapped[str] = mapped_column(
         String(32), nullable=False, server_default=text("'unconfirmed'")
     )
+    candidates_json: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
