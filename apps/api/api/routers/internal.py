@@ -483,6 +483,90 @@ async def trigger_face_score_clusters(
 
 
 # ---------------------------------------------------------------------------
+# Graph edge rebuild (S12-007)
+# ---------------------------------------------------------------------------
+
+
+class GraphRebuildRequest(BaseModel):
+    workspace_id: UUID
+    scope: Literal["photo", "event", "file", "all"] = "all"
+
+
+class GraphRebuildResponse(BaseModel):
+    workspace_id: UUID
+    scope: str
+    photo_edges: int
+    event_edges: int
+    file_edges: int
+    duration_ms: int
+
+
+_GRAPH_REBUILD_PREFIX = "rl:graph_rebuild:"
+_GRAPH_REBUILD_WINDOW = 3600
+_GRAPH_REBUILD_MAX = 1
+
+
+async def _check_graph_rebuild_rate_limit(workspace_id: UUID) -> None:
+    from api.errors import RateLimitError
+    from api.services.redis_client import REDIS_DB_CACHE, get_redis
+
+    r = get_redis(REDIS_DB_CACHE)
+    key = f"{_GRAPH_REBUILD_PREFIX}{workspace_id}"
+    count_str = await r.get(key)
+    if count_str is not None and int(count_str) >= _GRAPH_REBUILD_MAX:
+        ttl = await r.ttl(key)
+        raise RateLimitError(
+            error_code="RATE_LIMIT_EXCEEDED",
+            message=(
+                f"Too many graph rebuild triggers. Try again in "
+                f"{max(ttl, 1)} seconds."
+            ),
+            details={"retry_after_seconds": max(ttl, 1)},
+        )
+    pipe = r.pipeline(transaction=True)
+    pipe.incr(key)
+    pipe.expire(key, _GRAPH_REBUILD_WINDOW)
+    await pipe.execute()
+
+
+@router.post("/graph/rebuild", response_model=GraphRebuildResponse)
+async def trigger_graph_rebuild(
+    body: GraphRebuildRequest,
+    db: AsyncSession = Depends(get_db),
+) -> GraphRebuildResponse:
+    """Rebuild person-sourced graph_edges for a workspace.
+
+    Consent is re-checked inside the builder stack (indirectly —
+    the builders are pure queries, but the endpoint is gated at
+    the network boundary because /internal/* is not routed by
+    Caddy). Rate-limited to 1/hour/workspace.
+    """
+    from api.services.face.graph_edge_builder import rebuild_all
+
+    await _check_graph_rebuild_rate_limit(body.workspace_id)
+    report = await rebuild_all(
+        workspace_id=body.workspace_id, db=db, scope=body.scope
+    )
+    await db.commit()
+    logger.info(
+        "graph_rebuild_triggered",
+        workspace_id=str(body.workspace_id),
+        scope=body.scope,
+        photo_edges=report.photo_edges,
+        event_edges=report.event_edges,
+        file_edges=report.file_edges,
+    )
+    return GraphRebuildResponse(
+        workspace_id=body.workspace_id,
+        scope=body.scope,
+        photo_edges=report.photo_edges,
+        event_edges=report.event_edges,
+        file_edges=report.file_edges,
+        duration_ms=report.duration_ms,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Near-duplicate photo detection endpoint
 # ---------------------------------------------------------------------------
 

@@ -41,7 +41,7 @@ from api.db.models.face_detection import FaceDetection
 from api.db.models.trusted_person import TrustedPerson
 from api.errors import NotFoundError, ValidationError
 from api.services import audit
-from api.services.face import crypto, operation_recorder
+from api.services.face import crypto, graph_edge_builder, operation_recorder
 
 logger = structlog.get_logger()
 
@@ -296,5 +296,12 @@ async def split_person(
         original_person_id=str(person_id),
         new_person_id=str(new_person.id),
         moved_count=len(faces),
+    )
+    # S12-007: rebuild photo edges for both the donor and the new
+    # person so the graph reflects the post-split membership.
+    await graph_edge_builder.build_person_photo_edges(
+        workspace_id=workspace_id,
+        db=db,
+        person_ids=[person_id, new_person.id],
     )
     return original, new_person

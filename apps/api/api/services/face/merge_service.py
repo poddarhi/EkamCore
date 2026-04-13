@@ -44,7 +44,7 @@ from api.db.models.graph_edge import GraphEdge
 from api.db.models.trusted_person import TrustedPerson
 from api.errors import NotFoundError, ValidationError
 from api.services import audit
-from api.services.face import operation_recorder
+from api.services.face import graph_edge_builder, operation_recorder
 
 logger = structlog.get_logger()
 
@@ -276,5 +276,12 @@ async def merge_persons(
         keeper_id=str(keeper_id),
         merged_count=len(non_keepers),
         cluster_move_count=len(cluster_moves),
+    )
+    # S12-007: rebuild photo edges for the keeper — non-keepers are
+    # soft-deleted so their edges are removed by the rebuild sweep.
+    await graph_edge_builder.build_person_photo_edges(
+        workspace_id=workspace_id,
+        db=db,
+        person_ids=[keeper_id, *(p.id for p in non_keepers)],
     )
     return keeper

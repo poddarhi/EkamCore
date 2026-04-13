@@ -48,7 +48,7 @@ from api.db.models.face_cluster import FaceCluster
 from api.db.models.trusted_person import TrustedPerson
 from api.errors import NotFoundError, ValidationError
 from api.services import audit
-from api.services.face import operation_recorder
+from api.services.face import graph_edge_builder, operation_recorder
 
 logger = structlog.get_logger()
 
@@ -229,6 +229,11 @@ async def create_from_cluster(
         cluster_id=str(cluster_id),
         person_id=str(person.id),
         trust_source=trust_source,
+    )
+    # S12-007: rebuild this person's photo edges so the graph reflects
+    # the newly-linked cluster immediately.
+    await graph_edge_builder.build_person_photo_edges(
+        workspace_id=workspace_id, db=db, person_ids=[person.id]
     )
     return person
 
