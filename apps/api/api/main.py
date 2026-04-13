@@ -16,7 +16,7 @@ from api.middleware.error_handler import ekamcore_error_handler, unhandled_error
 from api.middleware.feature_gate import _ENABLED_FLAGS
 from api.middleware.logging import LoggingMiddleware
 from api.middleware.metrics_middleware import MetricsMiddleware
-from api.routers import admin, auth, face_backfill, face_consent, face_status, health, internal, metrics, notifications, people, photos, query, recap, reminders, search, settings, sources, today
+from api.routers import admin, auth, face_backfill, face_consent, face_status, health, internal, metrics, notifications, people, photos, query, recap, reminders, review_queue, search, settings, sources, today
 
 configure_logging()
 logger = structlog.get_logger()
@@ -178,6 +178,7 @@ def create_app() -> FastAPI:
     app.include_router(face_backfill.router)
     app.include_router(face_status.router)
     app.include_router(people.router)
+    app.include_router(review_queue.router)
 
     return app
 
