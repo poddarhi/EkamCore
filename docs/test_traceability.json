@@ -1164,34 +1164,155 @@
       "coverage_notes": "ML eval baseline targets enforced by the script; real-model eval skipped in CI until dataset + models are provisioned locally"
     },
     "S12-001": {
-      "title": "People Graph review queue",
+      "title": "HDBSCAN face clustering service",
       "sprint": 12,
       "phase": 3,
       "critical_path": true,
       "acceptance_criteria": [
-        "Review queue UI for candidate links",
-        "Confirm/reject/defer actions",
-        "Trust level escalation"
+        "Full re-cluster of all face_detections per workspace",
+        "Per-workspace min_cluster_size / epsilon params",
+        "Cluster identity preserved across runs via majority overlap",
+        "Consent re-checked inside service"
       ],
-      "test_files": [],
+      "test_files": [
+        "apps/api/tests/unit/test_clustering_service.py",
+        "apps/api/tests/integration/test_clustering_full_run.py",
+        "apps/api/tests/security/test_clustering_isolation.py"
+      ],
       "test_functions": [],
-      "coverage_status": "none",
-      "coverage_notes": "Phase 3 — not yet implemented"
+      "coverage_status": "full"
     },
     "S12-002": {
-      "title": "Merge/split/undo",
+      "title": "Incremental cluster assignment",
+      "sprint": 12,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "Online per-face assignment via Qdrant neighbour search",
+        "Drift guard on confirmed clusters",
+        "Recluster hint counter in Redis"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_incremental_cluster.py",
+        "apps/api/tests/integration/test_incremental_with_ingestion.py",
+        "apps/api/tests/security/test_incremental_isolation.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
+    },
+    "S12-003": {
+      "title": "Candidate contact scoring",
+      "sprint": 12,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "Multi-signal score (co-occurrence / graph / name / temporal / size)",
+        "Cached on face_clusters.candidates_json",
+        "Small-cluster penalty applied",
+        "Workspace isolation on every query"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_candidate_scorer.py",
+        "apps/api/tests/integration/test_candidate_scoring_batch.py",
+        "apps/api/tests/security/test_scorer_isolation.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
+    },
+    "S12-004": {
+      "title": "TrustedPersons CRUD + cluster confirm/reject",
+      "sprint": 12,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "Seven /api/v1/people endpoints",
+        "Consent gate + CSRF on mutations",
+        "Audit row per mutation"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_trusted_person_service.py",
+        "apps/api/tests/integration/test_people_endpoints.py",
+        "apps/api/tests/security/test_people_isolation.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
+    },
+    "S12-005": {
+      "title": "Review Queue API",
+      "sprint": 12,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "List unconfirmed clusters sorted by top candidate score",
+        "Full detail endpoint with all member photos",
+        "Per-user skip marker (24h TTL)"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_review_queue_service.py",
+        "apps/api/tests/integration/test_review_queue_endpoints.py",
+        "apps/api/tests/security/test_review_queue_isolation.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
+    },
+    "S12-006": {
+      "title": "Merge / split / undo operations",
+      "sprint": 12,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "Merge N persons into keeper with inverse payload",
+        "Split face_detections out into a new person + cluster",
+        "Undo restores state exactly; double-undo returns 409",
+        "person_operations log retained"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_merge_service.py",
+        "apps/api/tests/unit/test_split_service.py",
+        "apps/api/tests/unit/test_undo_service.py",
+        "apps/api/tests/integration/test_operations_endpoints.py",
+        "apps/api/tests/security/test_operations_isolation.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
+    },
+    "S12-007": {
+      "title": "Graph edges (Person ↔ Photo/Event/File)",
       "sprint": 12,
       "phase": 3,
       "critical_path": false,
       "acceptance_criteria": [
-        "Merge two trusted_persons into one",
-        "Split a trusted_person",
-        "Undo last merge/split"
+        "appears_in edges rebuilt per-person on create/merge/split",
+        "attended edges match contact email + fuzzy name",
+        "Admin rebuild endpoint with 1/hour/workspace rate limit",
+        "Idempotent per scope"
       ],
-      "test_files": [],
+      "test_files": [
+        "apps/api/tests/unit/test_graph_edge_builder.py",
+        "apps/api/tests/integration/test_graph_rebuild.py",
+        "apps/api/tests/security/test_graph_isolation.py"
+      ],
       "test_functions": [],
-      "coverage_status": "none",
-      "coverage_notes": "Phase 3 — not yet implemented"
+      "coverage_status": "full"
+    },
+    "S12-008": {
+      "title": "Phase 3 e2e + ML eval baselines",
+      "sprint": 12,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "Eight scenario e2e test walking every Sprint 12 service",
+        "Clustering pairwise precision/recall/F1/ARI baseline",
+        "Candidate scoring P@1/P@3/P@5 baseline",
+        "Baselines written to eval_results/ as JSON"
+      ],
+      "test_files": [
+        "apps/api/tests/integration/test_phase3_clustering_e2e.py",
+        "scripts/eval/eval_clustering.py",
+        "scripts/eval/eval_candidate_scoring.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S13-001": {
       "title": "PLA Pack core workflows",

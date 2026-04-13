@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "story": "S12-008",
+    "art_reference": "ART-25 §2 row 8",
+    "description": "Synthetic cluster-to-contact ground truth pairs for candidate scoring evaluation. Each entry binds a synthetic identity label (used to seed face_detections with a one-hot embedding) to the contact the scorer should rank first, plus the number of co-occurring calendar events used as scoring evidence.",
+    "target_p_at_1": 0.80
+  },
+  "pairs": [
+    {"identity": 0,  "display_name": "Alice Alpha",   "email": "alice.alpha@example.com",   "event_count": 5},
+    {"identity": 1,  "display_name": "Bob Bravo",     "email": "bob.bravo@example.com",     "event_count": 4},
+    {"identity": 2,  "display_name": "Carol Charlie", "email": "carol.charlie@example.com", "event_count": 6},
+    {"identity": 3,  "display_name": "Dave Delta",    "email": "dave.delta@example.com",    "event_count": 5},
+    {"identity": 4,  "display_name": "Eve Echo",      "email": "eve.echo@example.com",      "event_count": 3},
+    {"identity": 5,  "display_name": "Frank Foxtrot", "email": "frank.foxtrot@example.com", "event_count": 5},
+    {"identity": 6,  "display_name": "Grace Golf",    "email": "grace.golf@example.com",    "event_count": 4},
+    {"identity": 7,  "display_name": "Heidi Hotel",   "email": "heidi.hotel@example.com",   "event_count": 6},
+    {"identity": 8,  "display_name": "Ivan India",    "email": "ivan.india@example.com",    "event_count": 5},
+    {"identity": 9,  "display_name": "Judy Juliet",   "email": "judy.juliet@example.com",   "event_count": 4},
+    {"identity": 10, "display_name": "Kyle Kilo",     "email": "kyle.kilo@example.com",     "event_count": 5},
+    {"identity": 11, "display_name": "Lara Lima",     "email": "lara.lima@example.com",     "event_count": 4},
+    {"identity": 12, "display_name": "Mack Mike",     "email": "mack.mike@example.com",     "event_count": 5},
+    {"identity": 13, "display_name": "Nina November", "email": "nina.november@example.com", "event_count": 3},
+    {"identity": 14, "display_name": "Olin Oscar",    "email": "olin.oscar@example.com",    "event_count": 5},
+    {"identity": 15, "display_name": "Pam Papa",      "email": "pam.papa@example.com",      "event_count": 4},
+    {"identity": 16, "display_name": "Quinn Quebec",  "email": "quinn.quebec@example.com",  "event_count": 5},
+    {"identity": 17, "display_name": "Ryan Romeo",    "email": "ryan.romeo@example.com",    "event_count": 4},
+    {"identity": 18, "display_name": "Sara Sierra",   "email": "sara.sierra@example.com",   "event_count": 5},
+    {"identity": 19, "display_name": "Tom Tango",     "email": "tom.tango@example.com",     "event_count": 4}
+  ]
+}
