@@ -372,6 +372,23 @@ ERROR_CODES: dict[str, ErrorDef] = {
         "category": "validation",
     },
 
+    # ── Trusted Persons / People Graph (S12-004) ──
+    "PERSON_NOT_FOUND": {
+        "status": 404,
+        "message": "Trusted person not found.",
+        "category": "resource",
+    },
+    "CLUSTER_NOT_FOUND": {
+        "status": 404,
+        "message": "Face cluster not found.",
+        "category": "resource",
+    },
+    "INVALID_CANDIDATE": {
+        "status": 422,
+        "message": "Contact is not one of this cluster's candidates.",
+        "category": "validation",
+    },
+
     # ── Internal ──
     "INTERNAL_ERROR": {
         "status": 500,
