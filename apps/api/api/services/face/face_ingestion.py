@@ -296,6 +296,24 @@ async def process_photo_for_faces(
     photo.face_processed_at = datetime.now(timezone.utc)
     await db.flush()
 
+    # S12-002: incremental cluster assignment per new face. Runs AFTER
+    # the Qdrant upsert so the search path sees the rest of the
+    # workspace's embeddings (and the must_not filter excludes *this*
+    # face so we don't self-match). Fire-and-forget — assignment
+    # failures do NOT fail the photo ingestion. A full re-cluster
+    # (S12-001) will heal any gaps later.
+    from api.services.face.incremental_cluster import assign_face_to_cluster
+
+    for row in pending_rows:
+        try:
+            await assign_face_to_cluster(row.id, db, qdrant)
+        except Exception:
+            logger.warning(
+                "face_ingestion_cluster_assign_failed",
+                face_detection_id=str(row.id),
+                exc_info=True,
+            )
+
     # S11-008: emit counters + latency for the hourly/daily flushers.
     # Fire-and-forget — metrics failures never block face processing.
     try:

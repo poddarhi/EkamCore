@@ -262,6 +262,11 @@ ERROR_CODES: dict[str, ErrorDef] = {
         "message": "Face clustering library is not installed in this environment.",
         "category": "service",
     },
+    "FACE_DETECTION_NOT_FOUND": {
+        "status": 404,
+        "message": "Face detection record not found.",
+        "category": "resource",
+    },
 
     # ── Rate Limiting ──
     "RATE_LIMIT_EXCEEDED": {
