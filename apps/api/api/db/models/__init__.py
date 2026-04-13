@@ -21,6 +21,7 @@ from api.db.models.face_cluster import FaceCluster
 from api.db.models.face_detection import FaceDetection
 from api.db.models.face_backfill_job import FaceBackfillJob
 from api.db.models.graph_edge import GraphEdge
+from api.db.models.person_operation import PersonOperation
 
 __all__ = [
     "Base",
@@ -46,4 +47,5 @@ __all__ = [
     "FaceDetection",
     "FaceBackfillJob",
     "GraphEdge",
+    "PersonOperation",
 ]

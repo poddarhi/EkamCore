@@ -48,6 +48,7 @@ from api.db.models.face_cluster import FaceCluster
 from api.db.models.trusted_person import TrustedPerson
 from api.errors import NotFoundError, ValidationError
 from api.services import audit
+from api.services.face import operation_recorder
 
 logger = structlog.get_logger()
 
@@ -354,6 +355,20 @@ async def rename(
     old_name = person.display_name
     person.display_name = new_name
     await db.flush()
+    await operation_recorder.record(
+        db=db,
+        workspace_id=workspace_id,
+        user_id=user_id,
+        operation_type="rename",
+        forward_payload={
+            "person_id": str(person_id),
+            "new_display_name": new_name,
+        },
+        inverse_payload={
+            "person_id": str(person_id),
+            "old_display_name": old_name,
+        },
+    )
     await audit.log_event(
         db=db,
         action="person_renamed",
@@ -388,6 +403,14 @@ async def delete(
     )
     person.deleted_at = datetime.now(timezone.utc)
     await db.flush()
+    await operation_recorder.record(
+        db=db,
+        workspace_id=workspace_id,
+        user_id=user_id,
+        operation_type="delete",
+        forward_payload={"person_id": str(person_id)},
+        inverse_payload={"person_id": str(person_id)},
+    )
     await audit.log_event(
         db=db,
         action="person_deleted",

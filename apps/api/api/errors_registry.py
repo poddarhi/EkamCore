@@ -388,6 +388,26 @@ ERROR_CODES: dict[str, ErrorDef] = {
         "message": "Contact is not one of this cluster's candidates.",
         "category": "validation",
     },
+    "INVALID_MERGE_KEEPER": {
+        "status": 422,
+        "message": "keeper_id must be one of the merged person_ids.",
+        "category": "validation",
+    },
+    "SPLIT_FACES_NOT_FOUND": {
+        "status": 422,
+        "message": "One or more face_detections do not belong to the given person.",
+        "category": "validation",
+    },
+    "OPERATION_NOT_FOUND": {
+        "status": 404,
+        "message": "Operation not found.",
+        "category": "resource",
+    },
+    "OPERATION_ALREADY_UNDONE": {
+        "status": 409,
+        "message": "Operation has already been undone.",
+        "category": "validation",
+    },
 
     # ── Internal ──
     "INTERNAL_ERROR": {
