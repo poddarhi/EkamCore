@@ -315,6 +315,93 @@ async def trigger_face_processing(
 
 
 # ---------------------------------------------------------------------------
+# Face clustering trigger (S12-001)
+# ---------------------------------------------------------------------------
+
+
+class FaceReclusterRequest(BaseModel):
+    workspace_id: UUID
+
+
+class FaceReclusterResponse(BaseModel):
+    workspace_id: UUID
+    face_count: int
+    cluster_count: int
+    noise_count: int
+    before_cluster_count: int
+    reused_cluster_count: int
+    new_cluster_count: int
+    orphaned_cluster_count: int
+    duration_ms: int
+
+
+_RECLUSTER_RATE_LIMIT_PREFIX = "rl:face_recluster_start:"
+_RECLUSTER_RATE_LIMIT_WINDOW_SECS = 3600
+_RECLUSTER_RATE_LIMIT_MAX = 1
+
+
+async def _check_recluster_rate_limit(workspace_id: UUID) -> None:
+    """Enforce 1 recluster per hour per workspace. HDBSCAN over all
+    embeddings is expensive — a human mashing the button shouldn't
+    queue ten runs in a row."""
+    from api.errors import RateLimitError
+    from api.services.redis_client import REDIS_DB_CACHE, get_redis
+
+    r = get_redis(REDIS_DB_CACHE)
+    key = f"{_RECLUSTER_RATE_LIMIT_PREFIX}{workspace_id}"
+    count_str = await r.get(key)
+    if count_str is not None and int(count_str) >= _RECLUSTER_RATE_LIMIT_MAX:
+        ttl = await r.ttl(key)
+        raise RateLimitError(
+            error_code="RATE_LIMIT_EXCEEDED",
+            message=(
+                f"Too many recluster triggers. Try again in "
+                f"{max(ttl, 1)} seconds."
+            ),
+            details={"retry_after_seconds": max(ttl, 1)},
+        )
+    pipe = r.pipeline(transaction=True)
+    pipe.incr(key)
+    pipe.expire(key, _RECLUSTER_RATE_LIMIT_WINDOW_SECS)
+    await pipe.execute()
+
+
+@router.post("/face/recluster", response_model=FaceReclusterResponse)
+async def trigger_face_recluster(
+    body: FaceReclusterRequest,
+    db: AsyncSession = Depends(get_db),
+) -> FaceReclusterResponse:
+    """Manually run HDBSCAN clustering over a workspace's face data.
+
+    Consent is re-checked inside ``cluster_workspace``. Rate-limited
+    to 1 call per hour per workspace. Not exposed externally — Caddy
+    does not route /api/v1/internal/*.
+    """
+    from api.services.face.clustering_service import cluster_workspace
+
+    await _check_recluster_rate_limit(body.workspace_id)
+    report = await cluster_workspace(body.workspace_id, db)
+    await db.commit()
+    logger.info(
+        "face_recluster_triggered",
+        workspace_id=str(body.workspace_id),
+        cluster_count=report.cluster_count,
+        face_count=report.face_count,
+    )
+    return FaceReclusterResponse(
+        workspace_id=report.workspace_id,
+        face_count=report.face_count,
+        cluster_count=report.cluster_count,
+        noise_count=report.noise_count,
+        before_cluster_count=report.before_cluster_count,
+        reused_cluster_count=report.reused_cluster_count,
+        new_cluster_count=report.new_cluster_count,
+        orphaned_cluster_count=report.orphaned_cluster_count,
+        duration_ms=report.duration_ms,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Near-duplicate photo detection endpoint
 # ---------------------------------------------------------------------------
 

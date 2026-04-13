@@ -252,6 +252,16 @@ ERROR_CODES: dict[str, ErrorDef] = {
         "message": "Audit row write failed after successful deletion. Revocation rolled back.",
         "category": "service",
     },
+    "FACE_CLUSTERING_FAILED": {
+        "status": 503,
+        "message": "Face clustering failed. Please try again.",
+        "category": "service",
+    },
+    "FACE_CLUSTERING_LIB_UNAVAILABLE": {
+        "status": 503,
+        "message": "Face clustering library is not installed in this environment.",
+        "category": "service",
+    },
 
     # ── Rate Limiting ──
     "RATE_LIMIT_EXCEEDED": {

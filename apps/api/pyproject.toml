@@ -38,6 +38,12 @@ insightface = "^0.7.3"
 onnxruntime = "^1.17.0"
 opencv-python-headless = "^4.9.0"
 
+# Sprint 12 clustering (S12-001). HDBSCAN is BSD-3-Clause, scikit-learn
+# is BSD-3-Clause. Lazy-imported inside ClusteringService.cluster_workspace
+# so the module is importable without them (tests inject a fake module).
+hdbscan = "^0.8.33"
+scikit-learn = "^1.4"
+
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 pytest-asyncio = "^0.25.0"
@@ -66,6 +72,7 @@ asyncio_default_fixture_loop_scope = "session"
 testpaths = ["tests"]
 markers = [
   "requires_insightface_models: integration tests that require insightface + buffalo_l ONNX models + a face fixture image; skipped unless all three are present",
+  "requires_hdbscan: integration tests that require the real hdbscan library (S12-001); skipped unless hdbscan is importable",
 ]
 
 [build-system]
