@@ -11,9 +11,15 @@ import type {
   ConfirmCandidateRequest,
   CreatePersonRequest,
   MergeRequest,
+  PaginatedList,
   PaginatedOperations,
   PaginatedPersons,
+  PersonEventItem,
+  PersonFacesResponse,
+  PersonFileItem,
   PersonOperationResult,
+  PersonPhotoItem,
+  PersonReminderItem,
   RejectClusterRequest,
   SplitRequest,
   TrustedPerson,
@@ -105,6 +111,49 @@ export const peopleApi = {
 
   listOperations: (limit = 50): Promise<PaginatedOperations> =>
     apiFetch<PaginatedOperations>(`${BASE}/operations${buildQuery({ limit })}`),
+
+  // Person detail tabs (S13-003)
+  listPhotos: (
+    personId: string,
+    params: { cursor?: string; limit?: number } = {},
+  ): Promise<PaginatedList<PersonPhotoItem>> =>
+    apiFetch<PaginatedList<PersonPhotoItem>>(
+      `${BASE}/${personId}/photos${buildQuery(params)}`,
+    ),
+
+  listFiles: (
+    personId: string,
+    params: { cursor?: string; limit?: number } = {},
+  ): Promise<PaginatedList<PersonFileItem>> =>
+    apiFetch<PaginatedList<PersonFileItem>>(
+      `${BASE}/${personId}/files${buildQuery(params)}`,
+    ),
+
+  listEvents: (
+    personId: string,
+    params: { cursor?: string; limit?: number } = {},
+  ): Promise<PaginatedList<PersonEventItem>> =>
+    apiFetch<PaginatedList<PersonEventItem>>(
+      `${BASE}/${personId}/events${buildQuery(params)}`,
+    ),
+
+  listReminders: (
+    personId: string,
+    params: { cursor?: string; limit?: number } = {},
+  ): Promise<PaginatedList<PersonReminderItem>> =>
+    apiFetch<PaginatedList<PersonReminderItem>>(
+      `${BASE}/${personId}/reminders${buildQuery(params)}`,
+    ),
+
+  listFaces: (personId: string): Promise<PersonFacesResponse> =>
+    apiFetch<PersonFacesResponse>(`${BASE}/${personId}/faces`),
+
+  removeFace: (personId: string, face_detection_id: string): Promise<void> =>
+    apiFetch<void>(`${BASE}/${personId}/remove-face`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ face_detection_id }),
+    }),
 };
 
 export type PeopleApi = typeof peopleApi;

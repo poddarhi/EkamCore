@@ -237,6 +237,62 @@ async def _apply_undo_split(
     await db.flush()
 
 
+async def _apply_undo_detach_face(
+    payload: dict[str, Any], workspace_id: UUID, db: AsyncSession
+) -> None:
+    """Reverse a detach_face operation (S13-003).
+
+    Restore the face's original cluster_id, recompute centroids on
+    both clusters, soft-delete the now-empty new cluster, and rebuild
+    photo edges for the affected person.
+    """
+    face_id = UUID(payload["face_detection_id"])
+    new_cluster_id = UUID(payload["new_cluster_id"])
+    original_cluster_id = UUID(payload["original_cluster_id"])
+    person_id = UUID(payload["person_id"])
+
+    face = (
+        await db.execute(
+            select(FaceDetection).where(FaceDetection.id == face_id)
+        )
+    ).scalar_one_or_none()
+    if face is not None:
+        face.cluster_id = original_cluster_id
+
+    await db.flush()
+
+    for cid in (original_cluster_id, new_cluster_id):
+        cluster = (
+            await db.execute(select(FaceCluster).where(FaceCluster.id == cid))
+        ).scalar_one_or_none()
+        if cluster is None:
+            continue
+        members = (
+            await db.execute(
+                select(FaceDetection.id).where(
+                    and_(
+                        FaceDetection.cluster_id == cid,
+                        FaceDetection.deleted_at.is_(None),
+                    )
+                )
+            )
+        ).scalars().all()
+        cluster.member_count = len(members)
+        if len(members) == 0 and cid == new_cluster_id:
+            cluster.deleted_at = datetime.now(timezone.utc)
+            continue
+        recomputed = await _compute_centroid_from_faces(cid, db)
+        if recomputed is not None:
+            cluster.centroid_encrypted = recomputed
+    await db.flush()
+
+    from api.services.face import graph_edge_builder
+
+    await graph_edge_builder.build_person_photo_edges(
+        workspace_id=workspace_id, db=db, person_ids=[person_id]
+    )
+
+
 async def _apply_undo_rename(
     payload: dict[str, Any], db: AsyncSession
 ) -> None:
@@ -312,6 +368,8 @@ async def _apply(op: PersonOperation, workspace_id: UUID, db: AsyncSession) -> N
         await _apply_undo_merge(payload, workspace_id, db)
     elif otype == "split":
         await _apply_undo_split(payload, workspace_id, db)
+    elif otype == "detach_face":
+        await _apply_undo_detach_face(payload, workspace_id, db)
     elif otype == "rename":
         await _apply_undo_rename(payload, db)
     elif otype == "delete":

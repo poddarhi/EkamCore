@@ -12,9 +12,15 @@ import { swrFetcher } from "../api/client";
 import type { ListPeopleParams } from "../api/people";
 import type { ListReviewQueueParams } from "../api/review_queue";
 import type {
+  PaginatedList,
   PaginatedOperations,
   PaginatedPersons,
   PaginatedReviewItems,
+  PersonEventItem,
+  PersonFacesResponse,
+  PersonFileItem,
+  PersonPhotoItem,
+  PersonReminderItem,
   ReviewQueueDetail,
   TrustedPerson,
 } from "../types/people";
@@ -81,6 +87,60 @@ export function useReviewQueueBadge() {
 export interface FaceConsentState {
   accepted: boolean;
   loading: boolean;
+}
+
+// ── Person detail tabs (S13-003) ────────────────────────────────────────
+
+export function usePersonPhotos(
+  personId: string | null | undefined,
+  cursor?: string,
+  config?: SWRConfiguration,
+) {
+  const key = personId
+    ? `/api/v1/people/${personId}/photos${toQuery({ cursor })}`
+    : null;
+  return useSWR<PaginatedList<PersonPhotoItem>>(key, swrFetcher, config);
+}
+
+export function usePersonFiles(
+  personId: string | null | undefined,
+  cursor?: string,
+  config?: SWRConfiguration,
+) {
+  const key = personId
+    ? `/api/v1/people/${personId}/files${toQuery({ cursor })}`
+    : null;
+  return useSWR<PaginatedList<PersonFileItem>>(key, swrFetcher, config);
+}
+
+export function usePersonEvents(
+  personId: string | null | undefined,
+  cursor?: string,
+  config?: SWRConfiguration,
+) {
+  const key = personId
+    ? `/api/v1/people/${personId}/events${toQuery({ cursor })}`
+    : null;
+  return useSWR<PaginatedList<PersonEventItem>>(key, swrFetcher, config);
+}
+
+export function usePersonReminders(
+  personId: string | null | undefined,
+  cursor?: string,
+  config?: SWRConfiguration,
+) {
+  const key = personId
+    ? `/api/v1/people/${personId}/reminders${toQuery({ cursor })}`
+    : null;
+  return useSWR<PaginatedList<PersonReminderItem>>(key, swrFetcher, config);
+}
+
+export function usePersonFaces(
+  personId: string | null | undefined,
+  config?: SWRConfiguration,
+) {
+  const key = personId ? `/api/v1/people/${personId}/faces` : null;
+  return useSWR<PersonFacesResponse>(key, swrFetcher, config);
 }
 
 export function useFaceConsent(): FaceConsentState {

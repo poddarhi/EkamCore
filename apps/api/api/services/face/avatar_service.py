@@ -154,6 +154,88 @@ async def generate_avatar(
     return data
 
 
+_FACE_THUMB_PREFIX = "face_thumb:"
+
+
+async def generate_face_thumbnail(
+    *,
+    face_detection_id: UUID,
+    workspace_id: UUID,
+    db: AsyncSession,
+) -> bytes:
+    """Return JPEG bytes for one specific face_detection (S13-003).
+
+    Used by the Person detail page faces grid where each tile shows
+    the actual cropped face the user clicked. Mirrors generate_avatar
+    but the face is caller-specified rather than the highest-scoring
+    face for a person.
+    """
+
+    try:
+        r = get_redis(REDIS_DB_CACHE)
+        cached = await r.get(f"{_FACE_THUMB_PREFIX}{face_detection_id}")
+        if cached is not None:
+            return base64.b64decode(cached)
+    except Exception:
+        logger.debug("face_thumb_cache_read_failed", exc_info=True)
+
+    row = (
+        await db.execute(
+            select(
+                FaceDetection.bbox_json,
+                File.path,
+            )
+            .join(PhotoAsset, PhotoAsset.id == FaceDetection.photo_asset_id)
+            .join(File, File.id == PhotoAsset.file_id)
+            .where(
+                and_(
+                    FaceDetection.id == face_detection_id,
+                    FaceDetection.workspace_id == workspace_id,
+                    FaceDetection.deleted_at.is_(None),
+                )
+            )
+            .limit(1)
+        )
+    ).first()
+    if row is None:
+        raise NotFoundError(
+            error_code="FACE_NOT_FOUND",
+            message="Face detection not found.",
+        )
+
+    bbox = row.bbox_json or {}
+    try:
+        data = _crop_and_encode(row.path, bbox)
+    except FileNotFoundError:
+        raise NotFoundError(
+            error_code="FACE_THUMBNAIL_UNAVAILABLE",
+            message="The backing photo file is unavailable.",
+        )
+    except Exception:
+        logger.warning(
+            "face_thumb_crop_failed",
+            face_detection_id=str(face_detection_id),
+            exc_info=True,
+        )
+        raise NotFoundError(
+            error_code="FACE_THUMBNAIL_UNAVAILABLE",
+            message="The face thumbnail could not be generated.",
+        )
+
+    try:
+        r = get_redis(REDIS_DB_CACHE)
+        encoded = base64.b64encode(data).decode("ascii")
+        await r.set(
+            f"{_FACE_THUMB_PREFIX}{face_detection_id}",
+            encoded,
+            ex=_CACHE_TTL_SECS,
+        )
+    except Exception:
+        logger.debug("face_thumb_cache_write_failed", exc_info=True)
+
+    return data
+
+
 def _crop_and_encode(path: str, bbox: dict[str, Any]) -> bytes:
     """Open the file at ``path``, crop the ``bbox``, resize to
     AVATAR_SIZE px, return JPEG bytes. PIL is imported lazily so the

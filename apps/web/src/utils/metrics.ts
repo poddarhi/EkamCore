@@ -14,6 +14,8 @@ export type PeopleEventName =
   | "people.detail.viewed"
   | "people.detail.renamed"
   | "people.detail.deleted"
+  | "people.detail.face_removed"
+  | "people.detail.tab_changed"
   | "reviewQueue.viewed"
   | "reviewQueue.confirmed"
   | "reviewQueue.rejected"

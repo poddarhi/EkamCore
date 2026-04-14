@@ -65,7 +65,8 @@ export type PersonOperationType =
   | "rename"
   | "delete"
   | "confirm"
-  | "reject";
+  | "reject"
+  | "detach_face";
 
 export interface PersonOperation {
   id: string;
@@ -121,4 +122,63 @@ export interface ConfirmCandidateRequest {
 export interface RejectClusterRequest {
   cluster_id: string;
   reason?: string | null;
+}
+
+// ── Person detail tabs (S13-003) ────────────────────────────────────────
+
+export interface PaginatedList<T> {
+  items: T[];
+  next_cursor: string | null;
+}
+
+export interface PersonPhotoItem {
+  id: string;
+  file_id: string;
+  thumbnail_url: string;
+  taken_at: string | null;
+  face_count: number;
+  width?: number | null;
+  height?: number | null;
+}
+
+export interface PersonFileItem {
+  id: string;
+  filename: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  created_at: string;
+}
+
+export interface PersonEventItem {
+  id: string;
+  title: string;
+  start_at: string;
+  end_at: string | null;
+  location: string | null;
+  is_all_day: boolean;
+}
+
+export interface PersonReminderItem {
+  id: string;
+  title: string;
+  due_at: string | null;
+  priority: string;
+  completed_at: string | null;
+  is_completed: boolean;
+}
+
+export interface PersonFace {
+  face_detection_id: string;
+  photo_asset_id: string;
+  cluster_id: string;
+  detection_score: number;
+  thumbnail_url: string;
+}
+
+export interface PersonFacesResponse {
+  items: PersonFace[];
+}
+
+export interface RemoveFaceRequest {
+  face_detection_id: string;
 }
