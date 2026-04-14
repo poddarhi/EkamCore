@@ -152,8 +152,87 @@ ART-15 §3: **over-deletion is LEGAL, under-deletion is ILLEGAL**. Order matters
   - Hourly flusher writes `face_latency.detect_embed` (p50/p95/count/mean)
   - Daily flusher writes `daily.face_events` (per-workspace counter dict)
 
-## Clustering (Sprint 12, not yet implemented)
-HDBSCAN min_cluster_size=3, min_samples=2, cosine, EOM. Re-cluster all embeddings (not incremental). Candidate scoring weights: name_match(0.30), email_match(0.25), face_similarity(0.25), calendar_co_occurrence(0.15), folder_signal(0.10), text_mention(0.10), temporal(0.05). Cap at 1.0.
+## HDBSCAN Clustering Patterns (S12-001 / S12-002)
+Two coexisting paths:
+
+- **Full re-cluster** (`api/services/face/clustering_service.py`):
+  `cluster_workspace(workspace_id, db)` is the source of truth. Loads
+  every face_detection in the workspace, decrypts embeddings,
+  L2-normalizes, runs HDBSCAN with `metric="euclidean"` (equivalent
+  to cosine for unit vectors via `euclidean² = 2 * cosine_distance`).
+  Per-workspace params live in `settings` namespace `photo_intelligence`
+  (`min_cluster_size`, `cluster_selection_epsilon` in cosine space —
+  converted to euclidean at fit time via `sqrt(2 * cosine_eps)`).
+  Cluster *identity* preserved across runs by majority member overlap
+  match against the prior `face_clusters` rows. `hdbscan` is
+  lazy-imported via `hdbscan_module` arg so tests can inject an
+  argmax stub.
+- **Incremental assignment** (`api/services/face/incremental_cluster.py`):
+  `assign_face_to_cluster(face_id, db, qdrant)` runs after each new
+  face is ingested. Decision tree: top neighbor sim ≥ 0.70 + best
+  cluster sim ≥ 0.60 + drift ≤ 0.05 (confirmed only) → MATCH;
+  ≥ 0.55 → WEAK (unclustered, hint++); else → NEW unconfirmed cluster.
+  Bumps `recluster_hint:{ws}` Redis counter (7d TTL).
+
+**Centroid update strategy**: running mean for incremental matches:
+`new_centroid = L2((old_centroid * old_n + new_face) / (old_n + 1))`,
+then `cosine_distance(old, new) ≤ 0.05` guard for confirmed clusters.
+
+**PII-safe logs**: similarity values bucketed into very_low / low /
+medium / high / very_high — never the raw float. Test enforced.
+
+## Candidate Scoring Signals (S12-003)
+`api/services/face/candidate_scorer.py::score_cluster` combines five
+weighted signals (sum to 1.0). Cached on `face_clusters.candidates_json`
+by the batch `score_workspace_clusters` runner.
+
+| signal        | weight | source                                                                 |
+|---------------|--------|------------------------------------------------------------------------|
+| co_occurrence | 0.50   | calendar events within ±2h of each cluster photo, attendee email/name  |
+| graph_edge    | 0.20   | prior `graph_edges` rows (cluster→contact)                             |
+| photo_name    | 0.15   | filename stem fuzzy match (`difflib.SequenceMatcher` ≥ 0.80)           |
+| temporal      | 0.10   | cluster span ≥ 6 months → top co-occurrence contact only               |
+| size_bonus    | 0.05   | `member_count >= min_cluster_size`                                     |
+
+Small-cluster penalty: `member_count < min_cluster_size` multiplies
+every final score by 0.5. Confidence: ≥0.75 high, ≥0.50 medium, else
+low. Email matches are exact (lowercase); name matches use the same
+fuzzy threshold as filenames. Eligible-for-batch clusters:
+`cluster_state='unconfirmed' AND trusted_person_id IS NULL AND
+member_count >= 3`. Incremental assigner bumps a
+`needs_scoring:{cluster_id}` Redis hint when a cluster crosses the floor.
+
+## Inverse Operations Log (S12-006)
+`person_operations` is a generic undo log — pattern is reusable for
+any reversible workflow.
+
+- Each forward action records a row with `operation_type`,
+  `forward_payload` (what was done), and `inverse_payload` (what undo
+  needs). Both payloads are JSONB.
+- `api/services/face/operation_recorder.py::record(...)` is the only
+  insertion path; callers commit alongside their other writes.
+- `api/services/face/undo_service.py` walks the log in
+  `created_at DESC`, dispatches by `operation_type` to a per-type
+  apply function, then stamps `undone_at` / `undone_by_user_id`.
+- Double-undo returns `OPERATION_ALREADY_UNDONE` (409). Undo of an
+  undo (redo) is intentionally NOT supported in v1.
+- Snapshot rule: capture *enough* state in the inverse to reconstruct
+  the prior world deterministically. Merge captures every non-keeper's
+  identity columns + their cluster ids + dropped graph_edges; split
+  captures every moved face_detection's original cluster_id + the
+  new cluster id to delete on undo.
+
+## Sprint 12 ML eval (synthetic baselines)
+- `scripts/eval/eval_clustering.py` — 500 faces / 50 identities, one-hot
+  embeddings, fake HDBSCAN argmax. Writes
+  `eval_results/clustering_baseline_{date}.json` with pairwise
+  precision/recall/F1/ARI. Targets: precision ≥ 0.90, recall ≥ 0.85.
+- `scripts/eval/eval_candidate_scoring.py` — loads
+  `apps/api/tests/fixtures/face_eval/candidate_pairs.json` (20 curated
+  pairs), seeds clusters + contacts + events, scores each. Writes
+  `eval_results/scoring_baseline_{date}.json` with P@1/P@3/P@5.
+  Target: P@1 ≥ 0.80.
+- Both scripts skip gracefully when the dev DB is unreachable.
 
 ## Qdrant Operations
 ```python

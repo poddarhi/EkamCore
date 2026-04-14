@@ -220,3 +220,68 @@ async def hybrid_search(query: str, workspace_ids: list[UUID]) -> list[SearchRes
     fulltext = await paperless_client.search(query, token=get_paperless_token())
     return merge_and_rerank(semantic, fulltext)
 ```
+
+## Sprint 12 backend patterns
+
+### Review Queue Pagination (S12-005)
+`api/services/face/review_queue.py::list_pending` is the canonical
+example of a *score-ordered* paginated read. The cursor is the
+stringified `cluster_id` of the last returned row. Sort key is
+`(-top_candidate.score, str(cluster_id))` so ties break
+deterministically. Pagination walks the full eligible set in memory
+because per-workspace counts are bounded (a few hundred clusters max
+on personal-scale data) and the scoring step requires per-row
+candidate parsing anyway. Per-user skip markers
+(`skipped:{user_id}:{cluster_id}` Redis keys, 24h TTL) are filtered
+*before* sort so the page contents stay stable across paginations.
+
+### Graph Edge Builder (S12-007)
+`api/services/face/graph_edge_builder.py` writes
+`trusted_person -> photo_asset/calendar_event/file` edges. The
+idempotency pattern is **delete-then-insert** per scope:
+
+```python
+await db.execute(
+    delete(GraphEdge).where(
+        and_(
+            GraphEdge.workspace_id == workspace_id,
+            GraphEdge.from_type == "trusted_person",
+            GraphEdge.from_id.in_(person_ids),
+            GraphEdge.to_type == "photo_asset",
+            GraphEdge.edge_type == "appears_in",
+        )
+    )
+)
+await db.flush()
+# ... insert fresh edges
+```
+
+This is simpler than `ON CONFLICT DO UPDATE` and lets us recompute
+per-edge metadata (strength, evidence_json) without comparing every
+column. The `(from_type, edge_type)` key makes the scope unambiguous —
+the builder owns *that* edge family for *those* persons and nothing
+else.
+
+Hooks: `trusted_person_service.create_from_cluster`,
+`merge_service.merge_persons`, and `split_service.split_person` each
+call `build_person_photo_edges(person_ids=[...])` so the graph
+follows cluster membership without touching unrelated persons.
+
+### Person Operation Audit Chain (S12-006)
+Every reversible mutation writes **two** rows in the same transaction:
+
+1. `person_operations` row via `operation_recorder.record(...)` —
+   has `forward_payload` (display) and `inverse_payload` (undo state).
+2. `object_audit_log` row via `audit.log_event(...)` — the standard
+   compliance trail.
+
+The split is intentional: `person_operations` is a *user-facing
+history* (visible in the History tab, undoable) while `object_audit_log`
+is *legal evidence* (append-only, immutable). The two log writes
+must commit atomically with the state change — never write one
+without the other.
+
+Routing gotcha: when a router uses path params like `/{person_id}`,
+register fixed-suffix routers (`/operations/...`, `/merge`) **before**
+the parameterised ones in `main.py`, otherwise FastAPI matches
+`/operations` against `/{person_id}` and returns 422 on the UUID parse.

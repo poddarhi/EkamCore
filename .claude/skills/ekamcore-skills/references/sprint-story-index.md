@@ -81,11 +81,20 @@ Use this reference to find the specification for any story by ID. Then load the 
 | S11-009 | E2E + eval baseline | `tests/integration/test_phase3_e2e_foundation.py` (7 scenarios), `scripts/eval/eval_face_detection.py` with graceful skip, traceability matrix update |
 | S11-010 | Gate review | skills + legal brief + phase-3 status doc, Sprint 12 readiness |
 
-## Sprint 12 (Weeks 23-24) — Phase 3 — UPCOMING
-| Story | Title | Workstream |
+## Sprint 12 (Weeks 23-24) — Phase 3 — SHIPPED
+Backend complete; UI lands in Sprint 13.
+
+| Story | Title | Evidence |
 |---|---|---|
-| S12-001 [CP] | People Graph review queue | backend+frontend+mobile |
-| S12-002 | Merge/split/undo | backend |
+| S12-001 [CP] | HDBSCAN face clustering service | `cluster_workspace`, lazy hdbscan, per-workspace params, identity preserved across runs (`apps/api/api/services/face/clustering_service.py`) |
+| S12-002 [CP] | Incremental cluster assignment | `assign_face_to_cluster`, drift guard, recluster hint Redis counter (`apps/api/api/services/face/incremental_cluster.py`) |
+| S12-003 | Candidate contact scoring | five-signal weighted score cached on `face_clusters.candidates_json`, batch + per-cluster API (`apps/api/api/services/face/candidate_scorer.py`) |
+| S12-004 | TrustedPersons CRUD + cluster confirm/reject | seven `/api/v1/people` endpoints, audit + consent gates (`apps/api/api/routers/people.py`, `trusted_person_service.py`) |
+| S12-005 | Review Queue API | `/api/v1/review-queue` list/detail/skip, score-ordered cursor pagination, per-user 24h skip Redis marker (`apps/api/api/routers/review_queue.py`, `review_queue.py`) |
+| S12-006 | Merge / split / undo operations | `person_operations` undo log with inverse_payload, full round-trip undo, double-undo → 409 (`merge_service.py`, `split_service.py`, `undo_service.py`, `routers/people_operations.py`) |
+| S12-007 | Graph edges Person↔Photo/Event/File | `appears_in` / `attended` edge builders, idempotent delete-then-insert per scope, per-person hooks on create/merge/split (`graph_edge_builder.py`) |
+| S12-008 | E2E + ML eval baselines | 8 scenario `test_phase3_clustering_e2e.py`, synthetic clustering + scoring eval scripts in `scripts/eval/`, baselines in `eval_results/` |
+| S12-009 | Gate review | skill updates + `docs/phase-3-sprint-12-status.md`, Sprint 13 readiness |
 
 ## Sprint 13-14 (Weeks 25-28) — Phase 3
 | Story | Title | Workstream |

@@ -380,7 +380,7 @@ ERROR_CODES: dict[str, ErrorDef] = {
     },
     "CLUSTER_NOT_FOUND": {
         "status": 404,
-        "message": "Face cluster not found.",
+        "message": "Cluster not found in this workspace.",
         "category": "resource",
     },
     "INVALID_CANDIDATE": {

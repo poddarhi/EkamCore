@@ -75,6 +75,43 @@ function FlaggedRoute({ flagKey, children }: { flagKey: string; children: React.
 ### Routes (React Router)
 /, /today, /recap, /search, /people, /people/:id, /people/review, /photos, /photos/:id, /files, /files/:id, /settings, /settings/sources, /settings/photo-intelligence, /settings/account, /settings/about, /login, /* (404)
 
+### People Screens (Coming Sprint 13 — backend ready)
+Sprint 12 shipped the backend. Sprint 13 wires the UI. Endpoint
+contract for the planned screens:
+
+- `/people` (list)
+  - `GET /api/v1/people?cursor&limit` → `TrustedPersonListResponse`
+  - cursor pagination, `display_name`, `confirmed_at`, `trust_source`
+- `/people/:id` (detail)
+  - `GET /api/v1/people/{person_id}` → `TrustedPersonResponse`
+  - `PATCH /api/v1/people/{person_id}` `{display_name}` (rename)
+  - `DELETE /api/v1/people/{person_id}` (soft delete)
+- `/people/review` (review queue)
+  - `GET /api/v1/review-queue?confidence&cursor&limit`
+    → `ReviewQueueListResponse` (sample face_detection_ids,
+       sample_photo_asset_ids, top_candidate, confidence_bucket)
+  - `GET /api/v1/review-queue/{cluster_id}` (full member list)
+  - `POST /api/v1/review-queue/{cluster_id}/skip` (24h skip marker)
+  - Confirm flow: `POST /api/v1/people/confirm-candidate`
+    `{cluster_id, contact_id}`
+  - Reject flow: `POST /api/v1/people/reject-cluster` `{cluster_id, reason?}`
+- `/people/:id` actions
+  - `POST /api/v1/people/merge` `{person_ids, keeper_id}`
+  - `POST /api/v1/people/{person_id}/split`
+    `{face_detection_ids, new_display_name}`
+- History tab (any people screen)
+  - `GET /api/v1/people/operations` → `OperationListResponse`
+  - `POST /api/v1/people/operations/undo-last`
+  - `POST /api/v1/people/operations/{operation_id}/undo`
+
+All endpoints require auth + active face consent. Mutations need the
+double-submit CSRF token (`ekamcore_csrf` cookie + `X-CSRF-Token`
+header). Reads rate-limit at 120/min/user, mutations at 30/min/user.
+Use `apps/api/api/schemas/trusted_person.py`,
+`apps/api/api/schemas/review_queue.py`,
+`apps/api/api/schemas/people_operations.py` as the source of truth
+for response shapes when generating TS types.
+
 ### Styling Rules
 - Use Tailwind utilities. Extend via tailwind.config.ts theme (not arbitrary values).
 - Design system components in web/src/design-system/components/. Pages import from there.
