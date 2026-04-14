@@ -60,6 +60,30 @@ const ERROR_MESSAGES: Record<string, string> = {
   INTERNAL_ERROR: "Something went wrong. Please try again.",
   SERVICE_UNAVAILABLE: "Service is temporarily unavailable. Please try again shortly.",
   WRITE_THROUGH_FAILED: "A background operation failed. Your changes may be delayed.",
+
+  // Phase 3 — Face clustering / People Graph (Sprint 11-12)
+  FACE_CONSENT_REQUIRED:
+    "Face clustering is not enabled. Enable it in Settings → Photo Intelligence.",
+  CONSENT_VERSION_STALE:
+    "The consent text has been updated. Please re-accept to continue.",
+  FACE_CLUSTER_NOT_FOUND: "That face group is no longer available.",
+  CLUSTER_NOT_FOUND: "That cluster is no longer available.",
+  PERSON_NOT_FOUND: "That person is no longer available.",
+  OPERATION_NOT_FOUND: "That change no longer exists.",
+  OPERATION_ALREADY_UNDONE: "This change has already been undone.",
+  INVALID_CANDIDATE: "That suggestion is no longer valid. Please refresh.",
+  INVALID_MERGE_KEEPER: "Please choose which person to keep.",
+  SPLIT_FACES_NOT_FOUND:
+    "Selected faces are no longer available. Please refresh and try again.",
+  CANDIDATE_SCORING_FAILED:
+    "Could not compute candidates for this face group. Please try again.",
+  BACKFILL_ALREADY_RUNNING: "A backfill is already in progress.",
+  BACKFILL_NOT_RUNNING: "No backfill is currently running.",
+  FACE_MODEL_NOT_LOADED: "Face detection is still warming up. Try again shortly.",
+  FACE_MODEL_LOAD_FAILED:
+    "Face detection could not start. Check server logs.",
+  FACE_MODEL_INVALID_IMAGE: "That image could not be processed.",
+  FACE_DETECTION_NOT_FOUND: "That face is no longer available.",
 };
 
 /**

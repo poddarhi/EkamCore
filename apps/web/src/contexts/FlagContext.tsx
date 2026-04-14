@@ -15,7 +15,11 @@ const PHASE_0_FLAGS: Flags = {
   today_enabled: true,
   recap_enabled: true,
   search_enabled: true,
-  people_enabled: false,
+  people_enabled: true,
+  // S13-001: Phase 3 face-clustering feature flag. Pages under /people
+  // gate on this. Flip to false to disable the People UI even when
+  // face consent is active (e.g. kill switch).
+  face_clustering_enabled: true,
   photos_enabled: true,
   files_enabled: true,
   settings_enabled: true,

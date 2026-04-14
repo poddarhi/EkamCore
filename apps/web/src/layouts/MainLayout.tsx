@@ -18,7 +18,9 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { Avatar } from "../design-system/components";
 import { useAuth } from "../contexts/AuthContext";
+import { useFlag } from "../contexts/FlagContext";
 import NotificationBell from "../components/NotificationBell";
+import { useFaceConsent, useReviewQueueBadge } from "../hooks/usePeople";
 import { t } from "../i18n";
 import { skipToContent } from "../utils/a11y";
 
@@ -40,12 +42,19 @@ interface NavItemConfig {
   badgeCount?: number;
 }
 
-const NAV_CONFIG: (NavItemConfig | "divider")[] = [
+interface NavItemConfigWithTooltip extends NavItemConfig {
+  /** Override the default disabled tooltip shown on the entry. */
+  disabledTooltipKey?: string;
+}
+
+const STATIC_NAV_CONFIG: (NavItemConfigWithTooltip | "divider")[] = [
   { to: "/today", icon: Sun, labelKey: "nav.today" },
   { to: "/recap", icon: History, labelKey: "nav.recap" },
   { to: "/search", icon: Search, labelKey: "nav.search" },
   "divider",
-  { to: "/people", icon: Users, labelKey: "nav.people", disabled: true, badgeCount: 0 },
+  // S13-001: People entry — disabled state + badge count are injected
+  // at render time from hooks (useFaceConsent / useReviewQueueBadge).
+  { to: "/people", icon: Users, labelKey: "nav.people" },
   { to: "/photos", icon: Image, labelKey: "nav.photos" },
   { to: "/files", icon: FileText, labelKey: "nav.files" },
   "divider",
@@ -60,6 +69,8 @@ const PAGE_TITLE_KEYS: Record<string, string> = {
   "/recap": "nav.recap",
   "/search": "nav.search",
   "/people": "nav.people",
+  "/people/review": "nav.peopleReview",
+  "/people/operations": "undo.drawer.title",
   "/photos": "nav.photos",
   "/files": "nav.files",
   "/settings": "nav.settings",
@@ -80,17 +91,22 @@ function NavItem({
   icon: Icon,
   label,
   disabled,
+  disabledTooltip,
   badgeCount,
   active,
   onClick,
-}: NavItemDef & { active: boolean; onClick?: () => void }) {
+}: NavItemDef & {
+  active: boolean;
+  onClick?: () => void;
+  disabledTooltip?: string;
+}) {
   const navigate = useNavigate();
 
   if (disabled) {
     return (
       <div
         className="group relative flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] text-[var(--color-neutral-400)] cursor-not-allowed select-none"
-        title={t("nav.disabledTooltip")}
+        title={disabledTooltip ?? t("nav.disabledTooltip")}
         aria-disabled="true"
       >
         <Icon size={20} aria-hidden="true" />
@@ -159,6 +175,34 @@ function SidebarContent({
   onLogout: () => void;
   onNavClick?: () => void;
 }) {
+  // S13-001: hydrate the People entry with live consent + badge count.
+  const faceClusteringEnabled = useFlag("face_clustering_enabled");
+  const { accepted: consentAccepted, loading: consentLoading } =
+    useFaceConsent();
+  const reviewBadge = useReviewQueueBadge();
+
+  const peopleEntry = {
+    disabled:
+      !faceClusteringEnabled || (!consentLoading && !consentAccepted),
+    badgeCount:
+      faceClusteringEnabled && consentAccepted
+        ? reviewBadge > 99
+          ? 99
+          : reviewBadge
+        : undefined,
+    disabledTooltipKey:
+      !faceClusteringEnabled
+        ? "nav.disabledTooltip"
+        : "nav.peopleDisabledTooltip",
+  };
+
+  function isActive(to: string): boolean {
+    if (to === "/people") {
+      return currentPath === "/people" || currentPath.startsWith("/people/");
+    }
+    return currentPath === to;
+  }
+
   return (
     <>
       {/* Logo */}
@@ -170,26 +214,38 @@ function SidebarContent({
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto" aria-label={t("nav.mainNavigation")}>
-        {NAV_CONFIG.map((item, i) =>
-          item === "divider" ? (
-            <div
-              key={`div-${i}`}
-              className="my-2 border-t border-[var(--color-neutral-200)]"
-              role="separator"
-            />
-          ) : (
+        {STATIC_NAV_CONFIG.map((item, i) => {
+          if (item === "divider") {
+            return (
+              <div
+                key={`div-${i}`}
+                className="my-2 border-t border-[var(--color-neutral-200)]"
+                role="separator"
+              />
+            );
+          }
+          const isPeople = item.to === "/people";
+          const disabled = isPeople ? peopleEntry.disabled : item.disabled;
+          const badgeCount = isPeople
+            ? peopleEntry.badgeCount
+            : item.badgeCount;
+          const tooltipKey = isPeople
+            ? peopleEntry.disabledTooltipKey
+            : item.disabledTooltipKey;
+          return (
             <NavItem
               key={item.to}
               to={item.to}
               icon={item.icon}
               label={t(item.labelKey)}
-              disabled={item.disabled}
-              badgeCount={item.badgeCount}
-              active={currentPath === item.to}
+              disabled={disabled}
+              disabledTooltip={tooltipKey ? t(tooltipKey) : undefined}
+              badgeCount={badgeCount}
+              active={isActive(item.to)}
               onClick={onNavClick}
             />
-          ),
-        )}
+          );
+        })}
       </nav>
 
       {/* Bottom: user info + logout */}

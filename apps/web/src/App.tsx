@@ -5,7 +5,10 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import MainLayout from "./layouts/MainLayout";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
-import PlaceholderPage from "./pages/PlaceholderPage";
+import PeopleListPage from "./pages/people/PeopleListPage";
+import PersonDetailPage from "./pages/people/PersonDetailPage";
+import ReviewQueuePage from "./pages/people/ReviewQueuePage";
+import OperationsHistoryPage from "./pages/people/OperationsHistoryPage";
 import TodayPage from "./pages/TodayPage";
 import SearchPage from "./pages/SearchPage";
 import SystemStatusPage from "./pages/SystemStatusPage";
@@ -56,10 +59,10 @@ function AppRoutes() {
         <Route path="/today" element={<TodayPage />} />
         <Route path="/recap" element={<RecapPage />} />
         <Route path="/search" element={<SearchPage />} />
-        <Route
-          path="/people"
-          element={<PlaceholderPage title="People" disabled />}
-        />
+        <Route path="/people" element={<PeopleListPage />} />
+        <Route path="/people/review" element={<ReviewQueuePage />} />
+        <Route path="/people/operations" element={<OperationsHistoryPage />} />
+        <Route path="/people/:personId" element={<PersonDetailPage />} />
         <Route path="/photos" element={<PhotosPage />} />
         <Route path="/files" element={<FilesPage />} />
         <Route path="/settings" element={<Navigate to="/settings/general" replace />} />
