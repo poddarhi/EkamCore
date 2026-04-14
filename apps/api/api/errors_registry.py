@@ -378,6 +378,11 @@ ERROR_CODES: dict[str, ErrorDef] = {
         "message": "Trusted person not found.",
         "category": "resource",
     },
+    "PERSON_AVATAR_UNAVAILABLE": {
+        "status": 404,
+        "message": "No faces are linked to this person yet.",
+        "category": "resource",
+    },
     "CLUSTER_NOT_FOUND": {
         "status": 404,
         "message": "Cluster not found in this workspace.",

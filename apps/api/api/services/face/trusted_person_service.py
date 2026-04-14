@@ -62,6 +62,7 @@ async def list_persons(
     db: AsyncSession,
     limit: int = 50,
     cursor: str | None = None,
+    search: str | None = None,
 ) -> tuple[list[TrustedPerson], str | None]:
     """Cursor-paginated list of non-deleted trusted persons in a workspace.
 
@@ -69,6 +70,10 @@ async def list_persons(
     first" is the natural default for the People Graph review UI. The
     cursor is the opaque stringified ``id`` of the last returned row;
     callers pass it back as ``cursor`` to fetch the next page.
+
+    ``search`` (S13-002) performs a case-insensitive substring match on
+    ``display_name``. Pattern special characters are escaped so
+    user input can't widen the match.
     """
     stmt = (
         select(TrustedPerson)
@@ -81,6 +86,14 @@ async def list_persons(
         .order_by(TrustedPerson.created_at.desc(), TrustedPerson.id.desc())
         .limit(limit + 1)
     )
+    if search:
+        cleaned = search.strip()
+        if cleaned:
+            # Escape ILIKE metacharacters so "alice%" is treated literally.
+            escaped = (
+                cleaned.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            )
+            stmt = stmt.where(TrustedPerson.display_name.ilike(f"%{escaped}%"))
     if cursor:
         try:
             cursor_uuid = UUID(cursor)

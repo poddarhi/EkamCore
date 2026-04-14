@@ -28,7 +28,7 @@ from __future__ import annotations
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.session import get_db
@@ -48,7 +48,7 @@ from api.schemas.trusted_person import (
     TrustedPersonRenameRequest,
     TrustedPersonResponse,
 )
-from api.services.face import consent_service, trusted_person_service
+from api.services.face import avatar_service, consent_service, trusted_person_service
 from api.services.redis_client import REDIS_DB_CACHE, get_redis
 
 logger = structlog.get_logger()
@@ -139,6 +139,7 @@ async def _resolve_workspace(user: CurrentUser, db: AsyncSession) -> UUID:
 async def list_people(
     cursor: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
+    search: str | None = Query(default=None, max_length=100),
     user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> TrustedPersonListResponse:
@@ -149,10 +150,36 @@ async def list_people(
         db=db,
         limit=limit,
         cursor=cursor,
+        search=search,
     )
     return TrustedPersonListResponse(
         items=[TrustedPersonResponse.model_validate(r) for r in rows],
         next_cursor=next_cursor,
+    )
+
+
+@router.get("/{person_id}/avatar")
+async def get_person_avatar(
+    person_id: UUID,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Cropped face avatar for the trusted person (S13-002).
+
+    Returns JPEG bytes of the highest-scoring face_detection, cropped
+    to the bbox and resized to 160×160. 404 when the person has no
+    linked faces or the backing image is unreadable — the frontend
+    should fall back to initials in that case.
+    """
+    await _rate_limit_read(user.id)
+    workspace_id = await _resolve_workspace(user, db)
+    data = await avatar_service.generate_avatar(
+        person_id=person_id, workspace_id=workspace_id, db=db
+    )
+    return Response(
+        content=data,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "max-age=3600"},
     )
 
 
