@@ -10,7 +10,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LayoutGrid, List as ListIcon, Search as SearchIcon } from "lucide-react";
 
+import MergePersonsModal from "../../components/people/MergePersonsModal";
 import PersonAvatar from "../../components/people/PersonAvatar";
+import Toast, { type ToastVariant } from "../../components/Toast";
 import EmptyState from "../../design-system/components/EmptyState";
 import ErrorBanner from "../../design-system/components/ErrorBanner";
 import FeatureComingSoon from "../../design-system/components/FeatureComingSoon";
@@ -57,6 +59,22 @@ export default function PeopleListPage() {
   const [status, setStatus] = useState<StatusFilter>("all");
   const [searchInput, setSearchInput] = useState("");
   const search = useDebounced(searchInput, 300);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    variant: ToastVariant;
+  } | null>(null);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
 
   const { data, error, isLoading, isValidating } = usePeopleList(
     { limit: 24, search },
@@ -188,6 +206,58 @@ export default function PeopleListPage() {
         <PersonList
           items={items}
           onOpen={(id) => navigate(`/people/${id}`)}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+        />
+      )}
+
+      {selectedIds.size > 0 && (
+        <div
+          role="region"
+          aria-label="Bulk actions"
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-neutral-900)] text-[var(--color-white)] shadow-[var(--shadow-lg)]"
+        >
+          <span className="text-sm">{selectedIds.size} selected</span>
+          <button
+            type="button"
+            onClick={() => setMergeOpen(true)}
+            disabled={selectedIds.size < 2}
+            className="text-sm px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-50"
+          >
+            Merge
+          </button>
+          <button
+            type="button"
+            onClick={clearSelection}
+            className="text-sm px-3 py-1 rounded-full hover:bg-white/10"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      <MergePersonsModal
+        open={mergeOpen}
+        onClose={() => setMergeOpen(false)}
+        initialPersonIds={Array.from(selectedIds)}
+        initialPersons={items.filter((p) => selectedIds.has(p.id))}
+        onMerged={(keeper) => {
+          setToast({
+            message: t("merge.successToast", {
+              count: selectedIds.size,
+              name: keeper.display_name,
+            }),
+            variant: "success",
+          });
+          clearSelection();
+        }}
+      />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          onDismiss={() => setToast(null)}
         />
       )}
 
@@ -347,9 +417,13 @@ function PersonGrid({
 function PersonList({
   items,
   onOpen,
+  selectedIds,
+  onToggleSelect,
 }: {
   items: TrustedPerson[];
   onOpen: (id: string) => void;
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
 }) {
   return (
     <ul
@@ -359,12 +433,34 @@ function PersonList({
       {items.map((p) => {
         const seen = formatSeenRange(p);
         const faces = p.face_count ?? 0;
+        const selected = selectedIds.has(p.id);
         return (
           <li key={p.id}>
+            <div
+              className={[
+                "w-full px-4 py-3 flex items-center gap-4 transition",
+                selected
+                  ? "bg-[var(--color-primary-surface)]"
+                  : "hover:bg-[var(--color-neutral-50)]",
+              ].join(" ")}
+            >
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={() => onToggleSelect(p.id)}
+                aria-label={`Select ${p.display_name}`}
+                className="shrink-0"
+              />
             <button
               type="button"
-              onClick={() => onOpen(p.id)}
-              className="w-full px-4 py-3 flex items-center gap-4 text-left hover:bg-[var(--color-neutral-50)] transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-light)]"
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey) {
+                  onToggleSelect(p.id);
+                  return;
+                }
+                onOpen(p.id);
+              }}
+              className="flex-1 flex items-center gap-4 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-light)]"
             >
               <PersonAvatar person={p} size="sm" />
               <span className="flex-1 truncate text-[var(--text-body-size)] font-medium text-[var(--color-neutral-900)]">
@@ -384,6 +480,7 @@ function PersonList({
                 </span>
               )}
             </button>
+            </div>
           </li>
         );
       })}

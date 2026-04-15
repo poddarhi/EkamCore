@@ -30,6 +30,7 @@ import {
   X,
 } from "lucide-react";
 
+import MergePersonsModal from "../../components/people/MergePersonsModal";
 import PersonAvatar from "../../components/people/PersonAvatar";
 import Toast, { type ToastVariant } from "../../components/Toast";
 import Breadcrumb from "../../design-system/components/Breadcrumb";
@@ -103,6 +104,7 @@ export default function PersonDetailPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
 
   const [toast, setToast] = useState<ToastState | null>(null);
 
@@ -326,10 +328,7 @@ export default function PersonDetailPage() {
                 label={t("person.detail.merge")}
                 onClick={() => {
                   setMenuOpen(false);
-                  setToast({
-                    message: "Merge UI lands in S13-005",
-                    variant: "info",
-                  });
+                  setMergeOpen(true);
                 }}
               />
               <MenuItem
@@ -407,6 +406,27 @@ export default function PersonDetailPage() {
           </Button>
         </div>
       </Modal>
+
+      <MergePersonsModal
+        open={mergeOpen}
+        onClose={() => setMergeOpen(false)}
+        initialPersonIds={[person.id]}
+        initialPersons={[person]}
+        onMerged={(keeper) => {
+          setToast({
+            message: t("merge.successToast", {
+              count: 2,
+              name: keeper.display_name,
+            }),
+            variant: "success",
+          });
+          if (keeper.id === person.id) {
+            void mutatePerson();
+          } else {
+            navigate(`/people/${keeper.id}`, { replace: true });
+          }
+        }}
+      />
 
       {toast && (
         <Toast
