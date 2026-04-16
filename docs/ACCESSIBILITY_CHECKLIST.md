@@ -138,6 +138,66 @@ Test at least one page end-to-end with each screen reader:
 
 All unchecked items must have an explanation in the release notes or be filed as known issues.
 
+## 9. Phase 3 pages (People Graph UI) — S13-010 audit
+
+Every page below must pass axe with **0 violations** and a manual
+keyboard-only traversal before Sprint 13 gate. Run the automated
+axe sweep from `tests/e2e/accessibility.spec.ts` (scaffolded in
+`tests/e2e/sprint13_plan.md` — Playwright infra lands in a follow-up
+story). Until then, use the in-browser axe DevTools extension and
+the notes below as the manual pass.
+
+### PeopleListPage (`/people`)
+- [ ] Skip-nav link lands on `<main>` before the search input.
+- [ ] `LayoutGrid` / `ListIcon` toggle has `aria-pressed` + visible focus ring.
+- [ ] Grid cards expose `aria-label={display_name}` (each `<button>` in `PersonGrid`).
+- [ ] History button (`aria-label="Recent changes"`) is reachable and has focus ring.
+- [ ] Multi-select checkboxes in list view announce "Select {name}".
+- [ ] Floating bulk action bar has `role="region"` + `aria-label`.
+
+### PersonDetailPage (`/people/:id`)
+- [ ] Single `<h1>` — the person's display name; rename input re-exposes it via `aria-label`.
+- [ ] Pencil rename button has `aria-label={t("person.detail.rename")}`.
+- [ ] TabBar has `role="tablist"`; each panel has `id="panel-{key}"` and `role="tabpanel"`.
+- [ ] Delete modal is focus-trapped and returns focus to the kebab on close.
+- [ ] Faces grid: each face button has `aria-label="Not {name}"`.
+
+### ReviewQueuePage (`/people/review`)
+- [ ] Keyboard shortcuts (Enter/R/S/N/1-5/←/→/?/Esc) documented in the hint banner.
+- [ ] sr-only `aria-live="polite"` announcement region updates after every action.
+- [ ] Filter chips expose `aria-selected` and `role="option"` (already do via FilterChip).
+- [ ] Create-new-person modal's Esc path is unambiguous.
+
+### MergePersonsModal
+- [ ] `role="radiogroup"` with `aria-label="Choose the keeper"` wraps the rows.
+- [ ] Each row label reads "Keep {name} as the merged person".
+- [ ] Disabled Merge button has `aria-disabled` + visible reason.
+
+### SplitPersonModal
+- [ ] Face grid uses `role="grid"` with `role="gridcell"` children.
+- [ ] Each cell's `aria-label` includes position + selected state.
+- [ ] Space/Enter toggles selection without scrolling the grid.
+- [ ] New-name input has an associated `<label htmlFor>`.
+
+### UndoDrawer
+- [ ] `role="dialog" aria-modal="true" aria-labelledby="undo-drawer-title"`.
+- [ ] Each Undo button has `aria-label="Undo: {summary}"`.
+- [ ] Undone rows render as disabled text, not as a muted button (screen reader clarity).
+
+### PhotoLightbox
+- [ ] Full-screen overlay uses `role="dialog"` + `aria-label="Photo viewer"`.
+- [ ] Each face bbox button has `aria-label="Face of {name}. Press Enter to view person."` (or "Unknown" equivalent).
+- [ ] sr-only status region announces person count on open.
+- [ ] Reduced-motion users do not see the fade transition.
+- [ ] Esc closes; focus returns to the opening PhotoCard/PhotoTile.
+
+### TopBarPersonSearch
+- [ ] `role="combobox"` on the input; dropdown has `role="listbox"`.
+- [ ] Each result row is `role="option"` with `aria-selected`.
+- [ ] Arrow-key navigation does not scroll the underlying page.
+
+---
+
 ### Known Limitations (v1.0)
 
 - **Mobile drawer focus trap**: Not yet implemented via `useFocusTrap` — manual Tab escape works but focus can leak to background content. Tracked in issue #TBD.

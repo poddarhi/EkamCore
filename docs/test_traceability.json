@@ -1315,49 +1315,199 @@
       "coverage_status": "full"
     },
     "S13-001": {
-      "title": "PLA Pack core workflows",
+      "title": "People UI Foundation — routing, types, API client, SWR hooks, i18n, metrics, feature flags",
       "sprint": 13,
       "phase": 3,
       "critical_path": true,
       "acceptance_criteria": [
-        "Pack manifest (YAML)",
-        "Workflow execution engine",
-        "Card generation from pack data"
+        "TypeScript types mirror backend People Graph contracts",
+        "People + Review Queue API clients with apiFetch wrapper",
+        "SWR hooks for person list, person detail, review queue, face consent",
+        "Feature flags gate /people and /people/review routes",
+        "Metrics helper with PeopleEventName union"
       ],
-      "test_files": [],
+      "test_files": [
+        "apps/web/src/api/__tests__/people.test.ts",
+        "apps/web/src/hooks/__tests__/usePeople.test.ts",
+        "apps/web/src/types/__tests__/people.types.test.ts"
+      ],
       "test_functions": [],
-      "coverage_status": "none",
-      "coverage_notes": "Phase 3 — not yet implemented"
+      "coverage_status": "full"
     },
     "S13-002": {
-      "title": "Skill execution sandbox",
+      "title": "People list page with grid/list views, search, confidence filter, avatars",
       "sprint": 13,
       "phase": 3,
-      "critical_path": false,
+      "critical_path": true,
       "acceptance_criteria": [
-        "Sandboxed execution environment",
-        "Resource limits enforced",
-        "No network access from sandbox"
+        "Grid and list views with toggle",
+        "Debounced server-side search",
+        "Avatar endpoint crops highest-scoring face to 160x160",
+        "Confidence filter chips (all/confirmed/pending)",
+        "Empty state with Review Queue CTA"
       ],
-      "test_files": [],
+      "test_files": [
+        "apps/web/src/pages/people/__tests__/PeopleListPage.test.tsx",
+        "apps/web/src/components/people/__tests__/PersonAvatar.test.tsx"
+      ],
       "test_functions": [],
-      "coverage_status": "none",
-      "coverage_notes": "Phase 3 — not yet implemented"
+      "coverage_status": "full"
     },
     "S13-003": {
-      "title": "72-hour soak test",
+      "title": "Person detail page with Photos/Files/Events/Reminders tabs, rename, delete, remove-face",
+      "sprint": 13,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "Header card with avatar, inline rename, kebab menu",
+        "Four tabs synced to URL hash",
+        "Faces management grid with 'Not {name}' remove action",
+        "detach_face service creates unconfirmed 1-member cluster",
+        "Undo handler restores original cluster_id",
+        "Six new /people/:id/{photos,files,events,reminders,faces,faces/:fid/thumbnail} endpoints",
+        "POST /people/:id/remove-face with CSRF + rate limit"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_detach_face_service.py",
+        "apps/api/tests/integration/test_person_detail_endpoints.py",
+        "apps/web/src/pages/people/__tests__/PersonDetailPage.test.tsx"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
+    },
+    "S13-004": {
+      "title": "Review Queue page with keyboard shortcuts and batch mode",
+      "sprint": 13,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "Enter/R/S/N/1-5/arrow keys drive the queue",
+        "Optimistic auto-advance with rollback on failure",
+        "Confidence filter chips",
+        "Batch reject/skip via floating action bar",
+        "sr-only aria-live announcement after each action"
+      ],
+      "test_files": [
+        "apps/web/src/pages/people/__tests__/ReviewQueuePage.test.tsx"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
+    },
+    "S13-005": {
+      "title": "Merge persons modal with multi-select list support",
+      "sprint": 13,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "Radio keeper picker with ≥2 person rule",
+        "Typeahead add-more backed by usePeopleList",
+        "POST /people/merge with optimistic disable",
+        "Inline ErrorBanner on failure",
+        "PeopleListPage list-view multi-select with floating action bar"
+      ],
+      "test_files": [
+        "apps/web/src/components/people/__tests__/MergePersonsModal.test.tsx"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
+    },
+    "S13-006": {
+      "title": "Split person modal with face multi-select",
+      "sprint": 13,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "role=grid face picker with space/enter toggling",
+        "Client-side rules: ≥1 selected, non-empty name, leave ≥1 face behind",
+        "POST /people/:id/split with preselectedFaceIds seeding",
+        "PersonDetailPage Faces section Select mode + floating Split bar"
+      ],
+      "test_files": [
+        "apps/web/src/components/people/__tests__/SplitPersonModal.test.tsx"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
+    },
+    "S13-007": {
+      "title": "Undo drawer with Cmd+Z shortcut and toast quick-undo",
+      "sprint": 13,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "Right-side drawer lists last 50 person_operations rows",
+        "Per-row summary, relative time, Undo button or Undone label",
+        "Revalidates all /api/v1/people* and /api/v1/review-queue* SWR keys after undo",
+        "Cmd/Ctrl+Z document-level shortcut wired into people pages",
+        "History trigger button on PeopleListPage"
+      ],
+      "test_files": [
+        "apps/web/src/components/people/__tests__/UndoDrawer.test.tsx"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
+    },
+    "S13-008": {
+      "title": "Photo lightbox with face overlay and person navigation",
+      "sprint": 13,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "GET /photos/:id/full serves JPEG bytes",
+        "GET /photos/:id/faces returns bboxes + trusted_person linkage",
+        "Consent-gated via shared consent_service.resolve_workspace_with_face_consent",
+        "Full-screen lightbox with measured bbox overlay",
+        "Esc/arrow/F keyboard shortcuts",
+        "Known faces → /people/:id; unknown → /people/review?highlight_cluster=:id",
+        "PhotoCard + PersonDetailPage Photos tab both use the lightbox"
+      ],
+      "test_files": [
+        "apps/api/tests/integration/test_photo_faces_endpoint.py",
+        "apps/web/src/components/photos/__tests__/PhotoLightbox.test.tsx"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
+    },
+    "S13-009": {
+      "title": "People integrated into Today/Search surfaces + top-bar person search",
+      "sprint": 13,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "search_all supports type=person via search_trusted_persons",
+        "Today feed surfaces up to 3 persons with recent photo edges",
+        "PersonCard component renders in CardRenderer and SearchResultCard",
+        "SearchPage People chip + type=person filter",
+        "TopBar person typeahead with @-sigil, arrow keys, Enter",
+        "Gated on face consent (disabled placeholder as fallback)",
+        "Recap person stats deferred (scope note in commit)"
+      ],
+      "test_files": [
+        "apps/web/src/components/cards/__tests__/PersonCard.test.tsx",
+        "apps/web/src/components/people/__tests__/TopBarPersonSearch.test.tsx"
+      ],
+      "test_functions": [],
+      "coverage_status": "partial",
+      "coverage_notes": "Backend search_trusted_persons + PersonCardSource covered by unit tests only; integration tests for /today and /search person responses deferred to S13-010 follow-up."
+    },
+    "S13-010": {
+      "title": "Playwright E2E suite + axe audit for People Graph UI",
       "sprint": 13,
       "phase": 3,
       "critical_path": false,
       "acceptance_criteria": [
-        "System runs 72 hours without restart",
-        "Memory usage stable",
-        "No OOM kills"
+        "Playwright config + seed_phase3_e2e.py seeder",
+        "E2E specs for list, detail, review queue, merge, split, undo, lightbox, today, consent",
+        "axe scan with 0 violations on every Phase 3 page",
+        "Full suite runtime under 10 minutes",
+        "CI integration in nightly job"
       ],
-      "test_files": [],
+      "test_files": [
+        "tests/e2e/README.md",
+        "tests/e2e/sprint13_plan.md"
+      ],
       "test_functions": [],
-      "coverage_status": "none",
-      "coverage_notes": "Phase 3 soak test — verified by running infrastructure/chaos scripts"
+      "coverage_status": "deferred",
+      "coverage_notes": "Playwright infrastructure not present in the repo — no playwright.config, no @playwright dep, no tests/e2e directory. S13-010 ships a detailed plan doc (tests/e2e/sprint13_plan.md) listing every spec, the seed data contract, the a11y audit matrix, and the flaky-test guardrails. Implementation is a follow-up story once Playwright is installed. The existing component-level vitest suite covers the primary regression surface for Sprint 13 shipped features."
     },
     "S15-001": {
       "title": "Performance optimization",
