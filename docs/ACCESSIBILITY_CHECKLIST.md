@@ -196,6 +196,33 @@ the notes below as the manual pass.
 - [ ] Each result row is `role="option"` with `aria-selected`.
 - [ ] Arrow-key navigation does not scroll the underlying page.
 
+## 10. Sprint 14 pages (PLA Pack UI) — S14-012 audit
+
+### PackSettingsPage (`/settings/pack`)
+- [ ] Enable/Disable buttons have visible focus rings.
+- [ ] Workflow toggle checkboxes are `<input type="checkbox">` with associated `<label>`.
+- [ ] Range sliders use `<input type="range">` with `aria-valuetext`.
+- [ ] Time pickers use native `<input type="time">` for built-in a11y.
+- [ ] Day dropdown is a native `<select>`.
+- [ ] Disable confirm modal is focus-trapped and Esc-closes.
+
+### FollowUpCard
+- [ ] Card is `role="article"` with `aria-label` containing the person name.
+- [ ] Done / Not now / Remind me later buttons are keyboard reachable.
+- [ ] SnoozePicker: all date buttons + native date input are Tab-reachable.
+- [ ] Acknowledgment fires a Toast announced via `aria-live`.
+
+### WeeklySummaryCard
+- [ ] Card is `role="article"` with `aria-label`.
+- [ ] AI-generated badge is decorative (`aria-hidden`).
+- [ ] Dismiss X button has `aria-label="Dismiss"`.
+- [ ] Summary text is readable by screen reader as plain paragraph.
+
+### RelationshipReminderCard
+- [ ] Card is `role="article"` with `aria-label` containing the person name.
+- [ ] Done / Not now buttons are keyboard reachable.
+- [ ] Person name link is focusable and activates on Enter.
+
 ---
 
 ### Known Limitations (v1.0)

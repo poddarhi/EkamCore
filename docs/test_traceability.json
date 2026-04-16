@@ -1509,6 +1509,91 @@
       "coverage_status": "deferred",
       "coverage_notes": "Playwright infrastructure not present in the repo — no playwright.config, no @playwright dep, no tests/e2e directory. S13-010 ships a detailed plan doc (tests/e2e/sprint13_plan.md) listing every spec, the seed data contract, the a11y audit matrix, and the flaky-test guardrails. Implementation is a follow-up story once Playwright is installed. The existing component-level vitest suite covers the primary regression surface for Sprint 13 shipped features."
     },
+    "S14-001": {
+      "title": "Pack infrastructure — tables, feature flags, settings, error codes, i18n",
+      "sprint": 14, "phase": 3, "critical_path": true,
+      "acceptance_criteria": ["pack_runs + pack_cards tables", "4 PLA flags + pla_active helper", "6 pack settings + _StringDef", "6 error classes", "41 i18n keys"],
+      "test_files": ["apps/api/tests/unit/test_pack_flags.py", "apps/api/tests/unit/test_pack_settings.py", "apps/api/tests/integration/test_pack_migrations.py"],
+      "test_functions": [], "coverage_status": "full"
+    },
+    "S14-002": {
+      "title": "Pack manifest loader and capability registry",
+      "sprint": 14, "phase": 3, "critical_path": true,
+      "acceptance_criteria": ["ManifestLoader with yaml.safe_load", "10 capability definitions with consent gating", "packs/pla/manifest.yaml", "GET /admin/packs endpoint"],
+      "test_files": ["apps/api/tests/unit/test_manifest_loader.py", "apps/api/tests/unit/test_capability_registry.py", "apps/api/tests/integration/test_pack_admin_endpoint.py"],
+      "test_functions": [], "coverage_status": "full"
+    },
+    "S14-003": {
+      "title": "PackContext scoped data access with capability enforcement",
+      "sprint": 14, "phase": 3, "critical_path": true,
+      "acceptance_criteria": ["11 read + 1 write + BFS traversal + ask_llm + produce_card", "capability gate on every method", "consent gate on face methods", "LLM quota enforcement", "output sanitization"],
+      "test_files": ["apps/api/tests/unit/test_pack_context.py", "apps/api/tests/security/test_pack_context_isolation.py"],
+      "test_functions": [], "coverage_status": "full"
+    },
+    "S14-004": {
+      "title": "Pack sandbox with timeout, memory monitoring, output sanitization",
+      "sprint": 14, "phase": 3, "critical_path": true,
+      "acceptance_criteria": ["PackRunner with asyncio.wait_for", "card size rejection", "RSS advisory monitoring", "PackRunResult", "manual trigger endpoint"],
+      "test_files": ["apps/api/tests/unit/test_pack_runner.py"],
+      "test_functions": [], "coverage_status": "full"
+    },
+    "S14-005": {
+      "title": "Pack scheduler with daily/weekly cron, lifecycle management, health",
+      "sprint": 14, "phase": 3, "critical_path": true,
+      "acceptance_criteria": ["asyncio cron loops", "health() in /health", "enable/disable/runs endpoints"],
+      "test_files": ["apps/api/tests/unit/test_pack_scheduler.py"],
+      "test_functions": [], "coverage_status": "full"
+    },
+    "S14-006": {
+      "title": "PLA follow-up suggestion workflow",
+      "sprint": 14, "phase": 3, "critical_path": true,
+      "acceptance_criteria": ["deterministic scoring by recency", "dedup + snooze", "max 5 suggestions", "no LLM"],
+      "test_files": ["apps/api/tests/unit/test_follow_up_workflow.py"],
+      "test_functions": [], "coverage_status": "full"
+    },
+    "S14-007": {
+      "title": "PLA weekly summary workflow with LLM",
+      "sprint": 14, "phase": 3, "critical_path": true,
+      "acceptance_criteria": ["1 LLM call per run", "graceful degradation to template", "dedup per week", "stats + top persons"],
+      "test_files": ["apps/api/tests/unit/test_weekly_summary_workflow.py"],
+      "test_functions": [], "coverage_status": "full"
+    },
+    "S14-008": {
+      "title": "PLA relationship reminder workflow with graph-strength scoring",
+      "sprint": 14, "phase": 3, "critical_path": true,
+      "acceptance_criteria": ["strength threshold >= 0.5", "urgency = strength * (days/inactive)", "composite daily chaining", "follow-up dedup"],
+      "test_files": ["apps/api/tests/unit/test_relationship_reminder_workflow.py"],
+      "test_functions": [], "coverage_status": "full"
+    },
+    "S14-009": {
+      "title": "Pack card UI, Today integration, acknowledgment, notifications",
+      "sprint": 14, "phase": 3, "critical_path": true,
+      "acceptance_criteria": ["3 card components", "CardRenderer pack branch", "acknowledge endpoint", "PackCardSource in Today", "notification types"],
+      "test_files": ["apps/web/src/components/cards/__tests__/FollowUpCard.test.tsx"],
+      "test_functions": [], "coverage_status": "full"
+    },
+    "S14-010": {
+      "title": "PLA Pack settings page",
+      "sprint": 14, "phase": 3, "critical_path": false,
+      "acceptance_criteria": ["3 visual states", "workflow toggles", "schedule config", "run history"],
+      "test_files": ["apps/web/src/pages/settings/__tests__/PackSettingsPage.test.tsx"],
+      "test_functions": [], "coverage_status": "full"
+    },
+    "S14-011": {
+      "title": "Person-context query integration",
+      "sprint": 14, "phase": 3, "critical_path": true,
+      "acceptance_criteria": ["person_detector ILIKE matching", "4 deterministic person intents", "person_context_v1 in LLM path"],
+      "test_files": ["apps/api/tests/unit/test_person_detector.py"],
+      "test_functions": [], "coverage_status": "full"
+    },
+    "S14-012": {
+      "title": "Phase 3 complete — E2E, PLA eval, security audit, a11y audit",
+      "sprint": 14, "phase": 3, "critical_path": false,
+      "acceptance_criteria": ["integration tests for pack lifecycle", "security tests for sandbox", "PLA quality eval", "a11y checklist update", "traceability update"],
+      "test_files": ["apps/api/tests/security/test_pack_security.py", "scripts/eval/eval_pla_quality.py", "tests/e2e/sprint14_plan.md"],
+      "test_functions": [], "coverage_status": "partial",
+      "coverage_notes": "Security tests and eval script are runnable. Playwright E2E specs deferred (infra not installed). Integration tests require live DB stack."
+    },
     "S15-001": {
       "title": "Performance optimization",
       "sprint": 15,
