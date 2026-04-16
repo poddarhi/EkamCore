@@ -285,3 +285,98 @@ Routing gotcha: when a router uses path params like `/{person_id}`,
 register fixed-suffix routers (`/operations/...`, `/merge`) **before**
 the parameterised ones in `main.py`, otherwise FastAPI matches
 `/operations` against `/{person_id}` and returns 422 on the UUID parse.
+
+## Sprint 13 backend patterns
+
+### Shared face-consent guard (S13-008)
+`api/services/face/consent_service.py::resolve_workspace_with_face_consent`
+is the single source of truth for the "this request needs active
+face consent" guard. Both the people router (S12) and the photos
+router (S13-008) call it. When adding a new face-adjacent
+endpoint, always go through this helper — never re-implement the
+`is_consent_active` + error-copy dance, or the two routers will
+drift.
+
+### Person-scoped sub-resources (S13-003)
+`api/routers/people.py` exposes a family of `/people/{person_id}/*`
+reads for the detail page: `/photos`, `/files`, `/events`,
+`/reminders`, `/faces`, `/faces/{fid}/thumbnail`. The pattern:
+
+1. `_ensure_person(person_id, workspace_id, db)` runs first so a
+   bad id / cross-workspace probe returns 404 before any child
+   query touches the graph tables.
+2. Use `graph_edges` as the denormalization layer. Photos and
+   events join on
+   `GraphEdge.from_type='trusted_person' AND edge_type='appears_in' | 'attended'`
+   rather than re-computing membership from `face_clusters` each
+   request.
+3. Cursor pagination uses the child table's `id DESC` (UUID v7 is
+   monotonic) so the cursor is stable without a composite key.
+4. Files and reminders return empty lists today — the paperless
+   correspondent bridge and reminder→person tagging aren't shipped
+   yet. Keep the endpoints wired so the frontend contract stays
+   stable; delete the "empty branch" when the bridges land.
+
+### Detach-face service (S13-003)
+`api/services/face/detach_face_service.py::detach_face` is the
+"this isn't them" primitive. Key differences from `split_person`:
+
+- Creates a **new 1-member unconfirmed cluster** with
+  `trusted_person_id=None`, not a new trusted_person. The face is
+  "floating" until a future review pass reassigns it.
+- Records `operation_type="detach_face"` in `person_operations`
+  so it's undoable via `_apply_undo_detach_face` in
+  `undo_service.py` (inverse: restore original cluster_id, then
+  soft-delete the now-empty new cluster).
+- Always calls `graph_edge_builder.build_person_photo_edges(...)`
+  afterward because the face may have been the only link between
+  the person and a given photo.
+
+Migration 019 extends the `ck_person_operations_type` CHECK to
+include `'detach_face'`. When adding new operation types, bump
+the CHECK the same way.
+
+### Graph edge query helpers (S13-008, S13-009)
+Two query patterns repeat — factor into helpers if a third
+appears:
+
+1. **Person's denormalized sub-resources** (photos/events/files):
+   join `GraphEdge` on `(from_type='trusted_person', from_id=:pid, to_type=..., edge_type=...)`
+   then on the child table with workspace + soft-delete filters.
+2. **Recent activity ranking** (Today feed, PersonCardSource):
+   same join but grouped and counted, with a `taken_at >= cutoff`
+   filter on the joined `PhotoAsset`. See
+   `api/services/today/person_card_source.py::PersonCardSource.fetch`
+   for the canonical shape — ORDER BY count DESC, LIMIT 3.
+
+### Search includes trusted_persons (S13-009)
+`api/services/query/search.py` grew a `"person"` type backed by
+`search_trusted_persons` (ILIKE on `display_name`). It emits
+`PersonCard`s with `payload.source="trusted_person"` so the web
+client can disambiguate them from the pre-existing contact-based
+person cards and route clicks to `/people/:id` instead of the
+contact detail view. When adding new search types: extend the
+`SearchType` literal, wire the branch in `search_all`, and
+update the router's `type` query-param literal.
+
+### PersonCardSource for Today (S13-009)
+`api/services/today/person_card_source.py` is the first non-event
+source added since Sprint 3. It fails closed on consent:
+`await consent_service.is_consent_active(...)` returns False →
+empty list, no exception. When consent is active it ranks persons
+by recent (`taken_at >= now - 14d`) `appears_in` edge count and
+emits up to 3 cards with `priority_score` descending from 0.68
+(slots under calendar events in the default order). Add new
+Today sources by following this shape: a class with a single
+`fetch(today, now) -> list[Card]` method wired into
+`assemble_today`.
+
+### Photo lightbox endpoints (S13-008)
+- `GET /api/v1/photos/{id}/full` — serves raw JPEG bytes from
+  `file.path`. Non-JPEG mime types raise
+  `PHOTO_UNSUPPORTED_FORMAT` (HEIC transcoding is deferred).
+- `GET /api/v1/photos/{id}/faces` — left-joins
+  `FaceDetection → FaceCluster → TrustedPerson` and returns
+  normalized bbox + `trusted_person_display_name` +
+  `trusted_person_avatar_url` per face. Always goes through the
+  shared consent guard. The `_photo_to_card` helper is unchanged.

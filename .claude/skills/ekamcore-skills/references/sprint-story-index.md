@@ -96,12 +96,32 @@ Backend complete; UI lands in Sprint 13.
 | S12-008 | E2E + ML eval baselines | 8 scenario `test_phase3_clustering_e2e.py`, synthetic clustering + scoring eval scripts in `scripts/eval/`, baselines in `eval_results/` |
 | S12-009 | Gate review | skill updates + `docs/phase-3-sprint-12-status.md`, Sprint 13 readiness |
 
-## Sprint 13-14 (Weeks 25-28) — Phase 3
+## Sprint 13 (Weeks 25-26) — Phase 3 — SHIPPED
+People Graph web UI lands on top of the Sprint 12 backend.
+
+| Story | Title | Evidence |
+|---|---|---|
+| S13-001 [CP] | Web foundations for People Graph | routing, TS types, API clients, SWR hooks, i18n, metrics, feature flags; stub pages gated on flag + consent (`apps/web/src/{types,api,hooks}/`, `FlagContext`) |
+| S13-002 | People list page | grid/list toggle, debounced search, confidence chips, `PersonAvatar` backed by `/api/v1/people/:id/avatar`, empty state CTA (`apps/web/src/pages/people/PeopleListPage.tsx`, `components/people/PersonAvatar.tsx`, `api/services/face/avatar_service.py`) |
+| S13-003 | Person detail page | tabs/rename/delete + Faces management with "remove face"; new `detach_face_service`, 6 `/people/:id/*` sub-resource endpoints, migration 019, undo handler (`routers/people.py`, `services/face/detach_face_service.py`, `pages/people/PersonDetailPage.tsx`) |
+| S13-004 | Review Queue page | useReducer session cursor, Enter/R/S/N/1–5/←/→/?/Esc keyboard shortcuts, optimistic auto-advance with rollback, batch reject/skip bar, sr-only announcements (`pages/people/ReviewQueuePage.tsx`) |
+| S13-005 | Merge persons modal | radio keeper picker, typeahead add-more, list-view multi-select with floating merge bar (`components/people/MergePersonsModal.tsx`, `pages/people/PeopleListPage.tsx` multi-select, `pages/people/PersonDetailPage.tsx` kebab) |
+| S13-006 | Split person modal | `role=grid` face picker, `≥1 / name / leave-one-behind` client rules, Faces section select-mode + floating Split bar, `preselectedFaceIds` seed (`components/people/SplitPersonModal.tsx`, `pages/people/PersonDetailPage.tsx`) |
+| S13-007 | Undo drawer + Cmd+Z | right-side drawer over `usePersonOperations(50)` with per-row summaries and Undo button, `useUndoShortcut` document-level Cmd/Ctrl+Z wired into people pages, History button on `PeopleListPage` (`components/people/UndoDrawer.tsx`, `hooks/useUndoShortcut.ts`) |
+| S13-008 | Photo lightbox | full-screen viewer with measured bbox overlay, known→`/people/:id` and unknown→`/people/review?highlight_cluster=:id` navigation, new `/photos/:id/{full,faces}` endpoints, shared `resolve_workspace_with_face_consent`, PhotoCard + Photos tab integration (`components/photos/PhotoLightbox.tsx`, `routers/photos.py`, `services/face/consent_service.py`) |
+| S13-009 | People in Today/Search + top-bar search | `search_trusted_persons` + `"person"` SearchType, `PersonCardSource` for Today feed, `PersonCard` in `CardRenderer`/`SearchResultCard`, `TopBarPersonSearch` typeahead with @-sigil and keyboard nav, gated on consent with graceful disabled fallback (`services/query/search.py`, `services/today/person_card_source.py`, `components/cards/PersonCard.tsx`, `components/people/TopBarPersonSearch.tsx`) |
+| S13-010 | E2E plan + a11y audit scaffold | Playwright infra not yet in repo; ships `tests/e2e/README.md` + `tests/e2e/sprint13_plan.md` (full spec matrix, seed contract, flaky-test guardrails), new §9 Phase 3 pages section in `docs/ACCESSIBILITY_CHECKLIST.md`, and accurate S13-001..S13-010 mappings in `docs/test_traceability.json` |
+| S13-011 | Gate review | skill file updates + `docs/phase-3-sprint-13-status.md`, Sprint 14 readiness |
+
+## Sprint 14 (Weeks 27-28) — Phase 3 — PENDING
+PLA Pack SDK and the simplified "catch-up" logic uplift.
+
 | Story | Title | Workstream |
 |---|---|---|
-| S13-001 [CP] | PLA Pack core workflows | backend |
-| S13-002 | Skill execution sandbox | backend |
-| S13-003 | 72-hour soak test | infrastructure |
+| S14-001 [CP] | PLA Pack manifest + execution engine | backend |
+| S14-002 | Skill execution sandbox | backend |
+| S14-003 | Pack cards in Today feed | backend+web |
+| S14-004 | 72-hour soak test | infrastructure |
 
 ## Sprint 15-16 (Weeks 29-32) — Phase 4
 | Story | Title | Workstream |

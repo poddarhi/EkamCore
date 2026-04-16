@@ -75,42 +75,151 @@ function FlaggedRoute({ flagKey, children }: { flagKey: string; children: React.
 ### Routes (React Router)
 /, /today, /recap, /search, /people, /people/:id, /people/review, /photos, /photos/:id, /files, /files/:id, /settings, /settings/sources, /settings/photo-intelligence, /settings/account, /settings/about, /login, /* (404)
 
-### People Screens (Coming Sprint 13 — backend ready)
-Sprint 12 shipped the backend. Sprint 13 wires the UI. Endpoint
-contract for the planned screens:
+### People Graph Screens (SHIPPED — Sprint 13)
+The full People Graph web surface lives under `apps/web/src`. All
+pages gate on the `face_clustering_enabled` flag + an active
+face-consent SWR hook (`useFaceConsent`) and fall through to
+`FeatureComingSoon` / the consent CTA when either is missing.
 
-- `/people` (list)
-  - `GET /api/v1/people?cursor&limit` → `TrustedPersonListResponse`
-  - cursor pagination, `display_name`, `confirmed_at`, `trust_source`
-- `/people/:id` (detail)
-  - `GET /api/v1/people/{person_id}` → `TrustedPersonResponse`
-  - `PATCH /api/v1/people/{person_id}` `{display_name}` (rename)
-  - `DELETE /api/v1/people/{person_id}` (soft delete)
-- `/people/review` (review queue)
-  - `GET /api/v1/review-queue?confidence&cursor&limit`
-    → `ReviewQueueListResponse` (sample face_detection_ids,
-       sample_photo_asset_ids, top_candidate, confidence_bucket)
-  - `GET /api/v1/review-queue/{cluster_id}` (full member list)
-  - `POST /api/v1/review-queue/{cluster_id}/skip` (24h skip marker)
-  - Confirm flow: `POST /api/v1/people/confirm-candidate`
-    `{cluster_id, contact_id}`
-  - Reject flow: `POST /api/v1/people/reject-cluster` `{cluster_id, reason?}`
-- `/people/:id` actions
-  - `POST /api/v1/people/merge` `{person_ids, keeper_id}`
-  - `POST /api/v1/people/{person_id}/split`
-    `{face_detection_ids, new_display_name}`
-- History tab (any people screen)
-  - `GET /api/v1/people/operations` → `OperationListResponse`
-  - `POST /api/v1/people/operations/undo-last`
-  - `POST /api/v1/people/operations/{operation_id}/undo`
+Component dependency graph (the most common lookups):
 
-All endpoints require auth + active face consent. Mutations need the
-double-submit CSRF token (`ekamcore_csrf` cookie + `X-CSRF-Token`
-header). Reads rate-limit at 120/min/user, mutations at 30/min/user.
-Use `apps/api/api/schemas/trusted_person.py`,
-`apps/api/api/schemas/review_queue.py`,
-`apps/api/api/schemas/people_operations.py` as the source of truth
-for response shapes when generating TS types.
+- **Pages** — `src/pages/people/`
+  - `PeopleListPage.tsx` — grid/list toggle, debounced search,
+    confidence chips, multi-select list view (Cmd/Ctrl/Shift-click),
+    floating merge action bar, History drawer trigger.
+  - `PersonDetailPage.tsx` — header card with inline rename + kebab
+    (Merge/Split/Delete), 4 tabs wired to URL hash, Faces management
+    section with select-mode + "Split out" bar, delete modal,
+    remove-face modal, and child `PhotoLightbox`.
+  - `ReviewQueuePage.tsx` — useReducer session state, document-level
+    keyboard shortcuts (Enter/R/S/N/1–5/←/→/?/Esc), optimistic
+    auto-advance with rollback, batch reject/skip bar.
+  - `OperationsHistoryPage.tsx` — stub; the `UndoDrawer` is the
+    live surface.
+- **Drawer / modals** — `src/components/people/`
+  - `UndoDrawer.tsx`, `MergePersonsModal.tsx`, `SplitPersonModal.tsx`
+  - `PersonAvatar.tsx` (wraps `design-system/Avatar`; size xl=80px
+    falls back to `lg` rendering since the base component only
+    supports up to `xl=80px` natively).
+  - `TopBarPersonSearch.tsx` — document-level typeahead wired into
+    `MainLayout` top bar, gated on consent.
+- **Cards** — `src/components/cards/`
+  - `PersonCard.tsx` — renders in `CardRenderer` (Today feed) and
+    `SearchResultCard` (search results). Pass the `surface`
+    prop (`"today"` / `"search"`) for metric attribution.
+  - `PhotoCard.tsx` — now opens `PhotoLightbox` on click instead
+    of its old inline 90vh modal.
+- **Photo lightbox** — `src/components/photos/PhotoLightbox.tsx`
+  - Full-screen viewer, measures image rendered rect on load +
+    resize to align normalized bbox overlays.
+- **API + hooks** — `src/api/people.ts`, `src/api/photos.ts`,
+  `src/api/review_queue.ts`, `src/hooks/usePeople.ts`,
+  `src/hooks/usePhotoFaces.ts`, `src/hooks/useUndoShortcut.ts`.
+
+### Person Card Pattern
+The backend emits a discriminated-union `Card` where
+`type === "person"` carries a `PersonPayload`
+(`apps/web/src/api/client.ts`):
+
+```typescript
+interface PersonPayload {
+  source?: "trusted_person";           // route clicks to /people/:id
+  person_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  context: "seen_recently" | "upcoming_event" | "catch_up" | "search_match";
+  supporting_data?: Record<string, unknown>;
+}
+```
+
+`CardRenderer.tsx` and `SearchResultCard.tsx` both delegate to
+`PersonCard` when `payload.source === "trusted_person"`. Surface
+attribution is a prop, not a React context:
+
+```tsx
+<CardRenderer card={c} surface="today" />
+<SearchResultCard card={c} query={q} />   // internally surface="search"
+```
+
+Metrics fire from `PersonCard` itself — `personCard.clickedFromToday`
+or `personCard.clickedFromSearch`. Add new context variants by
+extending `contextDescription()` in `PersonCard.tsx` and adding a
+`today.person.{context}` i18n key.
+
+### Face Overlay Pattern (PhotoLightbox)
+Bounding boxes arrive normalized `{x, y, w, h} ∈ [0,1]` from
+`GET /api/v1/photos/:id/faces`. The lightbox draws one `<button>`
+per face inside an absolutely-positioned wrapper that matches the
+image's **rendered** bounding rect (not natural dimensions). The
+pattern:
+
+1. Store the `<img>` ref; on `onLoad` + `window.resize`, call
+   `measure()` which reads `naturalWidth/Height` +
+   `getBoundingClientRect()` of both image and container.
+2. Translate the overlay wrapper into the image's position
+   relative to the container (`transform: translate(offsetX, offsetY)`)
+   and size it to `renderedW/H`.
+3. Each bbox button uses percentage positioning inside the wrapper
+   (`left: x*100%`, `width: w*100%`, etc.), so the same coordinate
+   math works for any viewport.
+4. `window.matchMedia('(prefers-reduced-motion: reduce)')` gates
+   the fade; tests must stub `window.matchMedia`.
+
+Reuse this pattern for any annotation-over-image UI (future
+story: document highlight boxes in the Paperless viewer).
+
+### Keyboard-First UX Pattern (reusable reference)
+The `ReviewQueuePage` shortcut state machine is the canonical
+pattern for future keyboard-heavy surfaces (Sprint 14 Pack cards,
+timeline scrubbers, etc.):
+
+- **Reducer owns the queue cursor**, not SWR. SWR is the source
+  of truth for data; the reducer is the local session.
+- **Optimistic advance + rollback**: `dispatch({type: "advance"})`
+  first, then fire the API; on failure `dispatch({type: "rollback", clusterId})`
+  and toast the error.
+- **Document-level `keydown`** listener gated on `open/active`,
+  with a skip-when-typing-in-input guard (`target.tagName === "INPUT"`
+  or `isContentEditable`). Never attach to a focused element —
+  the user must be able to drive the page without tabbing.
+- **sr-only `aria-live="polite"` region** announces every action
+  so the shortcuts are usable for screen reader users.
+- **Always register shortcuts inside a `useEffect` keyed on
+  enablement** so unmount cleans them up.
+
+`useUndoShortcut` (`apps/web/src/hooks/useUndoShortcut.ts`)
+extracts the same pattern as a hook for the Cmd/Ctrl+Z shortcut
+wired into both `PeopleListPage` and `PersonDetailPage`. Copy the
+hook shape when adding new global chords.
+
+### Undo UX Pattern (dual path)
+Every mutation on the People Graph has two undo affordances:
+
+1. **Fast path — Cmd/Ctrl+Z via `useUndoShortcut`.** Calls
+   `peopleApi.undoLast()` and revalidates every `/api/v1/people*`
+   and `/api/v1/review-queue*` SWR key via `globalMutate` so the
+   UI snaps back without per-page code.
+2. **Browse path — `UndoDrawer`.** Right-side slide-out backed by
+   `usePersonOperations(50)`. Each row summarises `forward_payload`
+   via the `summarize(op)` helper and renders either an Undo
+   button or a disabled "Undone" label. Clicks go through
+   `peopleApi.undoOperation(id)` then the same cache revalidation.
+
+When adding a new mutation: (a) make sure the service writes a
+`person_operations` row with a concrete `inverse_payload`, (b)
+add a branch to `_HANDLERS` / `_apply()` in
+`apps/api/api/services/face/undo_service.py`, and (c) extend
+`summarize()` in `UndoDrawer.tsx` so the drawer can describe the
+action. No frontend plumbing changes are needed beyond the
+summary.
+
+### Photo lightbox entry points
+Three callers mount the lightbox — all parent-owned state:
+`PhotoCard` (Photos page + Search results via `SearchResultCard`),
+`PersonDetailPage` Photos tab, and any future photo grid. The
+pattern is the same: local `useState<string | null>` for the open
+photo id, render a single `<PhotoLightbox>` at the tab/page root
+with `open={openPhoto !== null}`. Never nest lightboxes.
 
 ### Styling Rules
 - Use Tailwind utilities. Extend via tailwind.config.ts theme (not arbitrary values).
