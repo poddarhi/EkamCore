@@ -28,6 +28,11 @@ IntentType = Literal[
     "photo_date",
     "photo_location",
     "photo_camera",
+    # S14-011: person-specific intents
+    "person_who_is",
+    "person_files",
+    "person_last_seen",
+    "person_photos",
 ]
 
 
@@ -423,6 +428,27 @@ _PATTERNS: list[tuple[re.Pattern, IntentType, callable]] = [
         r"photos?\s+(?:with|taken with|shot with)\s+(?P<camera>.+?)(?:\s+camera|\s+phone|\s+iphone)?\s*$",
         re.I,
     ), "photo_camera", _photo_camera),
+
+    # S14-011: person-specific patterns
+    (re.compile(
+        r"who\s+is\s+(?P<person_name>.+?)[\s?]*$",
+        re.I,
+    ), "person_who_is", lambda m: {"person_name": m.group("person_name").strip()}),
+
+    (re.compile(
+        r"(?:what\s+)?files?\s+(?:does|for|of)\s+(?P<person_name>.+?)(?:\s+have)?\s*\??\s*$",
+        re.I,
+    ), "person_files", lambda m: {"person_name": m.group("person_name").strip()}),
+
+    (re.compile(
+        r"(?:when\s+did\s+I\s+last\s+see|last\s+seen?)\s+(?P<person_name>.+?)[\s?]*$",
+        re.I,
+    ), "person_last_seen", lambda m: {"person_name": m.group("person_name").strip()}),
+
+    (re.compile(
+        r"photos?\s+(?:of|with)\s+(?P<person_name>.+?)[\s?]*$",
+        re.I,
+    ), "person_photos", lambda m: {"person_name": m.group("person_name").strip()}),
 ]
 
 

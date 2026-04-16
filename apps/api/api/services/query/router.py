@@ -546,6 +546,160 @@ async def _handle_photo_camera(
 # Dispatch
 # ---------------------------------------------------------------------------
 
+# S14-011: person-specific deterministic handlers.
+
+async def _handle_person_who_is(
+    params: dict[str, str], workspace_id: UUID, db: AsyncSession
+) -> list:
+    from api.services.query.person_detector import detect_person_references
+
+    persons = await detect_person_references(
+        params.get("person_name", ""), workspace_id, db
+    )
+    if not persons:
+        return []
+    p = persons[0]
+    return [PersonCard(
+        id=p.id,
+        priority_score=1.0,
+        source_ids=[p.id],
+        payload={
+            "source": "trusted_person",
+            "person_id": str(p.id),
+            "display_name": p.display_name,
+            "avatar_url": f"/api/v1/people/{p.id}/avatar",
+            "context": "search_match",
+        },
+    )]
+
+
+async def _handle_person_files(
+    params: dict[str, str], workspace_id: UUID, db: AsyncSession
+) -> list:
+    from api.db.models.file import File as _File
+    from api.db.models.graph_edge import GraphEdge as _GE
+    from api.services.query.person_detector import detect_person_references
+
+    persons = await detect_person_references(
+        params.get("person_name", ""), workspace_id, db
+    )
+    if not persons:
+        return []
+    person_id = persons[0].id
+    stmt = (
+        select(_File)
+        .join(_GE, _GE.to_id == _File.id)
+        .where(
+            and_(
+                _GE.workspace_id == workspace_id,
+                _GE.from_type == "trusted_person",
+                _GE.from_id == person_id,
+                _GE.to_type == "file",
+                _GE.edge_type == "associated_with",
+                _File.deleted_at.is_(None),
+            )
+        )
+        .limit(20)
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    return [
+        FileCard(
+            id=f.id,
+            priority_score=0.8,
+            source_ids=[f.source_id],
+            payload={"filename": f.filename, "mime_type": f.mime_type},
+        )
+        for f in rows
+    ]
+
+
+async def _handle_person_last_seen(
+    params: dict[str, str], workspace_id: UUID, db: AsyncSession
+) -> list:
+    from api.db.models.graph_edge import GraphEdge as _GE
+    from api.services.query.person_detector import detect_person_references
+
+    persons = await detect_person_references(
+        params.get("person_name", ""), workspace_id, db
+    )
+    if not persons:
+        return []
+    p = persons[0]
+    stmt = (
+        select(_GE)
+        .where(
+            and_(
+                _GE.workspace_id == workspace_id,
+                _GE.from_type == "trusted_person",
+                _GE.from_id == p.id,
+                _GE.edge_type.in_(["appears_in", "attended"]),
+            )
+        )
+        .order_by(_GE.created_at.desc())
+        .limit(1)
+    )
+    edge = (await db.execute(stmt)).scalar_one_or_none()
+    if edge is None:
+        return [("__count__", 0, f"interactions with {p.display_name}", "")]
+    from datetime import datetime as _dt
+    from datetime import timezone as _tz
+
+    days_ago = (_dt.now(_tz.utc) - edge.created_at).days
+    return [
+        ("__count__", days_ago,
+         f"days since you last saw {p.display_name}",
+         f"(via {edge.edge_type})")
+    ]
+
+
+async def _handle_person_photos(
+    params: dict[str, str], workspace_id: UUID, db: AsyncSession
+) -> list:
+    from api.db.models.graph_edge import GraphEdge as _GE
+    from api.db.models.photo_asset import PhotoAsset as _PA
+    from api.services.query.person_detector import detect_person_references
+
+    persons = await detect_person_references(
+        params.get("person_name", ""), workspace_id, db
+    )
+    if not persons:
+        return []
+    person_id = persons[0].id
+    stmt = (
+        select(_PA)
+        .join(_GE, _GE.to_id == _PA.id)
+        .where(
+            and_(
+                _GE.workspace_id == workspace_id,
+                _GE.from_type == "trusted_person",
+                _GE.from_id == person_id,
+                _GE.to_type == "photo_asset",
+                _GE.edge_type == "appears_in",
+                _PA.deleted_at.is_(None),
+            )
+        )
+        .order_by(_PA.taken_at.desc().nulls_last())
+        .limit(20)
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    from api.schemas.envelope import PhotoCard as _PC
+
+    return [
+        _PC(
+            id=pa.id,
+            priority_score=0.75,
+            source_ids=[pa.file_id],
+            payload={
+                "photo_id": str(pa.id),
+                "thumbnail_url": f"/api/v1/photos/{pa.id}/thumbnail",
+                "taken_at": pa.taken_at.isoformat() if pa.taken_at else None,
+                "location_name": pa.location_name,
+            },
+        )
+        for pa in rows
+    ]
+
+
 _HANDLERS = {
     "calendar_range": _handle_calendar_range,
     "calendar_with_person": _handle_calendar_with_person,
@@ -561,6 +715,11 @@ _HANDLERS = {
     "photo_date": _handle_photo_date,
     "photo_location": _handle_photo_location,
     "photo_camera": _handle_photo_camera,
+    # S14-011: person-context queries
+    "person_who_is": _handle_person_who_is,
+    "person_files": _handle_person_files,
+    "person_last_seen": _handle_person_last_seen,
+    "person_photos": _handle_person_photos,
 }
 
 

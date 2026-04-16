@@ -118,6 +118,15 @@ async def post_query(
         )
         return await route_deterministic(intent, body.workspace_id, db)
 
+    # Step 1.5: person detection (S14-011). If the query references a
+    # person, we tag the context so Step 4 can use person_context_v1
+    # instead of grounded_qa_v1.
+    from api.services.query.person_detector import detect_person_references
+
+    detected_persons = await detect_person_references(
+        clean_query, body.workspace_id, db
+    )
+
     # Step 2: text search (also gathers context for Steps 3–5)
     t0 = time.perf_counter()
 
@@ -130,9 +139,37 @@ async def post_query(
 
     # Steps 3–5: LLM grounded QA (when flag enabled and search returned results)
     if cards and "llm_query_enabled" in _ENABLED_FLAGS:
-        # Step 3: assemble context
-        context_text, source_titles = assemble_context(cards)
-        messages = build_messages(context_text, clean_query)
+        # Step 3: assemble context. If persons were detected, use
+        # person_context_v1 prompt; otherwise the standard grounded_qa_v1.
+        source_titles: list[str] = []
+        if detected_persons:
+            from api.services.query.prompts import person_context_v1
+
+            p = detected_persons[0]
+            linked_events: list[str] = []
+            linked_files: list[str] = []
+            for card in cards:
+                if card.type == "event":
+                    linked_events.append(
+                        (card.payload or {}).get("title", "Event")
+                    )
+                elif card.type == "file":
+                    linked_files.append(
+                        (card.payload or {}).get("filename", "File")
+                    )
+            messages = person_context_v1.build_messages(
+                person_name=p.display_name,
+                organization=None,
+                emails=[],
+                phones=[],
+                linked_events=linked_events[:20],
+                linked_files=linked_files[:20],
+                linked_reminders=[],
+                question=clean_query,
+            )
+        else:
+            context_text, source_titles = assemble_context(cards)
+            messages = build_messages(context_text, clean_query)
 
         llm_out = None
         model_path = "small_model"
