@@ -114,6 +114,32 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.warning("pack_manifest_loader_init_failed", exc_info=True)
         app.state.pack_manifest_loader = None
 
+    # S14-005: pack scheduler. Starts cron loops for every loaded pack.
+    pack_scheduler = None
+    try:
+        from api.services.pack.pack_context_factory import PackContextFactory
+        from api.services.pack.pack_runner import PackRunner
+        from api.services.pack.scheduler import PackScheduler
+
+        pack_loader_ref = getattr(app.state, "pack_manifest_loader", None)
+        pack_workflows: dict = getattr(app.state, "pack_workflows", {})
+        if pack_loader_ref and pack_loader_ref.manifests:
+            factory = PackContextFactory()
+            runner = PackRunner(
+                manifest_loader=pack_loader_ref,
+                context_factory=factory,
+                workflows=pack_workflows,
+            )
+            pack_scheduler = PackScheduler(
+                runner=runner,
+                manifest_loader=pack_loader_ref,
+            )
+            await pack_scheduler.start()
+            app.state.pack_scheduler = pack_scheduler
+            logger.info("pack_scheduler_started")
+    except Exception:
+        logger.warning("pack_scheduler_init_failed", exc_info=True)
+
     sync_task = asyncio.create_task(_paperless_sync_loop())
     logger.info("paperless_sync_scheduler_started")
 
@@ -125,6 +151,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     yield
 
+    if pack_scheduler is not None:
+        await pack_scheduler.stop()
     sync_task.cancel()
     metrics_task.cancel()
     for task in (sync_task, metrics_task):

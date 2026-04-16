@@ -2,7 +2,7 @@ from typing import Any
 
 import httpx
 import structlog
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from redis.asyncio import Redis
 from sqlalchemy import text
 
@@ -171,7 +171,7 @@ async def _check_face_pipeline() -> dict[str, Any]:
 
 
 @router.get("/health")
-async def health_check() -> dict[str, Any]:
+async def health_check(request: Request) -> dict[str, Any]:
     """Health check endpoint that verifies connectivity to all backend services."""
     postgres = await _check_postgres()
     redis = await _check_redis()
@@ -191,6 +191,19 @@ async def health_check() -> dict[str, Any]:
         # `loaded`/`detector_version` under the same key.
         "face_model": face_pipeline,
     }
+
+    # S14-005: pack scheduler status.
+    pack_scheduler = getattr(request.app.state, "pack_scheduler", None)
+    if pack_scheduler is not None:
+        services["pack_scheduler"] = pack_scheduler.health()
+    else:
+        services["pack_scheduler"] = {
+            "running": False,
+            "jobs_registered": 0,
+            "next_daily_run": None,
+            "next_weekly_run": None,
+            "last_run": None,
+        }
 
     # Core services: postgres, redis, qdrant. Paperless, Ollama, and
     # face_model are optional — their failure does NOT degrade overall

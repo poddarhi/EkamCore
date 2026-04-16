@@ -19,8 +19,9 @@ from __future__ import annotations
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.session import get_db
@@ -28,6 +29,8 @@ from api.errors import AuthorizationError, RateLimitError
 from api.middleware.auth import get_current_user
 from api.schemas.auth import CurrentUser
 from api.services import flags as flags_service
+from api.db.models.pack_run import PackRun
+from api.middleware.feature_gate import _ENABLED_FLAGS
 from api.services.pack.manifest_loader import ManifestLoader, PackManifest
 from api.services.pack.pack_context_factory import PackContextFactory
 from api.services.pack.pack_runner import PackRunner, PackRunResult
@@ -194,3 +197,97 @@ async def trigger_pack_run(
         state=result.state,
     )
     return result.model_dump(mode="json")
+
+
+# ── Pack lifecycle (S14-005) ──────────────────────────────────────────────
+
+
+class PackToggleRequest(BaseModel):
+    workspace_id: str
+
+
+@router.post("/packs/{pack_id}/enable")
+async def enable_pack(
+    pack_id: str,
+    body: PackToggleRequest,
+    user: CurrentUser = Depends(_require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Enable a pack for a workspace (admin only).
+
+    Adds the pack flag to the runtime set. For the PLA pack this
+    means adding ``pla_pack_enabled`` to ``_ENABLED_FLAGS``. True
+    per-workspace persistence lives in the feature flag service's
+    workspace scope but the runtime toggle (which controls immediate
+    effect) is the active set.
+    """
+    if pack_id == "pla":
+        _ENABLED_FLAGS.add("pla_pack_enabled")
+    logger.info(
+        "pack_enabled",
+        pack_id=pack_id,
+        workspace_id=body.workspace_id,
+    )
+    return {"pack_id": pack_id, "enabled": True}
+
+
+@router.post("/packs/{pack_id}/disable")
+async def disable_pack(
+    pack_id: str,
+    body: PackToggleRequest,
+    user: CurrentUser = Depends(_require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Disable a pack for a workspace (admin only)."""
+    if pack_id == "pla":
+        _ENABLED_FLAGS.discard("pla_pack_enabled")
+    logger.info(
+        "pack_disabled",
+        pack_id=pack_id,
+        workspace_id=body.workspace_id,
+    )
+    return {"pack_id": pack_id, "enabled": False}
+
+
+@router.get("/packs/{pack_id}/runs")
+async def list_pack_runs(
+    pack_id: str,
+    workspace_id: str = Query(...),
+    limit: int = Query(default=50, ge=1, le=200),
+    user: CurrentUser = Depends(_require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """List recent pack_runs for a workspace (admin only)."""
+    from uuid import UUID as _UUID
+
+    ws = _UUID(workspace_id)
+    stmt = (
+        select(PackRun)
+        .where(
+            and_(
+                PackRun.workspace_id == ws,
+                PackRun.pack_id == pack_id,
+            )
+        )
+        .order_by(PackRun.started_at.desc())
+        .limit(limit)
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    items = [
+        {
+            "id": str(r.id),
+            "pack_id": r.pack_id,
+            "trigger": r.trigger,
+            "state": r.state,
+            "cards_produced": r.cards_produced,
+            "llm_calls_used": r.llm_calls_used,
+            "duration_ms": r.duration_ms,
+            "error_message": r.error_message,
+            "started_at": r.started_at.isoformat() if r.started_at else None,
+            "finished_at": (
+                r.finished_at.isoformat() if r.finished_at else None
+            ),
+        }
+        for r in rows
+    ]
+    return {"items": items}
