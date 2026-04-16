@@ -488,6 +488,82 @@ class PackContext:
             {"card_type": card_type, "payload": clean_payload}
         )
 
+    # ── Pack-card deduplication (S14-006) ───────────────────────────
+
+    async def has_pending_card_for_person(
+        self,
+        person_id: UUID,
+        card_type: str,
+        target_date: Any,
+    ) -> bool:
+        """Return True if a non-acknowledged card of ``card_type`` with
+        ``person_id`` in its payload already exists for ``target_date``.
+
+        No capability check — this reads the pack's own output table,
+        not user data.
+        """
+        from api.db.models.pack_card import PackCard as _PC
+
+        stmt = (
+            select(_PC.id)
+            .where(
+                and_(
+                    _PC.workspace_id == self._workspace_id,
+                    _PC.card_type == card_type,
+                    _PC.target_date == target_date,
+                    _PC.acknowledged_at.is_(None),
+                )
+            )
+            .limit(50)
+        )
+        rows = (await self._db.execute(stmt)).scalars().all()
+        pid_str = str(person_id)
+        for row_id in rows:
+            card = (
+                await self._db.execute(
+                    select(_PC.payload_json).where(_PC.id == row_id)
+                )
+            ).scalar_one_or_none()
+            if card and card.get("person_id") == pid_str:
+                return True
+        return False
+
+    async def is_person_snoozed(
+        self,
+        person_id: UUID,
+        card_type: str,
+    ) -> bool:
+        """Return True if a snoozed card for ``person_id`` exists
+        whose ``snoozed_until`` is in the future."""
+        from datetime import date as _date
+
+        from api.db.models.pack_card import PackCard as _PC
+
+        today = _date.today()
+        stmt = (
+            select(_PC.id)
+            .where(
+                and_(
+                    _PC.workspace_id == self._workspace_id,
+                    _PC.card_type == card_type,
+                    _PC.snoozed_until.is_not(None),
+                    _PC.snoozed_until > today,
+                )
+            )
+            .limit(50)
+        )
+        rows = (await self._db.execute(stmt)).scalars().all()
+        pid_str = str(person_id)
+        for row_id in rows:
+            card = (
+                await self._db.execute(
+                    select(_PC.payload_json).where(_PC.id == row_id)
+                )
+            ).scalar_one_or_none()
+            if card and card.get("person_id") == pid_str:
+                return True
+        return False
+
     # ── Internals ─────────────────────────────────────────────────────
 
     def _require_capability(self, cap: str) -> None:

@@ -114,6 +114,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.warning("pack_manifest_loader_init_failed", exc_info=True)
         app.state.pack_manifest_loader = None
 
+    # S14-006: register PLA workflows so PackRunner can dispatch.
+    try:
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).resolve().parents[3] / "packs"),
+        )
+        from pla.workflows.follow_up import run_follow_up_suggestions
+
+        app.state.pack_workflows = {
+            "daily": run_follow_up_suggestions,
+        }
+        logger.info(
+            "pack_workflows_registered",
+            workflows=list(app.state.pack_workflows.keys()),
+        )
+    except Exception:
+        logger.warning("pack_workflow_registration_failed", exc_info=True)
+        app.state.pack_workflows = {}
+
     # S14-005: pack scheduler. Starts cron loops for every loaded pack.
     pack_scheduler = None
     try:
