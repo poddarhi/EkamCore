@@ -124,3 +124,32 @@ export async function selectSourceFolders(): Promise<string[]> {
 export async function configurePaperless(consumeDir: string): Promise<void> {
   return invoke<void>("configure_paperless", { consumeDir });
 }
+
+// ── Dashboard (S15-003) ─────────────────────────────────────────────────────
+
+export interface DashboardData {
+  services: ServiceHealth[];
+  disk_free_gb: number;
+  disk_warning: boolean;
+  uptime_hours: number;
+  total_files: number;
+  total_photos: number;
+  total_persons: number;
+  last_backup: string | null;
+}
+
+export async function getDashboardData(): Promise<DashboardData> {
+  return invoke<DashboardData>("get_dashboard_data");
+}
+
+export async function forceRestartService(service: string): Promise<void> {
+  return invoke<void>("force_restart_service", { service });
+}
+
+export async function stopAllServices(): Promise<void> {
+  return invoke<void>("stop_all_services");
+}
+
+export async function startAllServices(): Promise<void> {
+  return invoke<void>("start_all_services");
+}

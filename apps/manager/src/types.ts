@@ -66,3 +66,43 @@ export interface PermissionsResult {
   reminders: boolean;
   contacts: boolean;
 }
+
+// S15-003: Dashboard + Watchdog types
+
+export type HealthState = "healthy" | "unhealthy" | "starting" | "not_running";
+
+export interface ServiceHealthInfo {
+  name: string;
+  state: HealthState;
+  uptime_seconds: number | null;
+  memory_mb: number | null;
+  cpu_percent: number | null;
+}
+
+export interface DashboardData {
+  services: ServiceHealthInfo[];
+  disk_free_gb: number;
+  disk_warning: boolean;
+  uptime_hours: number;
+  total_files: number;
+  total_photos: number;
+  total_persons: number;
+  last_backup: string | null;
+}
+
+export interface HealthUpdateEvent {
+  services: ServiceHealthInfo[];
+  timestamp: string;
+}
+
+export interface ServiceCriticalEvent {
+  service: string;
+  consecutive_failures: number;
+  message: string;
+}
+
+export interface ServiceUnstableEvent {
+  service: string;
+  restarts_in_hour: number;
+  message: string;
+}

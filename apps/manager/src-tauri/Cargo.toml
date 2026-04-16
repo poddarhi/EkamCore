@@ -29,6 +29,8 @@ rand = "0.8"                                        # Crypto-grade random for se
 async-trait = "0.1"                                 # Trait async methods (MIT/Apache-2.0)
 thiserror = "1"                                     # Derive Error (MIT/Apache-2.0)
 futures-util = "0.3"                                # Stream utilities for bollard (MIT/Apache-2.0)
+# S15-003: Watchdog + Dashboard
+notify-rust = "4"                                   # macOS system notifications (MIT/Apache-2.0)
 
 [profile.release]
 codegen-units = 1

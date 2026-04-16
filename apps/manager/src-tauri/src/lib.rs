@@ -1,9 +1,12 @@
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Instant;
 use tauri::Manager;
+use tokio::sync::Mutex;
 
 mod commands;
 mod container_runtime;
+mod dashboard;
 mod disk;
 mod docker;
 mod hardware;
@@ -12,6 +15,7 @@ mod setup;
 mod startup;
 mod state;
 mod tailscale;
+mod watchdog;
 mod wizard_state;
 
 pub use wizard_state::WizardState;
@@ -45,19 +49,32 @@ pub fn run() {
                     Ok(r) => Arc::new(r),
                     Err(e) => {
                         tracing::warn!("docker_runtime_init_failed: {e}");
-                        // The app will still launch — commands that need
-                        // the runtime will return errors at call time.
-                        // For now, create a fallback that always errors.
                         Arc::new(NoopRuntime)
                     }
                 };
+
+            // S15-003: Create watchdog
+            let wd = Arc::new(Mutex::new(watchdog::Watchdog::new(runtime.clone())));
 
             let app_state = state::AppState {
                 runtime,
                 keychain: keychain::KeychainManager,
                 app_data_dir: data_dir,
+                watchdog: wd.clone(),
+                started_at: Instant::now(),
             };
             app.manage(app_state);
+
+            // S15-003: Spawn watchdog polling loop after setup is complete
+            let app_handle = app.handle().clone();
+            let setup_complete = wizard_state::is_setup_complete(app_handle.clone());
+            if setup_complete {
+                watchdog::Watchdog::spawn(wd, app_handle);
+                tracing::info!("watchdog started");
+            } else {
+                tracing::info!("watchdog deferred (setup not complete)");
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -90,6 +107,11 @@ pub fn run() {
             setup::request_permissions,
             setup::select_source_folders,
             setup::configure_paperless,
+            // S15-003: dashboard + service controls
+            dashboard::get_dashboard_data,
+            dashboard::force_restart_service,
+            dashboard::stop_all_services,
+            dashboard::start_all_services,
         ])
         .run(tauri::generate_context!())
         .expect("error while running EkamCore Manager");
