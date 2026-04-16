@@ -153,3 +153,27 @@ export async function stopAllServices(): Promise<void> {
 export async function startAllServices(): Promise<void> {
   return invoke<void>("start_all_services");
 }
+
+// ── Diagnostics + Storage (S15-004) ─────────────────────────────────────────
+
+export interface DiagnosticsResult {
+  path: string;
+  size_bytes: number;
+  files_included: string[];
+}
+
+export async function generateDiagnostics(): Promise<DiagnosticsResult> {
+  return invoke<DiagnosticsResult>("generate_diagnostics");
+}
+
+export async function getSystemInfoText(): Promise<string> {
+  return invoke<string>("get_system_info_text");
+}
+
+export async function cleanDockerCache(): Promise<string> {
+  return invoke<string>("clean_docker_cache");
+}
+
+export async function getStorageBreakdown(): Promise<Record<string, unknown>> {
+  return invoke<Record<string, unknown>>("get_storage_breakdown");
+}

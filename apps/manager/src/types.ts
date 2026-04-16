@@ -106,3 +106,46 @@ export interface ServiceUnstableEvent {
   restarts_in_hour: number;
   message: string;
 }
+
+// S15-004: Jobs, Storage, Diagnostics types
+
+export type JobStatus = "active" | "queued" | "completed" | "failed";
+
+export interface Job {
+  id: string;
+  filename: string;
+  source: string;
+  status: JobStatus;
+  stage: string;
+  progress: number;
+  error: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface JobsData {
+  active: Job[];
+  queued: Job[];
+  completed: Job[];
+  failed: Job[];
+}
+
+export interface StorageBreakdown {
+  docker_images: string;
+  docker_containers: string;
+  docker_volumes: string;
+  ollama_models_mb: number;
+  disk_free_gb: number;
+  disk_warning: boolean;
+}
+
+export interface DiagnosticsResult {
+  path: string;
+  size_bytes: number;
+  files_included: string[];
+}
+
+export interface DiagnosticsProgressEvent {
+  phase: string;
+  status: string;
+}

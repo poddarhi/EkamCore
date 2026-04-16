@@ -7,6 +7,7 @@ use tokio::sync::Mutex;
 mod commands;
 mod container_runtime;
 mod dashboard;
+mod diagnostics;
 mod disk;
 mod docker;
 mod hardware;
@@ -112,6 +113,11 @@ pub fn run() {
             dashboard::force_restart_service,
             dashboard::stop_all_services,
             dashboard::start_all_services,
+            // S15-004: diagnostics + storage
+            diagnostics::generate_diagnostics,
+            diagnostics::get_system_info_text,
+            diagnostics::clean_docker_cache,
+            diagnostics::get_storage_breakdown,
         ])
         .run(tauri::generate_context!())
         .expect("error while running EkamCore Manager");
