@@ -20,14 +20,18 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.session import get_db
-from api.errors import AuthorizationError
+from api.errors import AuthorizationError, RateLimitError
 from api.middleware.auth import get_current_user
 from api.schemas.auth import CurrentUser
 from api.services import flags as flags_service
 from api.services.pack.manifest_loader import ManifestLoader, PackManifest
+from api.services.pack.pack_context_factory import PackContextFactory
+from api.services.pack.pack_runner import PackRunner, PackRunResult
+from api.services.redis_client import REDIS_DB_CACHE, get_redis
 
 logger = structlog.get_logger()
 
@@ -120,3 +124,73 @@ async def list_packs(
         packs_payload.append(_manifest_to_dict(manifest, enabled=enabled))
 
     return {"packs": packs_payload, "load_errors": loader.load_errors}
+
+
+# ── Manual pack trigger (S14-004) ─────────────────────────────────────────
+
+class PackTriggerRequest(BaseModel):
+    workspace_id: str
+    workflow: str = "daily"
+
+
+@router.post("/packs/{pack_id}/run")
+async def trigger_pack_run(
+    pack_id: str,
+    body: PackTriggerRequest,
+    request: Request,
+    user: CurrentUser = Depends(_require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Trigger a manual pack run for a workspace (admin only).
+
+    Rate-limited to 1 run per workspace per hour via a Redis key
+    so accidental double-fires don't create duplicate cards.
+    """
+    from uuid import UUID as _UUID
+
+    workspace_id = _UUID(body.workspace_id)
+
+    # Rate limit: 1/hour/workspace.
+    r = get_redis(REDIS_DB_CACHE)
+    rl_key = f"rl:pack_run:{workspace_id}:{pack_id}"
+    if await r.get(rl_key):
+        raise RateLimitError(
+            error_code="RATE_LIMIT_EXCEEDED",
+            message="A pack run for this workspace was triggered less than 1 hour ago.",
+        )
+
+    loader: ManifestLoader | None = getattr(
+        request.app.state, "pack_manifest_loader", None
+    )
+    workflows: dict = getattr(
+        request.app.state, "pack_workflows", {}
+    )
+
+    if loader is None:
+        return {"error": "pack manifest loader not initialised"}
+
+    factory = PackContextFactory()
+    runner = PackRunner(
+        manifest_loader=loader,
+        context_factory=factory,
+        workflows=workflows,
+    )
+
+    result = await runner.run(
+        pack_id=pack_id,
+        workflow_name=body.workflow,
+        workspace_id=workspace_id,
+        trigger="manual",
+        db=db,
+    )
+    await db.commit()
+
+    await r.set(rl_key, "1", ex=3600)
+
+    logger.info(
+        "pack_manual_trigger",
+        pack_id=pack_id,
+        workspace_id=str(workspace_id),
+        state=result.state,
+    )
+    return result.model_dump(mode="json")
