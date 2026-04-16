@@ -242,3 +242,42 @@ export async function regenerateAllSecrets(): Promise<string> {
 export async function resetSetup(): Promise<void> {
   return invoke<void>("reset_setup");
 }
+
+// ── Update + Rollback (S15-006) ─────────────────────────────────────────────
+
+export interface UpdateInfo {
+  available: boolean;
+  current_version: string;
+  latest_version: string;
+  release_notes: string;
+  download_size_mb: number;
+}
+
+export interface UpdateResult {
+  success: boolean;
+  message: string;
+  rolled_back: boolean;
+  new_version: string | null;
+}
+
+export interface BackupEntry {
+  path: string;
+  timestamp: string;
+  size_mb: number;
+}
+
+export async function checkForUpdates(): Promise<UpdateInfo> {
+  return invoke<UpdateInfo>("check_for_updates");
+}
+
+export async function applyUpdate(targetVersion: string): Promise<UpdateResult> {
+  return invoke<UpdateResult>("apply_update", { targetVersion });
+}
+
+export async function rollbackToBackup(backupPath: string): Promise<string> {
+  return invoke<string>("rollback_to_backup", { backupPath });
+}
+
+export async function listBackups(): Promise<BackupEntry[]> {
+  return invoke<BackupEntry[]>("list_backups");
+}

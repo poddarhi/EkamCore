@@ -18,6 +18,7 @@ mod setup;
 mod startup;
 mod state;
 mod tailscale;
+mod update;
 mod watchdog;
 mod wizard_state;
 
@@ -132,6 +133,11 @@ pub fn run() {
             secret_injection::inject_secrets_and_start,
             secret_injection::regenerate_all_secrets,
             secret_injection::reset_setup,
+            // S15-006: update + rollback
+            update::check_for_updates,
+            update::apply_update,
+            update::rollback_to_backup,
+            update::list_backups,
         ])
         .run(tauri::generate_context!())
         .expect("error while running EkamCore Manager");

@@ -14,15 +14,17 @@ import Jobs from "./pages/Jobs";
 import Storage from "./pages/Storage";
 import Diagnostics from "./pages/Diagnostics";
 import ManagerSettings from "./pages/ManagerSettings";
+import Updates from "./pages/Updates";
 
 type AppView = "loading" | "setup" | "starting" | "main";
-type Tab = "dashboard" | "jobs" | "storage" | "diagnostics" | "settings";
+type Tab = "dashboard" | "jobs" | "storage" | "diagnostics" | "updates" | "settings";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "jobs", label: "Jobs" },
   { id: "storage", label: "Storage" },
   { id: "diagnostics", label: "Diagnostics" },
+  { id: "updates", label: "Updates" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -95,6 +97,7 @@ export default function App() {
         {activeTab === "jobs" && <Jobs />}
         {activeTab === "storage" && <Storage />}
         {activeTab === "diagnostics" && <Diagnostics />}
+        {activeTab === "updates" && <Updates />}
         {activeTab === "settings" && <ManagerSettings />}
       </main>
     </div>

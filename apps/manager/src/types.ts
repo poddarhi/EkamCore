@@ -170,3 +170,34 @@ export interface InjectionResult {
   message: string;
   containers_healthy: boolean;
 }
+
+// S15-006: Update + Rollback types
+
+export interface UpdateInfo {
+  available: boolean;
+  current_version: string;
+  latest_version: string;
+  release_notes: string;
+  download_size_mb: number;
+}
+
+export interface UpdateProgress {
+  step: string;
+  step_number: number;
+  total_steps: number;
+  percent: number;
+  message: string;
+}
+
+export interface UpdateResult {
+  success: boolean;
+  message: string;
+  rolled_back: boolean;
+  new_version: string | null;
+}
+
+export interface BackupEntry {
+  path: string;
+  timestamp: string;
+  size_mb: number;
+}
