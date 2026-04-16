@@ -1,6 +1,6 @@
 .PHONY: setup up down clean logs restart migrate migration seed \
        test test-api test-web test-mobile test-integration coverage \
-       lint format benchmark \
+       lint format benchmark chaos-test \
        shell-api shell-db shell-redis \
        ollama-start ollama-stop ollama-status \
        paperless-logs paperless-token paperless-shell \
@@ -88,6 +88,10 @@ format: ## Format all code
 # === Benchmarks ===
 benchmark: ## Run performance benchmarks
 	cd apps/api && poetry run python ../../scripts/benchmark/run_all.py
+
+# === Chaos Testing (S15-008) ===
+chaos-test: ## Run all 7 chaos test scenarios (requires running Docker stack)
+	bash scripts/chaos/run_all.sh
 
 # === Shell Access ===
 shell-api: ## Shell into API container
