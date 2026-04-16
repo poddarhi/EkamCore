@@ -294,7 +294,24 @@ export interface SearchResponse {
   facets: Record<string, number>;
 }
 
-export type SearchType = "calendar" | "reminder" | "contact" | "file" | "photo" | "all";
+export type SearchType =
+  | "calendar"
+  | "reminder"
+  | "contact"
+  | "file"
+  | "photo"
+  | "person"
+  | "all";
+
+export interface PersonPayload {
+  source?: "trusted_person";
+  person_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  context: "seen_recently" | "upcoming_event" | "catch_up" | "search_match";
+  supporting_data?: Record<string, unknown>;
+  face_count?: number | null;
+}
 
 export interface FilePayload {
   filename?: string | null;

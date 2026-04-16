@@ -20,6 +20,7 @@ import { Avatar } from "../design-system/components";
 import { useAuth } from "../contexts/AuthContext";
 import { useFlag } from "../contexts/FlagContext";
 import NotificationBell from "../components/NotificationBell";
+import TopBarPersonSearch from "../components/people/TopBarPersonSearch";
 import { useFaceConsent, useReviewQueueBadge } from "../hooks/usePeople";
 import { t } from "../i18n";
 import { skipToContent } from "../utils/a11y";
@@ -367,20 +368,7 @@ export default function MainLayout() {
 
           {/* Right: search + avatar */}
           <div className="flex items-center gap-4">
-            <div className="hidden sm:block relative">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-neutral-400)] pointer-events-none"
-                aria-hidden="true"
-              />
-              <input
-                type="text"
-                placeholder={t("topbar.search.placeholder")}
-                disabled
-                className="w-[280px] h-9 pl-9 pr-3 rounded-[var(--radius-md)] border border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] text-[var(--text-small-size)] leading-[var(--text-small-height)] text-[var(--color-neutral-900)] placeholder:text-[var(--color-neutral-400)] outline-none opacity-50 cursor-not-allowed"
-                aria-label={t("topbar.search.ariaLabel")}
-              />
-            </div>
+            <TopBarPersonSearch />
             <NotificationBell />
             <Avatar name={user?.id ? "User" : undefined} size="sm" />
           </div>

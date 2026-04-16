@@ -22,11 +22,14 @@ from api.services.search.photo_search import PhotoFilters, search_photos
 from api.db.models.calendar_event import CalendarEvent
 from api.db.models.contact import Contact
 from api.db.models.reminder import Reminder
+from api.db.models.trusted_person import TrustedPerson
 from api.schemas.envelope import Card, EventCard, FileCard, PersonCard, ReminderCard
 
 logger = structlog.get_logger()
 
-SearchType = Literal["calendar", "reminder", "contact", "file", "photo"]
+SearchType = Literal[
+    "calendar", "reminder", "contact", "file", "photo", "person"
+]
 
 
 # ---------------------------------------------------------------------------
@@ -307,6 +310,81 @@ async def count_contacts(
 # ---------------------------------------------------------------------------
 
 
+async def search_trusted_persons(
+    query: str,
+    workspace_id: UUID,
+    db: AsyncSession,
+    *,
+    limit: int = 20,
+    offset: int = 0,
+) -> list[PersonCard]:
+    """Search People Graph trusted_persons by display_name (S13-009).
+
+    Emits ``PersonCard``s with ``payload.source = "trusted_person"``
+    so the frontend can route clicks to ``/people/:id`` rather than
+    the older contact-detail page. Simple ILIKE match for v1; fuzzy
+    match is deferred to a later story.
+    """
+    like = f"%{query}%"
+    stmt = (
+        select(TrustedPerson)
+        .where(
+            and_(
+                TrustedPerson.workspace_id == workspace_id,
+                TrustedPerson.deleted_at.is_(None),
+                TrustedPerson.display_name.ilike(like),
+            )
+        )
+        .order_by(TrustedPerson.display_name)
+        .limit(limit)
+        .offset(offset)
+    )
+    result = await db.execute(stmt)
+    persons = result.scalars().all()
+
+    cards: list[PersonCard] = []
+    for p in persons:
+        cards.append(
+            PersonCard(
+                id=p.id,
+                priority_score=1.0,
+                source_ids=[p.id],
+                payload={
+                    "source": "trusted_person",
+                    "person_id": str(p.id),
+                    "display_name": p.display_name,
+                    "avatar_url": f"/api/v1/people/{p.id}/avatar",
+                    "context": "search_match",
+                    "face_count": p.face_count
+                    if hasattr(p, "face_count")
+                    else None,
+                },
+            )
+        )
+    return cards
+
+
+async def count_trusted_persons(
+    query: str,
+    workspace_id: UUID,
+    db: AsyncSession,
+) -> int:
+    like = f"%{query}%"
+    stmt = (
+        select(func.count())
+        .select_from(TrustedPerson)
+        .where(
+            and_(
+                TrustedPerson.workspace_id == workspace_id,
+                TrustedPerson.deleted_at.is_(None),
+                TrustedPerson.display_name.ilike(like),
+            )
+        )
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one()
+
+
 async def search_files(
     query: str,
     workspace_id: UUID,
@@ -345,7 +423,14 @@ async def search_all(
 
     Returns (cards sorted by relevance, facet counts by type).
     """
-    search_types = types or ["calendar", "reminder", "contact", "file", "photo"]
+    search_types = types or [
+        "calendar",
+        "reminder",
+        "contact",
+        "file",
+        "photo",
+        "person",
+    ]
 
     all_cards: list[Card] = []
     facets: dict[str, int] = {}
@@ -391,6 +476,15 @@ async def search_all(
         )
         all_cards.extend(photo_cards)
         facets["photo"] = photo_total
+
+    if "person" in search_types:
+        person_cards = await search_trusted_persons(
+            query, workspace_id, db, limit=limit, offset=offset,
+        )
+        all_cards.extend(person_cards)
+        facets["person"] = await count_trusted_persons(
+            query, workspace_id, db
+        )
 
     all_cards.sort(key=lambda c: c.priority_score, reverse=True)
 

@@ -27,6 +27,7 @@ export type PeopleEventName =
   | "undo.failed"
   | "personCard.clickedFromToday"
   | "personCard.clickedFromSearch"
+  | "personSearch.topBar.used"
   | "lightbox.openedFromPhoto"
   | "lightbox.personClicked";
 

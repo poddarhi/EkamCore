@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.schemas.envelope import Card, ResponseEnvelope, make_envelope
 from api.services.today.calendar_card_source import CalendarCardSource
+from api.services.today.person_card_source import PersonCardSource
 from api.services.today.reminder_card_source import ReminderCardSource
 from api.services.today.status_card_source import StatusCardSource
 
@@ -33,12 +34,19 @@ async def assemble_today(
     calendar_source = CalendarCardSource(workspace_id=workspace_id, db=db)
     reminder_source = ReminderCardSource(workspace_id=workspace_id, db=db)
     status_source = StatusCardSource(workspace_id=workspace_id)
+    person_source = PersonCardSource(workspace_id=workspace_id, db=db)
 
     event_cards = await calendar_source.fetch(today=today, now=now)
     reminder_cards = await reminder_source.fetch(today=today, now=now)
     status_card = status_source.fetch(now=now)
+    person_cards = await person_source.fetch(today=today, now=now)
 
-    all_cards: list[Card] = [*event_cards, *reminder_cards, status_card]
+    all_cards: list[Card] = [
+        *event_cards,
+        *reminder_cards,
+        *person_cards,
+        status_card,
+    ]
     all_cards.sort(key=lambda c: c.priority_score, reverse=True)
 
     latency_ms = int((time.perf_counter() - t0) * 1000)

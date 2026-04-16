@@ -2,7 +2,9 @@ import { Calendar, CheckCircle, User } from "lucide-react";
 import { Card, Badge } from "../design-system/components";
 import type { Card as CardType, EventPayload, ReminderPayload, FilePayload, PhotoPayload } from "../api/client";
 import FileCard from "./cards/FileCard";
+import PersonCard from "./cards/PersonCard";
 import PhotoCard from "./cards/PhotoCard";
+import type { PersonPayload } from "../api/client";
 
 interface SearchResultCardProps {
   card: CardType;
@@ -53,6 +55,18 @@ export default function SearchResultCard({ card, query }: SearchResultCardProps)
   }
   if (card.type === "photo") {
     return <PhotoCard id={card.id} payload={card.payload as PhotoPayload} />;
+  }
+  if (
+    card.type === "person" &&
+    (card.payload as Record<string, unknown>).source === "trusted_person"
+  ) {
+    return (
+      <PersonCard
+        id={card.id}
+        payload={card.payload as PersonPayload}
+        surface="search"
+      />
+    );
   }
 
   const Icon = TYPE_ICONS[card.type as keyof typeof TYPE_ICONS] ?? Calendar;

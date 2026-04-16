@@ -24,6 +24,7 @@ const TYPE_OPTIONS: { value: SearchType; labelKey: string }[] = [
   { value: "contact", labelKey: "search.type.contact" },
   { value: "file", labelKey: "search.type.file" },
   { value: "photo", labelKey: "search.type.photo" },
+  { value: "person", labelKey: "search.type.person" },
 ];
 
 const SEARCH_MODE_OPTIONS: { value: SearchMode; labelKey: string }[] = [
