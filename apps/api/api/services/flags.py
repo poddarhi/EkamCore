@@ -53,6 +53,40 @@ FLAG_REGISTRY: dict[str, FlagDef] = {
             "FACE_EMBED_KEY."
         ),
     ),
+    # ── PLA pack flags (S14-001) ────────────────────────────────────────
+    "pla_pack_enabled": FlagDef(
+        default=False,
+        scope="workspace",
+        phase=3,
+        description=(
+            "Enables the Personal Life Assistant pack — follow-up "
+            "suggestions, weekly summaries, relationship reminders."
+        ),
+    ),
+    "pla_follow_ups_enabled": FlagDef(
+        default=True,
+        scope="user",
+        phase=3,
+        description=(
+            "When PLA pack is active, generate follow-up suggestions."
+        ),
+    ),
+    "pla_weekly_summary_enabled": FlagDef(
+        default=True,
+        scope="user",
+        phase=3,
+        description=(
+            "When PLA pack is active, generate Monday weekly summary."
+        ),
+    ),
+    "pla_relationship_reminders_enabled": FlagDef(
+        default=True,
+        scope="user",
+        phase=3,
+        description=(
+            "When PLA pack is active, generate relationship reminders."
+        ),
+    ),
     # Additional Phase 3+ flags can be registered here as they land.
 }
 
@@ -118,3 +152,24 @@ async def face_pipeline_active(workspace_id: UUID, db: AsyncSession) -> bool:
             exc_info=True,
         )
         return False
+
+
+async def pla_active(workspace_id: UUID, db: AsyncSession) -> bool:
+    """Return True iff the Personal Life Assistant pack may run (S14-001).
+
+    Three gates, all must hold:
+      1. ``pla_pack_enabled`` flag is in the runtime active set
+      2. ``face_clustering_enabled`` flag is in the runtime active set
+      3. ``face_pipeline_active(workspace_id, db)`` — consent + key
+
+    Gate 2 is listed explicitly even though ``face_pipeline_active``
+    already checks it. The story calls for it so the ordering is
+    deterministic if ``face_pipeline_active`` ever changes its own
+    gates; every PLA endpoint and worker should call this helper
+    rather than rebuilding the three-way check.
+    """
+    if not is_flag_enabled("pla_pack_enabled"):
+        return False
+    if not is_flag_enabled("face_clustering_enabled"):
+        return False
+    return await face_pipeline_active(workspace_id, db)

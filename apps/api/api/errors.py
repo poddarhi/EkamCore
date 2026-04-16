@@ -112,3 +112,58 @@ class FaceModelInvalidImageError(EkamCoreError):
 
     status_code = 422
     error_code = "FACE_MODEL_INVALID_IMAGE"
+
+
+# ── Pack / PLA errors (S14-001) ───────────────────────────────────────────
+
+
+class PackNotFoundError(EkamCoreError):
+    """Raised when a pack manifest cannot be resolved (S14-001)."""
+
+    status_code = 404
+    error_code = "PACK_NOT_FOUND"
+
+
+class PackDisabledError(EkamCoreError):
+    """Raised when a pack endpoint is hit but the pack's feature flag
+    is off for the workspace. See ``flags.pla_active`` for the PLA
+    pack's three-way gate check."""
+
+    status_code = 403
+    error_code = "PACK_DISABLED"
+
+
+class PackExecutionTimeoutError(EkamCoreError):
+    """Raised when a pack run exceeds its manifest's
+    ``max_execution_time``. The run row is stamped
+    ``state='timeout'`` and retried on the next scheduled trigger."""
+
+    status_code = 500
+    error_code = "PACK_EXECUTION_TIMEOUT"
+
+
+class PackExecutionError(EkamCoreError):
+    """Raised when a pack run throws an unhandled exception. The full
+    traceback is logged server-side; clients only see the structured
+    error envelope."""
+
+    status_code = 500
+    error_code = "PACK_EXECUTION_ERROR"
+
+
+class PackLlmQuotaExceededError(EkamCoreError):
+    """Raised when a pack run exceeds ``max_llm_calls_per_run`` in
+    its manifest. Returns 429 so existing client-side rate-limit
+    handling kicks in automatically."""
+
+    status_code = 429
+    error_code = "PACK_LLM_QUOTA_EXCEEDED"
+
+
+class CapabilityDeniedError(EkamCoreError):
+    """Raised when a pack attempts to use a capability it did not
+    declare in its manifest. See ART-13 §6 for the capability
+    enforcement table."""
+
+    status_code = 403
+    error_code = "CAPABILITY_DENIED"

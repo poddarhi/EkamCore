@@ -9,6 +9,7 @@ scoped settings use ``(workspace_id, NULL, key)`` so they apply to all members.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Literal
 from uuid import UUID
 
@@ -48,7 +49,47 @@ class _IntDef:
         self.max_val = max_val
 
 
-SettingDef = _EnumDef | _BoolDef | _IntDef
+class _StringDef:
+    """String-typed setting with optional length + regex validation.
+
+    Added for the S14-001 pack settings (daily/weekly run-time
+    HH:MM strings). Kept minimal — no multi-line support, no
+    case-insensitive pattern matching flag. If future callers
+    need either, extend this class rather than inlining a branch.
+    """
+
+    kind: Literal["string"] = "string"
+
+    def __init__(
+        self,
+        default: str,
+        scope: str,
+        *,
+        max_length: int = 255,
+        pattern: str | None = None,
+    ):
+        self.default = default
+        self.scope = scope
+        self.max_length = max_length
+        self.pattern = pattern
+
+
+SettingDef = _EnumDef | _BoolDef | _IntDef | _StringDef
+
+
+# Compile-once cache for _StringDef regex patterns. Shared across all
+# calls so validate_setting() doesn't re-parse the same pattern on
+# every request.
+_COMPILED_PATTERNS: dict[str, re.Pattern[str]] = {}
+
+
+def _get_pattern(raw: str) -> re.Pattern[str]:
+    cached = _COMPILED_PATTERNS.get(raw)
+    if cached is not None:
+        return cached
+    compiled = re.compile(raw)
+    _COMPILED_PATTERNS[raw] = compiled
+    return compiled
 
 SETTINGS_REGISTRY: dict[str, SettingDef] = {
     "date_format": _EnumDef(
@@ -72,6 +113,43 @@ SETTINGS_REGISTRY: dict[str, SettingDef] = {
     # this registry — consent state is the ConsentService's responsibility.
     "backup_enabled": _BoolDef(default=True, scope="workspace"),
     "backup_retention_days": _IntDef(default=7, scope="workspace", min_val=1, max_val=90),
+    # ── PLA pack settings (S14-001) ──────────────────────────────────────
+    # Story calls for a dedicated ``pack`` namespace, but the service
+    # hardcodes ``_NAMESPACE = "core"`` and threading a namespace
+    # parameter through every caller is out of scope. The ``pack.pla.*``
+    # prefix preserves the grouping intent.
+    "pack.pla.daily_run_time": _StringDef(
+        default="06:00",
+        scope="workspace",
+        pattern=r"^([01]\d|2[0-3]):[0-5]\d$",
+    ),
+    "pack.pla.weekly_run_day": _EnumDef(
+        options=[
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+        ],
+        default="monday",
+        scope="workspace",
+    ),
+    "pack.pla.weekly_run_time": _StringDef(
+        default="08:00",
+        scope="workspace",
+        pattern=r"^([01]\d|2[0-3]):[0-5]\d$",
+    ),
+    "pack.pla.follow_up_lookback_days": _IntDef(
+        default=7, scope="user", min_val=3, max_val=30
+    ),
+    "pack.pla.relationship_inactive_days": _IntDef(
+        default=30, scope="user", min_val=14, max_val=90
+    ),
+    "pack.pla.max_suggestions_per_day": _IntDef(
+        default=5, scope="user", min_val=1, max_val=20
+    ),
 }
 
 
@@ -122,6 +200,38 @@ def validate_setting(key: str, value: Any) -> Any:
                 error_code="VALIDATION_ERROR",
                 message=f"Setting '{key}' must be between {defn.min_val} and {defn.max_val}.",
                 details={"key": key, "min": defn.min_val, "max": defn.max_val, "received": value},
+            )
+        return value
+
+    if isinstance(defn, _StringDef):
+        if not isinstance(value, str):
+            raise ValidationError(
+                error_code="VALIDATION_ERROR",
+                message=f"Setting '{key}' must be a string.",
+                details={"key": key, "received": value},
+            )
+        if len(value) > defn.max_length:
+            raise ValidationError(
+                error_code="VALIDATION_ERROR",
+                message=(
+                    f"Setting '{key}' must be at most "
+                    f"{defn.max_length} characters."
+                ),
+                details={
+                    "key": key,
+                    "max_length": defn.max_length,
+                    "received_length": len(value),
+                },
+            )
+        if defn.pattern is not None and not _get_pattern(defn.pattern).fullmatch(
+            value
+        ):
+            raise ValidationError(
+                error_code="VALIDATION_ERROR",
+                message=(
+                    f"Setting '{key}' must match the expected format."
+                ),
+                details={"key": key, "pattern": defn.pattern, "received": value},
             )
         return value
 

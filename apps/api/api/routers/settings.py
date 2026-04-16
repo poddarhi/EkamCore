@@ -47,22 +47,31 @@ class SettingsResponse(BaseModel):
 
 
 def _registry_info() -> dict[str, dict[str, Any]]:
-    """Build a JSON-serializable summary of the settings registry."""
+    """Build a JSON-serializable summary of the settings registry.
+
+    Dispatches on the registry's ``kind`` attribute (S14-001 added
+    ``"string"`` alongside the existing enum/boolean/integer types)
+    rather than inferring via ``hasattr`` — the attribute-sniff
+    would misclassify ``_StringDef`` as boolean because it has
+    neither ``options`` nor ``min_val``.
+    """
     result: dict[str, dict[str, Any]] = {}
     for key, defn in SETTINGS_REGISTRY.items():
         entry: dict[str, Any] = {
             "default": defn.default,
             "scope": defn.scope,
+            "type": getattr(defn, "kind", "boolean"),
         }
-        if hasattr(defn, "options"):
-            entry["type"] = "enum"
-            entry["options"] = defn.options
-        elif hasattr(defn, "min_val"):
-            entry["type"] = "integer"
-            entry["min"] = defn.min_val
-            entry["max"] = defn.max_val
-        else:
-            entry["type"] = "boolean"
+        kind = entry["type"]
+        if kind == "enum":
+            entry["options"] = defn.options  # type: ignore[attr-defined]
+        elif kind == "integer":
+            entry["min"] = defn.min_val  # type: ignore[attr-defined]
+            entry["max"] = defn.max_val  # type: ignore[attr-defined]
+        elif kind == "string":
+            entry["max_length"] = defn.max_length  # type: ignore[attr-defined]
+            if defn.pattern is not None:  # type: ignore[attr-defined]
+                entry["pattern"] = defn.pattern  # type: ignore[attr-defined]
         result[key] = entry
     return result
 
