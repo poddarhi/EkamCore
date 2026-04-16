@@ -16,7 +16,7 @@ from api.middleware.error_handler import ekamcore_error_handler, unhandled_error
 from api.middleware.feature_gate import _ENABLED_FLAGS
 from api.middleware.logging import LoggingMiddleware
 from api.middleware.metrics_middleware import MetricsMiddleware
-from api.routers import admin, auth, face_backfill, face_consent, face_status, health, internal, metrics, notifications, people, people_operations, photos, query, recap, reminders, review_queue, search, settings, sources, today
+from api.routers import admin, auth, face_backfill, face_consent, face_status, health, internal, metrics, notifications, pack_admin, people, people_operations, photos, query, recap, reminders, review_queue, search, settings, sources, today
 
 configure_logging()
 logger = structlog.get_logger()
@@ -90,6 +90,29 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("qdrant_collections_initialized")
     except Exception:
         logger.warning("qdrant_init_failed", exc_info=True)
+
+    # S14-002: pack manifest loader. Walks the repo-level ``packs/``
+    # directory, validates every ``manifest.yaml``, and stashes the
+    # loader on ``app.state`` so routers and workers can read the
+    # registered packs without re-parsing. Malformed packs are logged
+    # but never crash startup.
+    try:
+        from api.services.pack.manifest_loader import ManifestLoader
+
+        packs_dir = (
+            Path(__file__).resolve().parents[3] / "packs"
+        )
+        pack_loader = ManifestLoader(packs_dir=packs_dir)
+        pack_loader.load_all()
+        app.state.pack_manifest_loader = pack_loader
+        logger.info(
+            "pack_manifests_loaded",
+            count=len(pack_loader.manifests),
+            errors=len(pack_loader.load_errors),
+        )
+    except Exception:
+        logger.warning("pack_manifest_loader_init_failed", exc_info=True)
+        app.state.pack_manifest_loader = None
 
     sync_task = asyncio.create_task(_paperless_sync_loop())
     logger.info("paperless_sync_scheduler_started")
@@ -165,6 +188,7 @@ def create_app() -> FastAPI:
     app.include_router(sources.router)
     app.include_router(internal.router)
     app.include_router(admin.router)
+    app.include_router(pack_admin.router)
     app.include_router(today.router)
     app.include_router(recap.router)
     app.include_router(query.router)

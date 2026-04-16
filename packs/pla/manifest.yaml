@@ -1,0 +1,39 @@
+# Personal Life Assistant pack manifest (S14-002 / ART-13 §3).
+#
+# Declares the capabilities, resource budget, card types, and
+# schedule for the PLA pack. The runtime reads this file on startup
+# via ManifestLoader.load_all() and enforces the capability set
+# on every data access inside PackContext.
+#
+# Edits to this file require a pack version bump and a restart of
+# the API process. The loader validates every field on startup
+# and refuses to register a malformed pack.
+
+pack_id: pla
+name: Personal Life Assistant
+version: 1.0.0
+description: Follow-up suggestions, weekly summaries, and relationship reminders.
+author: EkamCore
+
+capabilities:
+  - read:contacts
+  - read:calendar_events
+  - read:reminders
+  - read:trusted_persons
+  - read:graph_edges
+  - query:graph
+  - invoke:llm
+
+resource_limits:
+  max_execution_time_seconds: 300
+  max_memory_mb: 512
+  max_llm_calls_per_run: 5
+
+card_types:
+  - follow_up_suggestion
+  - weekly_summary
+  - relationship_reminder
+
+schedule:
+  daily: "06:00"
+  weekly: "monday 08:00"
