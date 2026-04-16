@@ -41,3 +41,28 @@ export interface WizardState {
   steps: Record<string, StepStatus>;
   completed: boolean;
 }
+
+// S15-002: Setup wizard step types
+
+export interface PullProgressEvent {
+  service: string;
+  status: string;
+  percent: number | null;
+}
+
+export interface DbInitProgressEvent {
+  phase: string;
+  status: string;
+}
+
+export interface AdminCreateResult {
+  success: boolean;
+  secrets_generated: boolean;
+  message: string;
+}
+
+export interface PermissionsResult {
+  calendar: boolean;
+  reminders: boolean;
+  contacts: boolean;
+}

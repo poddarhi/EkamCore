@@ -83,3 +83,44 @@ export async function keychainGenerateSecret(
 ): Promise<string> {
   return invoke<string>("keychain_generate_secret", { length });
 }
+
+// ── Setup wizard (S15-002) ──────────────────────────────────────────────────
+
+export interface AdminCreateResult {
+  success: boolean;
+  secrets_generated: boolean;
+  message: string;
+}
+
+export interface PermissionsResult {
+  calendar: boolean;
+  reminders: boolean;
+  contacts: boolean;
+}
+
+export async function pullImages(): Promise<void> {
+  return invoke<void>("pull_images");
+}
+
+export async function initializeDatabase(): Promise<void> {
+  return invoke<void>("initialize_database");
+}
+
+export async function createAdmin(
+  email: string,
+  password: string,
+): Promise<AdminCreateResult> {
+  return invoke<AdminCreateResult>("create_admin", { email, password });
+}
+
+export async function requestPermissions(): Promise<PermissionsResult> {
+  return invoke<PermissionsResult>("request_permissions");
+}
+
+export async function selectSourceFolders(): Promise<string[]> {
+  return invoke<string[]>("select_source_folders");
+}
+
+export async function configurePaperless(consumeDir: string): Promise<void> {
+  return invoke<void>("configure_paperless", { consumeDir });
+}

@@ -8,6 +8,7 @@ mod disk;
 mod docker;
 mod hardware;
 mod keychain;
+mod setup;
 mod startup;
 mod state;
 mod tailscale;
@@ -82,6 +83,13 @@ pub fn run() {
             commands::keychain_get_secret,
             commands::keychain_set_secret,
             commands::keychain_generate_secret,
+            // S15-002: setup wizard steps 4-7
+            setup::pull_images,
+            setup::initialize_database,
+            setup::create_admin,
+            setup::request_permissions,
+            setup::select_source_folders,
+            setup::configure_paperless,
         ])
         .run(tauri::generate_context!())
         .expect("error while running EkamCore Manager");
