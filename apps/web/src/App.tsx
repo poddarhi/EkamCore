@@ -20,6 +20,7 @@ import StoragePage from "./pages/admin/StoragePage";
 import SettingsLayout from "./pages/settings/SettingsLayout";
 import GeneralSettings from "./pages/settings/GeneralSettings";
 import SourcesSettings from "./pages/settings/SourcesSettings";
+import PackSettingsPage from "./pages/settings/PackSettingsPage";
 import PhotoIntelligenceSettings from "./pages/settings/PhotoIntelligenceSettings";
 import AccountSettings from "./pages/settings/AccountSettings";
 import AboutSettings from "./pages/settings/AboutSettings";
@@ -70,6 +71,7 @@ function AppRoutes() {
           <Route path="general" element={<GeneralSettings />} />
           <Route path="sources" element={<SourcesSettings />} />
           <Route path="photo-intelligence" element={<PhotoIntelligenceSettings />} />
+          <Route path="pack" element={<PackSettingsPage />} />
           <Route path="account" element={<AccountSettings />} />
           <Route path="about" element={<AboutSettings />} />
         </Route>

@@ -25,8 +25,17 @@ const PHASE_0_FLAGS: Flags = {
   settings_enabled: true,
 };
 
-export function FlagProvider({ children }: { children: ReactNode }) {
-  const flags = useMemo(() => PHASE_0_FLAGS, []);
+export function FlagProvider({
+  children,
+  overrides,
+}: {
+  children: ReactNode;
+  overrides?: Flags;
+}) {
+  const flags = useMemo(
+    () => (overrides ? { ...PHASE_0_FLAGS, ...overrides } : PHASE_0_FLAGS),
+    [overrides],
+  );
   return <FlagContext.Provider value={flags}>{children}</FlagContext.Provider>;
 }
 

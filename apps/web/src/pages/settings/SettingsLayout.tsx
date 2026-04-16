@@ -4,7 +4,7 @@
  */
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Settings, FolderOpen, Brain, User, Info } from "lucide-react";
+import { Bot, Settings, FolderOpen, Brain, User, Info } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { t } from "../../i18n";
 
@@ -18,6 +18,7 @@ const NAV_ITEMS: SettingsNavItem[] = [
   { to: "/settings/general", icon: Settings, labelKey: "settings.nav.general" },
   { to: "/settings/sources", icon: FolderOpen, labelKey: "settings.nav.sources" },
   { to: "/settings/photo-intelligence", icon: Brain, labelKey: "settings.nav.photoIntelligence" },
+  { to: "/settings/pack", icon: Bot, labelKey: "settings.pack.title" },
   { to: "/settings/account", icon: User, labelKey: "settings.nav.account" },
   { to: "/settings/about", icon: Info, labelKey: "settings.nav.about" },
 ];
