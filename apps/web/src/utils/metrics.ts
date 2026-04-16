@@ -28,6 +28,12 @@ export type PeopleEventName =
   | "personCard.clickedFromToday"
   | "personCard.clickedFromSearch"
   | "personSearch.topBar.used"
+  | "packCard.follow_up.done"
+  | "packCard.follow_up.dismissed"
+  | "packCard.follow_up.snoozed"
+  | "packCard.weekly_summary.dismissed"
+  | "packCard.relationship_reminder.done"
+  | "packCard.relationship_reminder.dismissed"
   | "lightbox.openedFromPhoto"
   | "lightbox.personClicked";
 

@@ -27,6 +27,10 @@ class NotificationType(str, enum.Enum):
     BACKUP_FAILED = "BACKUP_FAILED"
     SYSTEM_DEGRADED = "SYSTEM_DEGRADED"
     SYSTEM_RECOVERED = "SYSTEM_RECOVERED"
+    # S14-009: pack lifecycle notifications
+    PLA_SUGGESTIONS_READY = "PLA_SUGGESTIONS_READY"
+    PLA_WEEKLY_SUMMARY = "PLA_WEEKLY_SUMMARY"
+    PLA_RUN_FAILED = "PLA_RUN_FAILED"
 
 
 async def create_notification(

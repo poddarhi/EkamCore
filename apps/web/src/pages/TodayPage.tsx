@@ -80,7 +80,12 @@ export default function TodayPage() {
       {/* Cards */}
       <div className="space-y-[var(--space-3)]">
         {data.cards.map((card) => (
-          <CardRenderer key={card.id} card={card} />
+          <CardRenderer
+            key={card.id}
+            card={card}
+            surface="today"
+            onPackCardAcknowledged={() => void mutate()}
+          />
         ))}
       </div>
     </div>
