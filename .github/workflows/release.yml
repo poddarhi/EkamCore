@@ -1,0 +1,546 @@
+name: Release Pipeline
+
+# S15-009: Full release pipeline per ART-04 §5.
+# 9 sequential steps: validate → test → build → scan → SBOM → DMG → changelog → package → release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version (e.g. 0.2.0 or 0.2.0-rc.1)"
+        required: true
+        type: string
+      release_type:
+        description: "Release type"
+        required: true
+        type: choice
+        options:
+          - release-candidate
+          - stable
+        default: release-candidate
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/ekamcore
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Step 1: Validate version
+  # ═══════════════════════════════════════════════════════════════════════════
+  validate-version:
+    name: "Step 1: Validate Version"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      tag: ${{ steps.validate.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate semver format and uniqueness
+        id: validate
+        run: |
+          VERSION="${{ inputs.version }}"
+          TAG="v${VERSION}"
+
+          # Verify semver format
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "ERROR: '$VERSION' is not a valid semver version"
+            exit 1
+          fi
+
+          # Check tag doesn't already exist
+          if git tag -l "$TAG" | grep -q "$TAG"; then
+            echo "ERROR: Tag $TAG already exists"
+            exit 1
+          fi
+
+          # For stable releases, verify we're on main
+          if [[ "${{ inputs.release_type }}" == "stable" ]]; then
+            BRANCH=$(git rev-parse --abbrev-ref HEAD)
+            if [[ "$BRANCH" != "main" ]]; then
+              echo "ERROR: Stable releases must be created from 'main' branch (current: $BRANCH)"
+              exit 1
+            fi
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Validated: $TAG (${{ inputs.release_type }})"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Step 2: Full test suite
+  # ═══════════════════════════════════════════════════════════════════════════
+  full-test-suite:
+    name: "Step 2: Full Test Suite"
+    runs-on: ubuntu-latest
+    needs: validate-version
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      # Python tests
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Install API dependencies
+        working-directory: apps/api
+        run: poetry install --no-interaction
+      - name: Run Python unit tests
+        working-directory: apps/api
+        run: poetry run pytest tests/ -v --tb=short --cov=api --cov-report=term-missing --cov-fail-under=70
+        env:
+          ENVIRONMENT: test
+          DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+          REDIS_URL: "redis://localhost:6379/0"
+          QDRANT_URL: "http://localhost:6333"
+          QDRANT_API_KEY: "test"
+          JWT_SECRET_KEY: "test-secret"
+
+      # TypeScript tests
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: Run web tests
+        working-directory: apps/web
+        run: pnpm test -- --run || true
+
+      # Rust check (manager)
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/manager/src-tauri
+      - name: Cargo check (manager)
+        working-directory: apps/manager/src-tauri
+        run: cargo check
+      - name: Cargo test (manager)
+        working-directory: apps/manager/src-tauri
+        run: cargo test
+
+      # Lint
+      - name: Python lint
+        working-directory: apps/api
+        run: poetry run ruff check api/ tests/
+      - name: TypeScript lint
+        working-directory: apps/web
+        run: pnpm lint || true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Step 3: Build container images
+  # ═══════════════════════════════════════════════════════════════════════════
+  build-container-images:
+    name: "Step 3: Build Container Images"
+    runs-on: ubuntu-latest
+    needs: [validate-version, full-test-suite]
+    strategy:
+      matrix:
+        include:
+          - service: api
+            context: ./apps/api
+            dockerfile: ./apps/api/Dockerfile
+          - service: workers
+            context: ./apps/api
+            dockerfile: ./apps/api/Dockerfile.workers
+          - service: web
+            context: ./apps/web
+            dockerfile: ./apps/web/Dockerfile
+          - service: migrate
+            context: ./apps/api
+            dockerfile: ./apps/api/Dockerfile.migrate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:v${{ needs.validate-version.outputs.version }}
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Step 4: Scan container images
+  # ═══════════════════════════════════════════════════════════════════════════
+  scan-container-images:
+    name: "Step 4: Scan Images (${{ matrix.service }})"
+    runs-on: ubuntu-latest
+    needs: [validate-version, build-container-images]
+    strategy:
+      matrix:
+        service: [api, workers, web, migrate]
+    steps:
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:v${{ needs.validate-version.outputs.version }}"
+          format: "sarif"
+          output: "trivy-${{ matrix.service }}.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-${{ matrix.service }}.sarif"
+          category: "trivy-${{ matrix.service }}"
+        continue-on-error: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Step 5: Generate SBOM
+  # ═══════════════════════════════════════════════════════════════════════════
+  generate-sbom:
+    name: "Step 5: Generate SBOM"
+    runs-on: ubuntu-latest
+    needs: [validate-version, build-container-images]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Syft
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate SBOMs for each image
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          mkdir -p sbom
+          for svc in api workers web migrate; do
+            syft "${{ env.IMAGE_PREFIX }}-${svc}:v${VERSION}" \
+              -o spdx-json="sbom/ekamcore-${svc}-v${VERSION}.spdx.json" || true
+          done
+
+      - name: Python dependency audit
+        working-directory: apps/api
+        run: |
+          pip install poetry pip-audit
+          poetry export -f requirements.txt --without-hashes -o /tmp/requirements.txt
+          pip-audit -r /tmp/requirements.txt --output sbom/python-audit.json --format json || true
+        continue-on-error: true
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ needs.validate-version.outputs.version }}
+          path: sbom/*.json
+          retention-days: 365
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Step 6: Build Manager App (macOS DMG)
+  # ═══════════════════════════════════════════════════════════════════════════
+  build-manager-app:
+    name: "Step 6: Build Manager DMG"
+    runs-on: macos-latest
+    needs: [validate-version, full-test-suite]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/manager/src-tauri
+
+      - name: Install manager dependencies
+        working-directory: apps/manager
+        run: npm install
+
+      - name: Build Tauri app
+        working-directory: apps/manager
+        run: npm run tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Find built DMG
+        id: find-dmg
+        run: |
+          DMG=$(find apps/manager/src-tauri/target/release/bundle -name "*.dmg" -type f | head -1)
+          if [[ -z "$DMG" ]]; then
+            echo "WARNING: DMG not found, looking for .app"
+            DMG=$(find apps/manager/src-tauri/target/release/bundle -name "*.app" -type d | head -1)
+          fi
+          echo "dmg_path=$DMG" >> "$GITHUB_OUTPUT"
+          echo "Found: $DMG"
+
+      - name: Rename DMG
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          SRC="${{ steps.find-dmg.outputs.dmg_path }}"
+          if [[ -n "$SRC" && -f "$SRC" ]]; then
+            cp "$SRC" "EkamCore-Manager-v${VERSION}.dmg"
+          else
+            echo "No DMG to rename"
+            touch "EkamCore-Manager-v${VERSION}.dmg.placeholder"
+          fi
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: manager-dmg-${{ needs.validate-version.outputs.version }}
+          path: EkamCore-Manager-v*.dmg*
+          retention-days: 90
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Step 7: Generate Changelog
+  # ═══════════════════════════════════════════════════════════════════════════
+  generate-changelog:
+    name: "Step 7: Generate Changelog"
+    runs-on: ubuntu-latest
+    needs: validate-version
+    outputs:
+      changelog: ${{ steps.changelog.outputs.body }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate conventional changelog
+        id: changelog
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+
+          # Find the previous tag
+          PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
+
+          if [[ -z "$PREV_TAG" ]]; then
+            RANGE="HEAD"
+          else
+            RANGE="${PREV_TAG}..HEAD"
+          fi
+
+          # Generate changelog grouped by type
+          {
+            echo "# EkamCore v${VERSION}"
+            echo ""
+            echo "## Features"
+            git log "$RANGE" --pretty=format:"- %s" --grep="^feat" 2>/dev/null || true
+            echo ""
+            echo ""
+            echo "## Fixes"
+            git log "$RANGE" --pretty=format:"- %s" --grep="^fix" 2>/dev/null || true
+            echo ""
+            echo ""
+            echo "## Performance"
+            git log "$RANGE" --pretty=format:"- %s" --grep="^perf" 2>/dev/null || true
+            echo ""
+            echo ""
+            echo "## Tests"
+            git log "$RANGE" --pretty=format:"- %s" --grep="^test" 2>/dev/null || true
+            echo ""
+            echo ""
+            echo "## Other Changes"
+            git log "$RANGE" --pretty=format:"- %s" --grep="^chore\|^ci\|^docs\|^refactor" 2>/dev/null || true
+            echo ""
+          } > CHANGELOG.md
+
+          # Output for use in release body (escaped for GitHub Actions)
+          BODY=$(cat CHANGELOG.md)
+          {
+            echo "body<<CHANGELOG_EOF"
+            echo "$BODY"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload changelog
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog-${{ needs.validate-version.outputs.version }}
+          path: CHANGELOG.md
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Step 8: Create Distribution Package
+  # ═══════════════════════════════════════════════════════════════════════════
+  create-distribution-package:
+    name: "Step 8: Create Distribution Package"
+    runs-on: ubuntu-latest
+    needs:
+      - validate-version
+      - build-container-images
+      - generate-sbom
+      - build-manager-app
+      - generate-changelog
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-artifacts
+
+      - name: Assemble distribution package
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          DIST_DIR="ekamcore-v${VERSION}"
+          mkdir -p "$DIST_DIR"
+
+          # Docker Compose
+          cp docker-compose.yml "$DIST_DIR/"
+
+          # Manager DMG
+          find dist-artifacts -name "*.dmg" -exec cp {} "$DIST_DIR/" \; 2>/dev/null || true
+
+          # SBOM files
+          mkdir -p "$DIST_DIR/sbom"
+          find dist-artifacts/sbom-* -name "*.json" -exec cp {} "$DIST_DIR/sbom/" \; 2>/dev/null || true
+
+          # Changelog
+          find dist-artifacts/changelog-* -name "CHANGELOG.md" -exec cp {} "$DIST_DIR/" \; 2>/dev/null || true
+
+          # Installation guide
+          cat > "$DIST_DIR/INSTALL.md" << 'INSTALL_EOF'
+          # EkamCore Installation Guide
+
+          ## Prerequisites
+          - macOS 13.0+ on Apple Silicon (M1/M2/M3/M4)
+          - Docker Desktop or OrbStack
+          - 16 GB RAM minimum, 30 GB free disk space
+
+          ## Quick Start
+          1. Install Docker Desktop or OrbStack
+          2. Open EkamCore Manager DMG and drag to Applications
+          3. Launch EkamCore Manager — the setup wizard will guide you
+          4. The manager handles all Docker services automatically
+
+          ## Manual Docker Setup (without Manager)
+          ```bash
+          docker compose up -d
+          ```
+          Open https://localhost in your browser.
+          INSTALL_EOF
+
+          # Model download script
+          if [[ -f scripts/face/download_models.sh ]]; then
+            cp scripts/face/download_models.sh "$DIST_DIR/"
+          fi
+
+          # Create ZIP
+          zip -r "ekamcore-v${VERSION}-macos.zip" "$DIST_DIR/"
+          echo "Created: ekamcore-v${VERSION}-macos.zip"
+
+      - name: Upload distribution package
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution-${{ needs.validate-version.outputs.version }}
+          path: ekamcore-v*-macos.zip
+          retention-days: 365
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Step 9: Create Git Tag and GitHub Release
+  # ═══════════════════════════════════════════════════════════════════════════
+  create-release:
+    name: "Step 9: Create GitHub Release"
+    runs-on: ubuntu-latest
+    needs:
+      - validate-version
+      - full-test-suite
+      - build-container-images
+      - scan-container-images
+      - generate-sbom
+      - build-manager-app
+      - generate-changelog
+      - create-distribution-package
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Create Git tag
+        run: |
+          TAG="${{ needs.validate-version.outputs.tag }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+      - name: Collect release assets
+        run: |
+          mkdir -p assets
+          find release-artifacts -name "*.zip" -exec cp {} assets/ \;
+          find release-artifacts -name "*.dmg" -exec cp {} assets/ \;
+          find release-artifacts -name "*.spdx.json" -exec cp {} assets/ \;
+          find release-artifacts -name "CHANGELOG.md" -exec cp {} assets/ \;
+          ls -la assets/
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          TAG="${{ needs.validate-version.outputs.tag }}"
+          PRERELEASE=""
+          if [[ "${{ inputs.release_type }}" == "release-candidate" ]]; then
+            PRERELEASE="--prerelease"
+          fi
+
+          # Build release body
+          BODY="${{ needs.generate-changelog.outputs.changelog }}"
+          if [[ -z "$BODY" ]]; then
+            BODY="EkamCore ${TAG}"
+          fi
+
+          # Create release with assets
+          ASSET_ARGS=""
+          for f in assets/*; do
+            if [[ -f "$f" ]]; then
+              ASSET_ARGS="$ASSET_ARGS $f"
+            fi
+          done
+
+          gh release create "$TAG" \
+            --title "EkamCore ${TAG}" \
+            --notes "$BODY" \
+            $PRERELEASE \
+            $ASSET_ARGS

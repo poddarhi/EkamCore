@@ -1,6 +1,7 @@
 .PHONY: setup up down clean logs restart migrate migration seed \
        test test-api test-web test-mobile test-integration coverage \
        lint format benchmark chaos-test \
+       release-check release-build release-package \
        shell-api shell-db shell-redis \
        ollama-start ollama-stop ollama-status \
        paperless-logs paperless-token paperless-shell \
@@ -92,6 +93,35 @@ benchmark: ## Run performance benchmarks
 # === Chaos Testing (S15-008) ===
 chaos-test: ## Run all 7 chaos test scenarios (requires running Docker stack)
 	bash scripts/chaos/run_all.sh
+
+# === Release Pipeline (S15-009) ===
+release-check: ## Validate release readiness: run full test suite + lint
+	@echo "=== Release Check ==="
+	$(MAKE) test
+	$(MAKE) lint
+	cd apps/manager/src-tauri && cargo check && cargo test
+	@echo "=== Release check PASSED ==="
+
+release-build: ## Build all container images + manager DMG locally
+	@echo "=== Building container images ==="
+	docker compose build ekamcore-api ekamcore-workers ekamcore-web ekamcore-migrate
+	@echo "=== Building manager DMG ==="
+	cd apps/manager && npm run tauri build
+	@echo "=== Release build complete ==="
+
+release-package: ## Create local distribution ZIP (requires VERSION env var)
+	@if [ -z "$(VERSION)" ]; then \
+		echo "ERROR: VERSION is required. Usage: make release-package VERSION=0.2.0"; \
+		exit 1; \
+	fi
+	@echo "=== Creating distribution package v$(VERSION) ==="
+	@mkdir -p "dist/ekamcore-v$(VERSION)/sbom"
+	cp docker-compose.yml "dist/ekamcore-v$(VERSION)/"
+	find apps/manager/src-tauri/target/release/bundle -name "*.dmg" -exec cp {} "dist/ekamcore-v$(VERSION)/" \; 2>/dev/null || true
+	find sbom -name "*.json" -exec cp {} "dist/ekamcore-v$(VERSION)/sbom/" \; 2>/dev/null || true
+	cp scripts/face/download_models.sh "dist/ekamcore-v$(VERSION)/" 2>/dev/null || true
+	cd dist && zip -r "ekamcore-v$(VERSION)-macos.zip" "ekamcore-v$(VERSION)/"
+	@echo "=== Package: dist/ekamcore-v$(VERSION)-macos.zip ==="
 
 # === Shell Access ===
 shell-api: ## Shell into API container
