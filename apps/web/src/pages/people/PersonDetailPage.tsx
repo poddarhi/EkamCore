@@ -32,6 +32,7 @@ import {
 
 import MergePersonsModal from "../../components/people/MergePersonsModal";
 import PersonAvatar from "../../components/people/PersonAvatar";
+import PhotoLightbox from "../../components/photos/PhotoLightbox";
 import SplitPersonModal from "../../components/people/SplitPersonModal";
 import Toast, { type ToastVariant } from "../../components/Toast";
 import Breadcrumb from "../../design-system/components/Breadcrumb";
@@ -509,6 +510,7 @@ function PhotosTab({ personId }: { personId: string }) {
   const { data, error, isLoading } = usePersonPhotos(personId, undefined, {
     shouldRetryOnError: false,
   });
+  const [openPhoto, setOpenPhoto] = useState<string | null>(null);
   if (isLoading) return <TabSkeleton />;
   if (error)
     return <ErrorBanner message={t("error.generic")} />;
@@ -519,25 +521,53 @@ function PhotosTab({ personId }: { personId: string }) {
         title={t("person.detail.empty.photos")}
       />
     );
+  const openItem = items.find((p: PersonPhotoItem) => p.id === openPhoto) ?? null;
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-      {items.map((p: PersonPhotoItem) => (
-        <PhotoTile key={p.id} item={p} />
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        {items.map((p: PersonPhotoItem) => (
+          <PhotoTile
+            key={p.id}
+            item={p}
+            onOpen={() => setOpenPhoto(p.id)}
+          />
+        ))}
+      </div>
+      <PhotoLightbox
+        open={openPhoto !== null}
+        photoId={openPhoto}
+        onClose={() => setOpenPhoto(null)}
+        metadata={
+          openItem
+            ? { takenAt: openItem.taken_at, locationName: null }
+            : undefined
+        }
+      />
+    </>
   );
 }
 
-function PhotoTile({ item }: { item: PersonPhotoItem }) {
+function PhotoTile({
+  item,
+  onOpen,
+}: {
+  item: PersonPhotoItem;
+  onOpen: () => void;
+}) {
   return (
-    <div className="aspect-square rounded-[var(--radius-md)] overflow-hidden bg-[var(--color-neutral-100)]">
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label="Open photo"
+      className="aspect-square rounded-[var(--radius-md)] overflow-hidden bg-[var(--color-neutral-100)] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-light)]"
+    >
       <img
         src={item.thumbnail_url}
         alt=""
         className="w-full h-full object-cover"
         loading="lazy"
       />
-    </div>
+    </button>
   );
 }
 

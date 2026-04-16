@@ -326,6 +326,10 @@
   "lightbox.closeButton": "Close",
   "lightbox.nextPhoto": "Next photo",
   "lightbox.prevPhoto": "Previous photo",
+  "lightbox.toggleFaces": "Show/hide faces",
+  "lightbox.download": "Download",
+  "lightbox.noFaces": "No faces detected in this photo.",
+  "lightbox.announce": "Photo with {count} people",
 
   "personSearch.placeholder": "Search people...",
   "personSearch.empty": "No matches",

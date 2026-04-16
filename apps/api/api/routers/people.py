@@ -125,28 +125,16 @@ async def _rate_limit_write(user_id: UUID) -> None:
 
 
 async def _resolve_workspace(user: CurrentUser, db: AsyncSession) -> UUID:
-    """Derive the user's workspace and re-check active face consent.
+    """Thin wrapper around the shared face-consent helper.
 
-    Mirrors ``face_consent.py::_resolve_workspace`` + a consent check.
-    We do NOT take workspace_id as a query param because people CRUD
-    is always scoped to the caller's own workspace — a tampered query
-    parameter is a confused-deputy vector.
+    S13-008 factored the body of this function into
+    ``consent_service.resolve_workspace_with_face_consent`` so the
+    photos router can reuse the same error copy. Kept as a thin
+    alias so this router's call sites don't change.
     """
-    if not user.workspace_ids:
-        raise AuthorizationError(
-            error_code="NO_WORKSPACE",
-            message="User has no workspace.",
-        )
-    workspace_id = user.workspace_ids[0]
-    if not await consent_service.is_consent_active(workspace_id, db):
-        raise FaceConsentRequiredError(
-            error_code="FACE_CONSENT_REQUIRED",
-            message=(
-                "Face clustering requires your explicit consent. "
-                "Enable it in Settings \u2192 Photo Intelligence."
-            ),
-        )
-    return workspace_id
+    return await consent_service.resolve_workspace_with_face_consent(
+        user=user, db=db
+    )
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────

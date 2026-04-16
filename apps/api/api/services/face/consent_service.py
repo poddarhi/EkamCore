@@ -216,6 +216,35 @@ async def is_consent_active(
     return active
 
 
+async def resolve_workspace_with_face_consent(
+    user: Any, db: AsyncSession
+) -> UUID:
+    """Return the caller's workspace id, raising if face consent is not active.
+
+    Shared between the people and photos routers (S13-003 / S13-008)
+    so they never drift on the error copy. The caller is assumed to
+    have already been authenticated via ``get_current_user`` — this
+    helper only enforces consent + workspace presence.
+    """
+    from api.errors import AuthorizationError, FaceConsentRequiredError
+
+    if not user.workspace_ids:
+        raise AuthorizationError(
+            error_code="NO_WORKSPACE",
+            message="User has no workspace.",
+        )
+    workspace_id = user.workspace_ids[0]
+    if not await is_consent_active(workspace_id, db):
+        raise FaceConsentRequiredError(
+            error_code="FACE_CONSENT_REQUIRED",
+            message=(
+                "Face clustering requires your explicit consent. "
+                "Enable it in Settings \u2192 Photo Intelligence."
+            ),
+        )
+    return workspace_id
+
+
 async def grant(
     *,
     workspace_id: UUID,
