@@ -1,6 +1,8 @@
 {
-  "timestamp": "2026-04-11T13:54:54.873869+00:00",
-  "commit": "542739a",
+  "timestamp": "2026-04-16T22:00:00.000000+00:00",
+  "commit": "S15-007",
+  "phase": "4-pre-optimization",
+  "note": "Phase 3 baseline carried forward. Re-run: python scripts/benchmark/harness.py --save-baseline",
   "iterations": 5,
   "benchmarks": [
     {

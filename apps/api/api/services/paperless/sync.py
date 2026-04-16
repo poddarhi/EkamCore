@@ -261,14 +261,18 @@ async def _embed_and_store(
     qdrant = get_qdrant()
     points: list[PointStruct] = []
 
-    for idx, chunk in enumerate(chunks):
-        async with acquire_slot(Priority.P3_BACKGROUND_IMPORTANT):
-            vector = await generate_embedding(
-                text=chunk.text,
-                filename=filename,
-                mime_type=mime,
-            )
+    # S15-007: Batch embedding generation — all chunks at once instead of one-by-one.
+    # This allows the embedder's semaphore-limited concurrency to overlap requests.
+    from api.services.ingestion.embedder import EmbeddingInput, generate_embeddings_batch
 
+    embedding_inputs = [
+        EmbeddingInput(text=chunk.text, filename=filename, mime_type=mime)
+        for chunk in chunks
+    ]
+    async with acquire_slot(Priority.P3_BACKGROUND_IMPORTANT):
+        vectors = await generate_embeddings_batch(embedding_inputs)
+
+    for idx, (chunk, vector) in enumerate(zip(chunks, vectors, strict=True)):
         # Persist chunk metadata to PG
         file_chunk = FileChunk(
             file_id=file.id,

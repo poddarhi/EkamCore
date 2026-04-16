@@ -17,6 +17,9 @@ Error handling
 Retry policy: 3 attempts, exponential backoff (0 s, 1 s, 2 s).
 Concurrency: ``generate_embeddings_batch`` caps parallelism at 10 with a
 semaphore to avoid saturating Ollama's single-threaded inference.
+
+S15-007: Reuse httpx connection pool instead of creating fresh AsyncClient
+per embedding call. Saves ~20ms TCP overhead per request.
 """
 
 from __future__ import annotations
@@ -39,6 +42,32 @@ _MAX_RETRIES = 3
 _MAX_CONCURRENT = 10
 _BACKOFF_BASE = 1.0  # seconds; attempt 0 → 0 s, 1 → 1 s, 2 → 2 s
 
+# S15-007: Module-level connection pool for Ollama embed endpoint.
+_embed_pool: httpx.AsyncClient | None = None
+
+
+def _get_pool() -> httpx.AsyncClient:
+    """Return the shared httpx connection pool for Ollama embeddings."""
+    global _embed_pool
+    if _embed_pool is None or _embed_pool.is_closed:
+        _embed_pool = httpx.AsyncClient(
+            timeout=_TIMEOUT,
+            limits=httpx.Limits(
+                max_connections=_MAX_CONCURRENT,
+                max_keepalive_connections=4,
+                keepalive_expiry=120.0,
+            ),
+        )
+    return _embed_pool
+
+
+async def close_pool() -> None:
+    """Close the connection pool. Call during app shutdown."""
+    global _embed_pool
+    if _embed_pool is not None:
+        await _embed_pool.aclose()
+        _embed_pool = None
+
 
 class EmbeddingInput(NamedTuple):
     text: str
@@ -58,25 +87,25 @@ def _build_prompt(ei: EmbeddingInput) -> str:
 async def _call_ollama(prompt: str) -> list[float]:
     """Single attempt: POST to /api/embed, return embedding vector."""
     url = f"{settings.OLLAMA_URL.rstrip('/')}/api/embed"
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        try:
-            resp = await client.post(url, json={"model": _MODEL, "input": prompt})
-            resp.raise_for_status()
-        except httpx.TimeoutException:
-            raise ServiceUnavailableError(
-                error_code="EMBEDDER_UNAVAILABLE",
-                message="Ollama embedding request timed out.",
-            )
-        except httpx.RequestError:
-            raise ServiceUnavailableError(
-                error_code="EMBEDDER_UNAVAILABLE",
-                message="Ollama is unreachable.",
-            )
-        except httpx.HTTPStatusError as exc:
-            raise ServiceUnavailableError(
-                error_code="EMBEDDER_UNAVAILABLE",
-                message=f"Ollama returned HTTP {exc.response.status_code}.",
-            )
+    client = _get_pool()
+    try:
+        resp = await client.post(url, json={"model": _MODEL, "input": prompt})
+        resp.raise_for_status()
+    except httpx.TimeoutException:
+        raise ServiceUnavailableError(
+            error_code="EMBEDDER_UNAVAILABLE",
+            message="Ollama embedding request timed out.",
+        )
+    except httpx.RequestError:
+        raise ServiceUnavailableError(
+            error_code="EMBEDDER_UNAVAILABLE",
+            message="Ollama is unreachable.",
+        )
+    except httpx.HTTPStatusError as exc:
+        raise ServiceUnavailableError(
+            error_code="EMBEDDER_UNAVAILABLE",
+            message=f"Ollama returned HTTP {exc.response.status_code}.",
+        )
 
     data = resp.json()
     embeddings = data.get("embeddings")

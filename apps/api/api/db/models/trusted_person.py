@@ -18,9 +18,9 @@ class TrustedPerson(Base):
     __tablename__ = "trusted_persons"
 
     workspace_id: Mapped[UUID] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True,
     )
-    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     canonical_contact_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("contacts.id", ondelete="SET NULL"), nullable=True
     )

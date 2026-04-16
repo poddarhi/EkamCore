@@ -185,9 +185,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     from api.services.qdrant_client import close as close_qdrant
     from api.services.redis_client import close_all as close_redis
+    from api.services.query.llm_client import close_pool as close_llm_pool
+    from api.services.ingestion.embedder import close_pool as close_embed_pool
 
     await close_qdrant()
     await close_redis()
+    await close_llm_pool()
+    await close_embed_pool()
     logger.info("ekamcore_api_shut_down")
 
 
