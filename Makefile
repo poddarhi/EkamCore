@@ -6,7 +6,9 @@
        paperless-logs paperless-token paperless-shell \
        backup restore backup-list \
        download-face-models verify-face-models eval-face \
-       dev-api dev-web help
+       dev-api dev-web \
+       manager-dev manager-build manager-check manager-clean \
+       help
 
 # === Setup ===
 setup: ## Install all dependencies and create .env
@@ -163,6 +165,19 @@ dev-api: ## Run API in dev mode (local, no Docker)
 
 dev-web: ## Run web in dev mode (local, no Docker)
 	cd apps/web && pnpm dev
+
+# === Manager (Tauri 2) ===
+manager-dev: ## Run Tauri manager app in dev mode
+	cd apps/manager && npm run tauri dev
+
+manager-build: ## Build Tauri manager app for macOS
+	cd apps/manager && npm run tauri build
+
+manager-check: ## Cargo check the manager Rust backend
+	cd apps/manager/src-tauri && cargo check
+
+manager-clean: ## Clean manager Rust build artifacts
+	cd apps/manager/src-tauri && cargo clean
 
 # === Help ===
 help: ## Show this help
