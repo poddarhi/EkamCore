@@ -8,10 +8,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LayoutGrid, List as ListIcon, Search as SearchIcon } from "lucide-react";
+import {
+  History,
+  LayoutGrid,
+  List as ListIcon,
+  Search as SearchIcon,
+} from "lucide-react";
 
 import MergePersonsModal from "../../components/people/MergePersonsModal";
 import PersonAvatar from "../../components/people/PersonAvatar";
+import UndoDrawer from "../../components/people/UndoDrawer";
+import { useUndoShortcut } from "../../hooks/useUndoShortcut";
 import Toast, { type ToastVariant } from "../../components/Toast";
 import EmptyState from "../../design-system/components/EmptyState";
 import ErrorBanner from "../../design-system/components/ErrorBanner";
@@ -61,10 +68,16 @@ export default function PeopleListPage() {
   const search = useDebounced(searchInput, 300);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [undoDrawerOpen, setUndoDrawerOpen] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     variant: ToastVariant;
   } | null>(null);
+
+  useUndoShortcut({
+    enabled: !!enabled && !!accepted,
+    onToast: setToast,
+  });
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -141,7 +154,17 @@ export default function PeopleListPage() {
         <h1 className="text-[var(--text-h1-size)] leading-[var(--text-h1-height)] font-[var(--text-h1-weight)]">
           {t("people.list.title")}
         </h1>
-        <ViewToggle view={view} onChange={setView} />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setUndoDrawerOpen(true)}
+            aria-label={t("undo.drawer.title")}
+            className="p-2 rounded hover:bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)]"
+          >
+            <History size={18} aria-hidden="true" />
+          </button>
+          <ViewToggle view={view} onChange={setView} />
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -251,6 +274,12 @@ export default function PeopleListPage() {
           });
           clearSelection();
         }}
+      />
+
+      <UndoDrawer
+        open={undoDrawerOpen}
+        onClose={() => setUndoDrawerOpen(false)}
+        onToast={setToast}
       />
 
       {toast && (

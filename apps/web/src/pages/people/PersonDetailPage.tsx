@@ -43,6 +43,7 @@ import Modal from "../../design-system/components/Modal";
 import Skeleton from "../../design-system/components/Skeleton";
 import TabBar from "../../design-system/components/TabBar";
 import { useFlag } from "../../contexts/FlagContext";
+import { useUndoShortcut } from "../../hooks/useUndoShortcut";
 import {
   useFaceConsent,
   usePerson,
@@ -110,6 +111,11 @@ export default function PersonDetailPage() {
   const [splitPreselected, setSplitPreselected] = useState<string[]>([]);
 
   const [toast, setToast] = useState<ToastState | null>(null);
+
+  useUndoShortcut({
+    enabled: !!enabled && !!accepted,
+    onToast: setToast,
+  });
 
   useEffect(() => {
     if (enabled && accepted && personId) {
