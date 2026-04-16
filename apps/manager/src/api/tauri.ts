@@ -177,3 +177,68 @@ export async function cleanDockerCache(): Promise<string> {
 export async function getStorageBreakdown(): Promise<Record<string, unknown>> {
   return invoke<Record<string, unknown>>("get_storage_breakdown");
 }
+
+// ── macOS Integration (S15-005) ─────────────────────────────────────────────
+
+export interface LaunchdStatus {
+  login_item_registered: boolean;
+  backup_scheduled: boolean;
+  backup_hour: number;
+  backup_minute: number;
+}
+
+export interface SecretStatus {
+  all_present: boolean;
+  missing: string[];
+  keychain_accessible: boolean;
+}
+
+export interface InjectionResult {
+  success: boolean;
+  message: string;
+  containers_healthy: boolean;
+}
+
+export async function registerLoginItem(): Promise<void> {
+  return invoke<void>("register_login_item");
+}
+
+export async function unregisterLoginItem(): Promise<void> {
+  return invoke<void>("unregister_login_item");
+}
+
+export async function isLoginItemRegistered(): Promise<boolean> {
+  return invoke<boolean>("is_login_item_registered");
+}
+
+export async function installBackupSchedule(hour: number, minute: number): Promise<void> {
+  return invoke<void>("install_backup_schedule", { hour, minute });
+}
+
+export async function uninstallBackupSchedule(): Promise<void> {
+  return invoke<void>("uninstall_backup_schedule");
+}
+
+export async function getLaunchdStatus(): Promise<LaunchdStatus> {
+  return invoke<LaunchdStatus>("get_launchd_status");
+}
+
+export async function runBackupNow(): Promise<string> {
+  return invoke<string>("run_backup_now");
+}
+
+export async function checkSecretStatus(): Promise<SecretStatus> {
+  return invoke<SecretStatus>("check_secret_status");
+}
+
+export async function injectSecretsAndStart(): Promise<InjectionResult> {
+  return invoke<InjectionResult>("inject_secrets_and_start");
+}
+
+export async function regenerateAllSecrets(): Promise<string> {
+  return invoke<string>("regenerate_all_secrets");
+}
+
+export async function resetSetup(): Promise<void> {
+  return invoke<void>("reset_setup");
+}

@@ -12,6 +12,8 @@ mod disk;
 mod docker;
 mod hardware;
 mod keychain;
+mod launchd;
+mod secret_injection;
 mod setup;
 mod startup;
 mod state;
@@ -118,6 +120,18 @@ pub fn run() {
             diagnostics::get_system_info_text,
             diagnostics::clean_docker_cache,
             diagnostics::get_storage_breakdown,
+            // S15-005: launchd + secret injection + settings
+            launchd::register_login_item,
+            launchd::unregister_login_item,
+            launchd::is_login_item_registered,
+            launchd::install_backup_schedule,
+            launchd::uninstall_backup_schedule,
+            launchd::get_launchd_status,
+            launchd::run_backup_now,
+            secret_injection::check_secret_status,
+            secret_injection::inject_secrets_and_start,
+            secret_injection::regenerate_all_secrets,
+            secret_injection::reset_setup,
         ])
         .run(tauri::generate_context!())
         .expect("error while running EkamCore Manager");

@@ -149,3 +149,24 @@ export interface DiagnosticsProgressEvent {
   phase: string;
   status: string;
 }
+
+// S15-005: macOS integration types
+
+export interface LaunchdStatus {
+  login_item_registered: boolean;
+  backup_scheduled: boolean;
+  backup_hour: number;
+  backup_minute: number;
+}
+
+export interface SecretStatus {
+  all_present: boolean;
+  missing: string[];
+  keychain_accessible: boolean;
+}
+
+export interface InjectionResult {
+  success: boolean;
+  message: string;
+  containers_healthy: boolean;
+}
