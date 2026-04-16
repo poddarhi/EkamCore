@@ -32,6 +32,7 @@ import {
 
 import MergePersonsModal from "../../components/people/MergePersonsModal";
 import PersonAvatar from "../../components/people/PersonAvatar";
+import SplitPersonModal from "../../components/people/SplitPersonModal";
 import Toast, { type ToastVariant } from "../../components/Toast";
 import Breadcrumb from "../../design-system/components/Breadcrumb";
 import Button from "../../design-system/components/Button";
@@ -105,6 +106,8 @@ export default function PersonDetailPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
+  const [splitPreselected, setSplitPreselected] = useState<string[]>([]);
 
   const [toast, setToast] = useState<ToastState | null>(null);
 
@@ -335,10 +338,8 @@ export default function PersonDetailPage() {
                 label={t("person.detail.split")}
                 onClick={() => {
                   setMenuOpen(false);
-                  setToast({
-                    message: "Split UI lands in S13-006",
-                    variant: "info",
-                  });
+                  setSplitPreselected([]);
+                  setSplitOpen(true);
                 }}
               />
               <MenuItem
@@ -379,6 +380,10 @@ export default function PersonDetailPage() {
         personName={person.display_name}
         onToast={setToast}
         onPersonRefresh={() => void mutatePerson()}
+        onRequestSplit={(faceIds) => {
+          setSplitPreselected(faceIds);
+          setSplitOpen(true);
+        }}
       />
 
       {/* Delete confirm */}
@@ -406,6 +411,20 @@ export default function PersonDetailPage() {
           </Button>
         </div>
       </Modal>
+
+      <SplitPersonModal
+        open={splitOpen}
+        onClose={() => setSplitOpen(false)}
+        person={person}
+        preselectedFaceIds={splitPreselected}
+        onSplit={(_original, newPerson) => {
+          setToast({
+            message: t("split.successToast", { name: newPerson.display_name }),
+            variant: "success",
+          });
+          void mutatePerson();
+        }}
+      />
 
       <MergePersonsModal
         open={mergeOpen}
@@ -590,6 +609,7 @@ interface FacesSectionProps {
   personName: string;
   onToast: (t: ToastState) => void;
   onPersonRefresh: () => void;
+  onRequestSplit: (faceIds: string[]) => void;
 }
 
 function FacesSection({
@@ -597,14 +617,29 @@ function FacesSection({
   personName,
   onToast,
   onPersonRefresh,
+  onRequestSplit,
 }: FacesSectionProps) {
   const { data, error, isLoading, mutate } = usePersonFaces(personId, {
     shouldRetryOnError: false,
   });
   const [pendingFace, setPendingFace] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedFaces, setSelectedFaces] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const items = data?.items ?? [];
+
+  const toggleFace = (id: string) => {
+    setSelectedFaces((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearFaceSelection = () => setSelectedFaces(new Set());
 
   const submitRemove = async () => {
     if (!pendingFace) return;
@@ -633,7 +668,21 @@ function FacesSection({
 
   return (
     <section className="mt-6">
-      <h2 className="text-lg font-semibold mb-3">Faces</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold">Faces</h2>
+        {items.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectMode((o) => !o);
+              clearFaceSelection();
+            }}
+            className="text-xs text-[var(--color-primary)] hover:underline"
+          >
+            {selectMode ? "Done" : "Select"}
+          </button>
+        )}
+      </div>
       {isLoading ? (
         <TabSkeleton />
       ) : error ? (
@@ -644,27 +693,80 @@ function FacesSection({
         </p>
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-          {items.map((f) => (
-            <div
-              key={f.face_detection_id}
-              className="relative aspect-square rounded-[var(--radius-md)] overflow-hidden bg-[var(--color-neutral-100)] group"
-            >
-              <img
-                src={f.thumbnail_url}
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              <button
-                type="button"
-                aria-label={`Not ${personName}`}
-                onClick={() => setPendingFace(f.face_detection_id)}
-                className="absolute top-1 right-1 p-1 rounded-full bg-[var(--color-white)] shadow opacity-0 group-hover:opacity-100 focus:opacity-100"
+          {items.map((f) => {
+            const isSelected = selectedFaces.has(f.face_detection_id);
+            return (
+              <div
+                key={f.face_detection_id}
+                className={[
+                  "relative aspect-square rounded-[var(--radius-md)] overflow-hidden bg-[var(--color-neutral-100)] group",
+                  isSelected ? "ring-2 ring-[var(--color-primary)]" : "",
+                ].join(" ")}
               >
-                <X size={14} aria-hidden="true" />
-              </button>
-            </div>
-          ))}
+                <img
+                  src={f.thumbnail_url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                {selectMode ? (
+                  <button
+                    type="button"
+                    aria-label={`Toggle face ${f.face_detection_id}`}
+                    aria-pressed={isSelected}
+                    onClick={() => toggleFace(f.face_detection_id)}
+                    className="absolute inset-0 w-full h-full"
+                  >
+                    {isSelected && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[var(--color-primary)] text-white text-xs flex items-center justify-center"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label={`Not ${personName}`}
+                    onClick={() => setPendingFace(f.face_detection_id)}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-[var(--color-white)] shadow opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  >
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {selectMode && selectedFaces.size > 0 && (
+        <div
+          role="region"
+          aria-label="Face bulk actions"
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-neutral-900)] text-[var(--color-white)] shadow-[var(--shadow-lg)]"
+        >
+          <span className="text-sm">{selectedFaces.size} faces</span>
+          <button
+            type="button"
+            onClick={() => {
+              onRequestSplit(Array.from(selectedFaces));
+              setSelectMode(false);
+              clearFaceSelection();
+            }}
+            className="text-sm px-3 py-1 rounded-full bg-white/10 hover:bg-white/20"
+          >
+            Split out
+          </button>
+          <button
+            type="button"
+            onClick={clearFaceSelection}
+            className="text-sm px-3 py-1 rounded-full hover:bg-white/10"
+          >
+            Clear
+          </button>
         </div>
       )}
 
