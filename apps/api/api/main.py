@@ -121,11 +121,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             0,
             str(Path(__file__).resolve().parents[3] / "packs"),
         )
-        from pla.workflows.follow_up import run_follow_up_suggestions
+        from pla.workflows.daily import run_daily
         from pla.workflows.weekly_summary import run_weekly_summary
 
         app.state.pack_workflows = {
-            "daily": run_follow_up_suggestions,
+            "daily": run_daily,
             "weekly": run_weekly_summary,
         }
         logger.info(
