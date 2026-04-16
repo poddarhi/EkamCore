@@ -245,5 +245,24 @@ results = qdrant_client.search(
 )
 ```
 
+## PLA Pack Execution Model (S14-004)
+`PackRunner.run()`: manifest lookup → `PackContextFactory.create` (consent projection, LLM injection) → `pack_runs` row → `asyncio.wait_for(workflow_fn(ctx), timeout)` → card commit → row update. Timeouts discard cards; errors log + stamp `state='failed'`.
+
+### PLA Workflow Patterns
+- **Follow-up (daily, no LLM)**: persons → edges → days_since → skip recent/upcoming → score = days_since/lookback → top 5 → dedup/snooze → produce_card.
+- **Relationship (daily, no LLM)**: same but requires avg strength >= 0.5 + 30 days inactive. Urgency = strength * (days/inactive). Deduplicates vs follow-up.
+- **Weekly summary (weekly, 1 LLM call)**: compile stats → build prompt → ask_llm(300 tokens, 0.3 temp) → parse JSON → fallback to template → produce_card. Always succeeds.
+- **Composite daily** (`daily.py`): follow-up → relationship in sequence (dedup depends on order).
+
+### Person-Context Query Pattern (S14-011)
+`person_detector.py`: unigram/bigram/trigram spans → ILIKE. Step 1.5 in query router. If detected → `person_context_v1` prompt instead of `grounded_qa_v1`.
+
 ## Evaluation Metrics (scripts/eval/)
 Groundedness >=95%, Source accuracy >=98%, Parse success >=95%, Classification accuracy >=90%, Latency P50 <2s(small)/<4s(large).
+
+### PLA Quality Eval (`scripts/eval/eval_pla_quality.py`)
+Mock-based eval (no DB/Ollama). Measures:
+- Follow-up: precision (target >= 0.95), recall (capped by max 5).
+- Relationship: precision (target >= 0.90), 0 overlap with follow-ups.
+- Weekly: parse_success_rate (target >= 0.80), name_mention_rate.
+Baseline output: `eval_results/pla_quality_baseline_{date}.json`.

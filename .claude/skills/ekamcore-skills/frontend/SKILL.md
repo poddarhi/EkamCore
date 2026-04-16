@@ -229,6 +229,46 @@ with `open={openPhoto !== null}`. Never nest lightboxes.
 - Dark mode: deferred to v1.1. Use CSS variables (tokens.css) so only token values change.
 - Motion: --duration-normal (0.2s), --easing-default. Respect prefers-reduced-motion.
 
+### Pack Card Components (SHIPPED — Sprint 14)
+Three card types surface PLA pack output in the Today feed:
+
+- **FollowUpCard** (`components/cards/FollowUpCard.tsx`) —
+  UserPlus icon, person link, Done / Not now / Remind me later.
+  Snooze opens `SnoozePicker` (tomorrow / 3 days / next week /
+  custom date).
+- **WeeklySummaryCard** (`components/cards/WeeklySummaryCard.tsx`)
+  — Calendar icon, LLM summary text, stats row, top-persons
+  avatar scroll, AI-generated badge, X dismiss.
+- **RelationshipReminderCard** (`components/cards/RelationshipReminderCard.tsx`)
+  — Heart icon, days-since + relationship context, Done / Not now.
+
+All acknowledge via `packCardsApi.acknowledge(cardId, action, snoozedUntil?)`.
+`onAcknowledged` callback triggers `mutate()` in the parent to refresh the feed.
+
+### Pack Settings Page (SHIPPED — Sprint 14)
+`/settings/pack` (`pages/settings/PackSettingsPage.tsx`):
+Three visual states:
+1. Face clustering off → prerequisite banner.
+2. PLA off → description + Enable CTA.
+3. PLA on → status card (Disable), per-workflow toggles (checkbox + sub-controls: lookback slider, day dropdown, time picker, inactive-days slider), general settings (daily run time, max suggestions), collapsible run history table.
+
+All controls are optimistic: PATCH `/api/v1/settings` on change.
+`FlagProvider` now accepts an optional `overrides` prop for tests.
+
+### Today Feed Card Type Registry (Sprint 14 addition)
+`CardRenderer.tsx` discriminates pack cards via the `case "pack":` branch.
+The `payload.card_type` field (set by `PackCardSource`) selects the component:
+- `"follow_up_suggestion"` → `FollowUpCard`
+- `"weekly_summary"` → `WeeklySummaryCard`
+- `"relationship_reminder"` → `RelationshipReminderCard`
+
+To add a new pack card type:
+1. Add the type to `packs/pla/manifest.yaml::card_types`.
+2. Add the check constraint value in the Alembic migration.
+3. Create the React component under `components/cards/`.
+4. Add the `if (cardType === "...")` branch in `CardRenderer`.
+5. Add i18n keys for title/body/actions.
+
 ### Testing
 - Framework: Vitest + React Testing Library
 - Location: colocated `__tests__/ComponentName.test.tsx`

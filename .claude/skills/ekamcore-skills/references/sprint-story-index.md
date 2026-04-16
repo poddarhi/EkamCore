@@ -113,15 +113,24 @@ People Graph web UI lands on top of the Sprint 12 backend.
 | S13-010 | E2E plan + a11y audit scaffold | Playwright infra not yet in repo; ships `tests/e2e/README.md` + `tests/e2e/sprint13_plan.md` (full spec matrix, seed contract, flaky-test guardrails), new §9 Phase 3 pages section in `docs/ACCESSIBILITY_CHECKLIST.md`, and accurate S13-001..S13-010 mappings in `docs/test_traceability.json` |
 | S13-011 | Gate review | skill file updates + `docs/phase-3-sprint-13-status.md`, Sprint 14 readiness |
 
-## Sprint 14 (Weeks 27-28) — Phase 3 — PENDING
-PLA Pack SDK and the simplified "catch-up" logic uplift.
+## Sprint 14 (Weeks 27-28) — Phase 3 — SHIPPED
+PLA Pack SDK + three workflows + pack card UI + person-context queries.
 
-| Story | Title | Workstream |
+| Story | Title | Evidence |
 |---|---|---|
-| S14-001 [CP] | PLA Pack manifest + execution engine | backend |
-| S14-002 | Skill execution sandbox | backend |
-| S14-003 | Pack cards in Today feed | backend+web |
-| S14-004 | 72-hour soak test | infrastructure |
+| S14-001 [CP] | Pack infrastructure | `pack_runs`/`pack_cards` tables (migration 020), 4 PLA flags + `pla_active` helper, 6 pack settings + `_StringDef`, 6 error classes, 41 i18n keys (`flags.py`, `settings_service.py`, `errors.py`, `alembic/020`) |
+| S14-002 | Manifest loader + capability registry | `ManifestLoader` with `yaml.safe_load`, 10 capability definitions with consent gating, `packs/pla/manifest.yaml`, `GET /admin/packs` endpoint (`services/pack/manifest_loader.py`, `capability_registry.py`, `routers/pack_admin.py`) |
+| S14-003 | PackContext scoped data access | 11 read + 1 write + BFS traversal + `ask_llm` + `produce_card`, capability + consent gate on every method, LLM quota, output sanitizer (`services/pack/pack_context.py`, `pack_context_factory.py`, `sanitizer.py`) |
+| S14-004 | Pack sandbox | `PackRunner` with `asyncio.wait_for`, card size rejection, RSS advisory monitoring, `PackRunResult`, manual trigger endpoint (`services/pack/pack_runner.py`, `routers/pack_admin.py`) |
+| S14-005 | Scheduler + lifecycle | asyncio cron loops (no APScheduler dep), `health()` in `/health`, enable/disable/runs endpoints (`services/pack/scheduler.py`, `routers/pack_admin.py`, `routers/health.py`) |
+| S14-006 | Follow-up suggestions | daily deterministic workflow: recency scoring, dedup, snooze, max 5, no LLM (`packs/pla/workflows/follow_up.py`) |
+| S14-007 | Weekly summary | weekly LLM workflow: 1 call, `person_context_v1`-style prompt, JSON parse + template fallback, dedup per week (`packs/pla/workflows/weekly_summary.py`) |
+| S14-008 | Relationship reminders | daily deterministic: graph-strength >= 0.5, urgency scoring, composite `run_daily` chaining follow-up → relationship (`packs/pla/workflows/relationship_reminder.py`, `daily.py`) |
+| S14-009 | Pack card UI + Today + notifications | `FollowUpCard`/`WeeklySummaryCard`/`RelationshipReminderCard`/`SnoozePicker`, `CardRenderer` pack branch, `PackCardSource` in Today, acknowledge endpoint, 3 notification types (`components/cards/`, `routers/pack_cards.py`, `services/today/pack_card_source.py`) |
+| S14-010 | Pack settings page | 3-state page (prereq/enable CTA/full config), workflow toggles + sliders + time pickers, run history table, `FlagProvider` overrides prop (`pages/settings/PackSettingsPage.tsx`) |
+| S14-011 | Person-context query | `person_detector` ILIKE matching, 4 deterministic intents (`person_who_is`/`files`/`last_seen`/`photos`), `person_context_v1` in LLM path (`services/query/person_detector.py`, `patterns.py`, `router.py`, `routers/query.py`) |
+| S14-012 | E2E + eval + security + a11y | 8 security tests, PLA quality eval baseline, `sprint14_plan.md`, a11y §10, traceability S14-001..012 (`tests/security/test_pack_security.py`, `scripts/eval/eval_pla_quality.py`) |
+| S14-013 | Gate review | skill updates, phase-3-gate-review.md, phase advance to 4 |
 
 ## Sprint 15-16 (Weeks 29-32) — Phase 4
 | Story | Title | Workstream |

@@ -380,3 +380,48 @@ Today sources by following this shape: a class with a single
   normalized bbox + `trusted_person_display_name` +
   `trusted_person_avatar_url` per face. Always goes through the
   shared consent guard. The `_photo_to_card` helper is unchanged.
+
+## Sprint 14 backend patterns (PLA Pack SDK)
+
+### Pack manifest schema (S14-002)
+`packs/<pack_id>/manifest.yaml` parsed by
+`api/services/pack/manifest_loader.py`. Key fields:
+`pack_id`, `capabilities` (list of `scope:target` strings from
+`capability_registry.py`), `resource_limits`
+(`max_execution_time_seconds`, `max_memory_mb`,
+`max_llm_calls_per_run`), `card_types`, `schedule`
+(`daily: "HH:MM"`, `weekly: "day HH:MM"`). All validated via
+Pydantic field validators; unknown capabilities rejected at load.
+`yaml.safe_load` only — never `yaml.load`.
+
+### PackContext capability enforcement (S14-003)
+Every public method on `PackContext` starts with
+`self._require_capability(cap)`. Face-data methods additionally
+call `self._require_face_consent()`. The factory strips
+consent-gated capabilities when consent is off so the pack runs
+with reduced data. `produce_card` validates card_type against the
+manifest's declared set. `ask_llm` increments a quota counter
+*before* the call (failures consume quota). All string outputs
+are sanitized via `sanitizer.sanitize_text`.
+
+### Pack card lifecycle (S14-004 → S14-009)
+1. **Produce**: workflow calls `context.produce_card(card_type, payload)` → queued in context.
+2. **Commit**: `PackRunner` writes `pack_cards` rows after successful run (target_date from trigger).
+3. **Surface**: `PackCardSource` in Today assembly queries un-acknowledged, un-snoozed cards.
+4. **Acknowledge**: `POST /api/v1/pack-cards/:id/acknowledge` stamps `acknowledged_at` + `acknowledged_action`. Snoozed cards carry `snoozed_until`.
+5. **Dedup**: workflows check `has_pending_card_for_person` + `is_person_snoozed` before producing.
+
+### Pack scheduler (S14-005)
+Zero-dep asyncio cron loops — no APScheduler. Two tasks per pack
+(daily + weekly). Each loop computes the next target time, sleeps,
+fires for all workspaces that pass `pla_active`, then loops.
+`health()` returns status for `/health`. Enable/disable via
+`POST /admin/packs/:id/enable|disable` (toggles `_ENABLED_FLAGS`).
+
+### Person-context query integration (S14-011)
+`person_detector.py` extracts name spans → ILIKEs `trusted_persons`.
+Four new deterministic intents: `person_who_is`, `person_files`,
+`person_last_seen`, `person_photos`. In the LLM path (Step 1.5),
+if a person is detected the context assembly switches from
+`grounded_qa_v1` to `person_context_v1` so the model sees linked
+events, files, and reminders alongside the question.
