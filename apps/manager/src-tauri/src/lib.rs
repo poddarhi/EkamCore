@@ -69,15 +69,9 @@ pub fn run() {
             };
             app.manage(app_state);
 
-            // S15-003: Spawn watchdog polling loop after setup is complete
-            let app_handle = app.handle().clone();
-            let setup_complete = wizard_state::is_setup_complete(app_handle.clone());
-            if setup_complete {
-                watchdog::Watchdog::spawn(wd, app_handle);
-                tracing::info!("watchdog started");
-            } else {
-                tracing::info!("watchdog deferred (setup not complete)");
-            }
+            // S15-003: Watchdog is deferred — spawned from a Tauri command
+            // when the frontend calls it, since setup() doesn't have a tokio runtime.
+            tracing::info!("watchdog deferred to frontend init");
 
             Ok(())
         })
