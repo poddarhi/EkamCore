@@ -1,0 +1,91 @@
+site_name: EkamCore User Guide
+site_description: Complete documentation for EkamCore — your private, local-first life assistant.
+site_url: https://docs.ekamcore.dev
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: blue
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+
+  - Getting Started:
+    - System Requirements: getting-started/system-requirements.md
+    - Installation: getting-started/installation.md
+    - First-Run Setup: getting-started/first-run-setup.md
+
+  - Data Sources:
+    - Document Folders: sources/document-folders.md
+    - Photo Folders: sources/photo-folders.md
+    - System Data: sources/system-data.md
+
+  - Today & Recap:
+    - Today: today-recap/today.md
+    - Recap: today-recap/recap.md
+    - Card Actions: today-recap/card-actions.md
+
+  - Search & Query:
+    - Searching: search/search.md
+    - Natural Language Queries: search/natural-language.md
+    - Search Tips: search/search-tips.md
+
+  - People Graph:
+    - Enabling Face Clustering: people/enabling-face-clustering.md
+    - Review Queue: people/review-queue.md
+    - Person Profiles: people/person-profiles.md
+    - Privacy Controls: people/privacy-controls.md
+
+  - Photos & Files:
+    - Photos: photos-files/photos.md
+    - Files: photos-files/files.md
+    - Supported Formats: photos-files/supported-formats.md
+
+  - Mobile Access:
+    - Tailscale Setup: mobile/tailscale-setup.md
+    - Mobile App: mobile/mobile-app.md
+    - Offline Behavior: mobile/offline-behavior.md
+
+  - Settings:
+    - Settings Reference: settings/settings-reference.md
+
+  - Manager App:
+    - Overview: manager/overview.md
+    - Dashboard: manager/dashboard.md
+    - Updates & Rollback: manager/updates.md
+
+  - Troubleshooting:
+    - Hub Unreachable: troubleshooting/hub-unreachable.md
+    - Docker Not Running: troubleshooting/docker-not-running.md
+    - Slow Queries: troubleshooting/slow-queries.md
+    - Disk Full: troubleshooting/disk-full.md
+    - Mobile Connection: troubleshooting/mobile-connection.md
+
+  - FAQ: faq/faq.md
+
+  - Release Notes: release-notes.md
