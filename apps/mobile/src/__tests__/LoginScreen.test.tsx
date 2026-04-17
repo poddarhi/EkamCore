@@ -3,18 +3,22 @@ import {render, fireEvent, waitFor, screen} from '@testing-library/react-native'
 import {LoginScreen} from '../screens/LoginScreen';
 import {AuthContext} from '../contexts/AuthContext';
 
-// Minimal AuthContext value for tests
+// Minimal AuthContext value for tests (S16-002: added biometric fields)
 function makeAuthCtx(overrides: Partial<{
   login: jest.Mock;
   isAuthenticated: boolean;
   isLoading: boolean;
+  biometricAvailable: boolean;
 }> = {}) {
   return {
     user: null,
     isAuthenticated: false,
     isLoading: false,
+    biometricType: null as never,
+    biometricAvailable: false,
     login: jest.fn(),
     logout: jest.fn(),
+    unlockBiometric: jest.fn(),
     ...overrides,
   };
 }

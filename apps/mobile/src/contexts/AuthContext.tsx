@@ -1,3 +1,14 @@
+/**
+ * AuthContext — provides auth state and actions to the app tree (S16-002).
+ *
+ * On mount:
+ *   1. Check if stored refresh token exists (no biometric prompt)
+ *   2. If yes: attempt biometric unlock → silent refresh → logged in
+ *   3. If no or cancelled: show LoginScreen
+ *
+ * Wires ApiClient.onAuthFailure to auto-logout on irrecoverable 401.
+ */
+
 import React, {
   createContext,
   useCallback,
@@ -7,126 +18,120 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import {
-  apiFetch,
-  setAccessToken,
-  registerRefreshCallback,
-  ApiError,
-} from '../api/client';
+
+import {apiClient, ApiError} from '../api/ApiClient';
+import {AuthService, type AuthUser} from '../services/AuthService';
+import type {BiometricType} from '../services/TokenManager';
 import {TokenManager} from '../services/TokenManager';
 
-interface User {
-  id: string;
-  role: string;
-  workspaceIds: string[];
-}
+// ── Context type ────────────────────────────────────────────────────────────
 
 interface AuthState {
-  user: User | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  biometricType: BiometricType | null;
+  biometricAvailable: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  unlockBiometric: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthState | null>(null);
 
-function decodeJwtPayload(token: string): Record<string, unknown> {
-  const base64 = token.split('.')[1];
-  const decoded = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
-  return JSON.parse(decoded);
-}
-
-function userFromToken(token: string): User {
-  const payload = decodeJwtPayload(token);
-  return {
-    id: payload.sub as string,
-    role: (payload.role as string) ?? 'standard',
-    workspaceIds: (payload.workspaces as string[]) ?? [],
-  };
-}
+// ── Provider ────────────────────────────────────────────────────────────────
 
 export function AuthProvider({children}: {children: ReactNode}) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [biometricType, setBiometricType] = useState<BiometricType | null>(
+    null,
+  );
+  const [hasStoredRefresh, setHasStoredRefresh] = useState(false);
 
-  const refresh = useCallback(async (): Promise<boolean> => {
-    try {
-      const refreshToken = await TokenManager.loadRefreshToken();
-      if (!refreshToken) return false;
+  // ── Wire ApiClient auth failure → logout ──
 
-      const data = await apiFetch<{access_token: string}>(
-        '/auth/refresh',
-        {
-          method: 'POST',
-          headers: {Authorization: `Bearer ${refreshToken}`},
-        },
-      );
-      setAccessToken(data.access_token);
-      setUser(userFromToken(data.access_token));
-      return true;
-    } catch {
-      setAccessToken(null);
+  useEffect(() => {
+    apiClient.setOnAuthFailure(() => {
       setUser(null);
-      return false;
-    }
+      TokenManager.clearTokens().catch(() => {});
+    });
+    return () => apiClient.setOnAuthFailure(null);
   }, []);
 
-  // Register refresh callback so api/client can call it on 401
-  useEffect(() => {
-    registerRefreshCallback(refresh);
-    return () => registerRefreshCallback(null);
-  }, [refresh]);
+  // ── Initialize on mount ──
 
-  // Attempt silent refresh on mount
   useEffect(() => {
-    refresh().finally(() => setIsLoading(false));
-  }, [refresh]);
+    let mounted = true;
+
+    async function init() {
+      // Check biometric availability
+      const bioType = await AuthService.getBiometricType();
+      if (mounted) setBiometricType(bioType);
+
+      // Check if we have a stored refresh token
+      const hasRefresh = await TokenManager.hasStoredRefresh();
+      if (mounted) setHasStoredRefresh(hasRefresh);
+
+      if (hasRefresh) {
+        // Attempt biometric unlock → silent refresh
+        const refreshedUser = await AuthService.unlockWithBiometric();
+        if (mounted) {
+          setUser(refreshedUser);
+          setIsLoading(false);
+        }
+      } else {
+        if (mounted) setIsLoading(false);
+      }
+    }
+
+    init();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // ── Actions ──
 
   const login = useCallback(async (email: string, password: string) => {
-    const data = await apiFetch<{
-      access_token: string;
-      refresh_token?: string;
-    }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({email, password}),
-    });
-
-    setAccessToken(data.access_token);
-    setUser(userFromToken(data.access_token));
-
-    if (data.refresh_token) {
-      await TokenManager.saveRefreshToken(data.refresh_token);
-    }
+    const result = await AuthService.login(email, password);
+    setUser(result.user);
+    setHasStoredRefresh(true);
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await apiFetch('/auth/logout', {method: 'POST'});
-    } catch (e) {
-      if (!(e instanceof ApiError && e.status === 401)) {
-        console.warn('Logout request failed', e);
-      }
-    } finally {
-      setAccessToken(null);
-      setUser(null);
-      await TokenManager.clearRefreshToken();
+    await AuthService.logout();
+    setUser(null);
+    setHasStoredRefresh(false);
+  }, []);
+
+  const unlockBiometric = useCallback(async () => {
+    const refreshedUser = await AuthService.unlockWithBiometric();
+    if (refreshedUser) {
+      setUser(refreshedUser);
     }
   }, []);
+
+  // ── Value ──
 
   const value = useMemo<AuthState>(
     () => ({
       user,
       isAuthenticated: !!user,
       isLoading,
+      biometricType,
+      biometricAvailable: biometricType !== null && hasStoredRefresh,
       login,
       logout,
+      unlockBiometric,
     }),
-    [user, isLoading, login, logout],
+    [user, isLoading, biometricType, hasStoredRefresh, login, logout, unlockBiometric],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
+// ── Hook ────────────────────────────────────────────────────────────────────
 
 export function useAuth(): AuthState {
   const ctx = useContext(AuthContext);

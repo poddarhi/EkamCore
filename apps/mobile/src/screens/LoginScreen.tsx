@@ -1,7 +1,17 @@
+/**
+ * LoginScreen — email/password login + biometric unlock button (S16-002).
+ *
+ * Shows "Use Face ID" / "Use Touch ID" button when:
+ *   - A stored refresh token exists in Keychain
+ *   - The device supports biometric authentication
+ *
+ * Accessibility: all fields labeled, errors announced, focus order sequential.
+ */
+
 import React, {useState} from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -11,11 +21,12 @@ import {
   View,
 } from 'react-native';
 import {useAuth} from '../contexts/AuthContext';
-import {ApiError} from '../api/client';
+import {ApiError} from '../api/ApiClient';
 import {Colors, Radius, Typography, sp} from '../design-system/tokens';
 
 export function LoginScreen() {
-  const {login} = useAuth();
+  const {login, unlockBiometric, biometricAvailable, biometricType} =
+    useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,6 +35,9 @@ export function LoginScreen() {
   const handleLogin = async () => {
     if (!email.trim() || !password) {
       setError('Email and password are required.');
+      AccessibilityInfo.announceForAccessibility(
+        'Email and password are required.',
+      );
       return;
     }
 
@@ -33,15 +47,41 @@ export function LoginScreen() {
     try {
       await login(email.trim(), password);
     } catch (e) {
-      if (e instanceof ApiError) {
-        setError(e.message);
-      } else {
-        setError('Something went wrong. Please try again.');
-      }
+      const msg =
+        e instanceof ApiError
+          ? e.message
+          : 'Something went wrong. Please try again.';
+      setError(msg);
+      AccessibilityInfo.announceForAccessibility(msg);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleBiometric = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      await unlockBiometric();
+    } catch (e) {
+      const msg =
+        e instanceof ApiError
+          ? e.message
+          : 'Biometric unlock failed. Please sign in with your password.';
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const biometricLabel =
+    biometricType === 'FaceID'
+      ? 'Use Face ID'
+      : biometricType === 'TouchID'
+      ? 'Use Touch ID'
+      : biometricType === 'Fingerprint'
+      ? 'Use Fingerprint'
+      : 'Use Biometric';
 
   return (
     <KeyboardAvoidingView
@@ -107,6 +147,29 @@ export function LoginScreen() {
             <Text style={styles.buttonText}>Sign in</Text>
           )}
         </TouchableOpacity>
+
+        {biometricAvailable && (
+          <>
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.biometricButton,
+                isLoading && styles.buttonDisabled,
+              ]}
+              onPress={handleBiometric}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityLabel={biometricLabel}
+              accessibilityState={{disabled: isLoading}}>
+              <Text style={styles.biometricButtonText}>{biometricLabel}</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -188,6 +251,35 @@ const styles = StyleSheet.create({
   buttonText: {
     ...Typography.body,
     color: Colors.white,
+    fontWeight: '600',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: sp(4),
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.neutral200,
+  },
+  dividerText: {
+    ...Typography.small,
+    color: Colors.neutral400,
+    marginHorizontal: sp(3),
+  },
+  biometricButton: {
+    height: 48,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  biometricButtonText: {
+    ...Typography.body,
+    color: Colors.primary,
     fontWeight: '600',
   },
 });
