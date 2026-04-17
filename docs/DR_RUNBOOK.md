@@ -12,9 +12,9 @@ All scripts are in `scripts/dr/` and must be run from the project root.
 | Docker daemon crash | `scripts/dr/container_recovery.sh` | < 3 min after daemon returns |
 | Database corruption | `scripts/dr/database_repair.sh --repair` | < 10 min |
 | Full restore from backup | `scripts/dr/restore_from_backup.sh <path>` | < 15 min |
-| Post-power-outage | See [Power Outage Recovery](#6-post-power-outage-recovery) | < 5 min |
-| Disk full | See [Disk Full](#5-disk-full) | < 10 min |
-| Model loading failure | See [Model Loading Failure](#4-ollama-model-loading-failure) | < 5 min |
+| Post-power-outage | `scripts/dr/post_power_outage.sh` | < 5 min |
+| Disk full | `scripts/dr/disk_full_recovery.sh` | < 10 min |
+| Model loading failure | `scripts/dr/model_reload.sh --all` | < 5 min |
 
 ---
 
@@ -386,6 +386,48 @@ sleep 30
 ./scripts/dr/verify_system_health.sh
 curl -s http://localhost:8420/health | python3 -m json.tool
 ```
+
+---
+
+## 7. Automated Recovery Scripts (S15-010)
+
+In addition to the manual procedures above, three automated scripts handle the most common recovery scenarios end-to-end:
+
+### Post-Power-Outage (automated)
+```bash
+./scripts/dr/post_power_outage.sh
+```
+Performs all 6 steps automatically: checks Docker daemon (starts if needed), cleans stale containers, starts all services, waits for health checks (PostgreSQL, Redis, API), verifies data integrity (table counts, Qdrant collections), and runs the full health verification. Outputs pass/fail summary.
+
+### Disk Full Recovery (automated)
+```bash
+./scripts/dr/disk_full_recovery.sh
+```
+Identifies space consumers, truncates oversized container logs, removes old backups (keeps last 3), runs `docker system prune`, checks Ollama cache, and restarts services if space was recovered. Skips cleanup if disk already has >= 30 GB free.
+
+### Model Reload (automated)
+```bash
+# Reload all models
+./scripts/dr/model_reload.sh --all
+
+# Reload only Ollama models
+./scripts/dr/model_reload.sh --ollama
+
+# Reload only InsightFace models
+./scripts/dr/model_reload.sh --face
+```
+Removes and re-pulls Ollama models (nomic-embed-text, phi3:mini, llama3.1:8b) with verification. Re-downloads InsightFace buffalo_l pack with SHA-256 checksum validation. Restarts workers to pick up new models.
+
+---
+
+## 8. Getting Help
+
+EkamCore is a personal, local-first system. For troubleshooting:
+
+1. **Check logs first:** `docker compose logs --tail=100 <service>`
+2. **Run diagnostics:** Export a diagnostics bundle from the Manager app (Diagnostics tab)
+3. **System health:** `./scripts/dr/verify_system_health.sh` generates a complete health report
+4. **GitHub Issues:** File issues at the project repository with the diagnostics bundle attached (no personal data is included in the bundle)
 
 ---
 
