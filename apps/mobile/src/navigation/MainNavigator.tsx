@@ -9,6 +9,7 @@ import {useFlags} from '../contexts/FlagContext';
 import {LoginScreen} from '../screens/LoginScreen';
 import {TodayScreen} from '../screens/TodayScreen';
 import {RecapScreen} from '../screens/RecapScreen';
+import {SearchScreen} from '../screens/SearchScreen';
 import {PlaceholderScreen} from '../screens/PlaceholderScreen';
 import {Colors, Typography} from '../design-system/tokens';
 
@@ -47,10 +48,7 @@ function RecapNavigator() {
 function SearchNavigator() {
   return (
     <SearchStack.Navigator screenOptions={{headerShown: false}}>
-      <SearchStack.Screen
-        name="Search"
-        children={() => <PlaceholderScreen title="Search" />}
-      />
+      <SearchStack.Screen name="Search" component={SearchScreen} />
     </SearchStack.Navigator>
   );
 }
