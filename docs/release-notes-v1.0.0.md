@@ -82,12 +82,20 @@ First-class native macOS installer and control plane built with Tauri 2. Eight-s
 ## Installation
 
 1. Download `EkamCore-Manager-v1.0.0.dmg` from the [GitHub Release](https://github.com/poddarhi/EkamCore/releases/tag/v1.0.0)
-2. Drag to Applications
-3. Launch EkamCore Manager
-4. Follow the 8-step setup wizard
-5. Open https://localhost in your browser
+2. Open the DMG
+3. **Double-click "Install EkamCore.command"** — this copies the app to Applications and removes the macOS quarantine flag
+4. EkamCore Manager will launch automatically
+5. Click **"Install EkamCore"** — the app handles everything else (Docker, Ollama, images, models)
+6. Open https://localhost in your browser when setup completes
 
-See the [Getting Started Guide](docs/user/getting-started/installation.md) for detailed instructions.
+> **Important:** Do NOT drag the app to Applications manually on first install.
+> Use the "Install EkamCore.command" script instead. This prevents the
+> "app is damaged" error from macOS Gatekeeper (the app is not yet code-signed).
+>
+> If you already see the "damaged" error, open Terminal and run:
+> ```
+> xattr -cr "/Applications/EkamCore Manager.app"
+> ```
 
 ---
 
