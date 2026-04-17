@@ -1,0 +1,139 @@
+{
+  "app": {
+    "name": "EkamCore",
+    "tagline": "Your local life assistant"
+  },
+  "nav": {
+    "today": "Today",
+    "recap": "Recap",
+    "search": "Search",
+    "people": "People",
+    "settings": "Settings"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Log Out",
+    "email": "Email",
+    "password": "Password",
+    "biometricFaceId": "Use Face ID",
+    "biometricTouchId": "Use Touch ID",
+    "biometricFingerprint": "Use Fingerprint",
+    "biometricGeneric": "Use Biometric",
+    "emailRequired": "Email and password are required.",
+    "signInFailed": "Something went wrong. Please try again.",
+    "biometricFailed": "Biometric unlock failed. Please sign in with your password.",
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "logoutConfirmTitle": "Log Out",
+    "logoutConfirmMessage": "You'll need to sign in again to access your data."
+  },
+  "today": {
+    "heading": "Today",
+    "empty": "No items today",
+    "emptySubtitle": "Your schedule is clear.",
+    "stale": "Showing cached data"
+  },
+  "recap": {
+    "heading": "Recap",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "empty": "No recap data",
+    "stale": "Showing cached data"
+  },
+  "search": {
+    "placeholder": "Search everything...",
+    "clear": "Clear search",
+    "noResults": "No results for \"{query}\"",
+    "hint": "Events, reminders, files, photos, and people. Start with ? for natural language queries.",
+    "emptyTitle": "Search across everything",
+    "filterAll": "All",
+    "filterEvents": "Events",
+    "filterReminders": "Reminders",
+    "filterFiles": "Files",
+    "filterPhotos": "Photos",
+    "filterPeople": "People"
+  },
+  "people": {
+    "heading": "People",
+    "searchPlaceholder": "Search people...",
+    "empty": "No people yet",
+    "emptySubtitle": "People appear here after face clustering identifies them in your photos.",
+    "reviewQueue": "Review",
+    "faceCluster": "Face cluster",
+    "contact": "Contact",
+    "confirmed": "Confirmed"
+  },
+  "review": {
+    "heading": "Review Queue",
+    "whoIsThis": "Who is this?",
+    "otherMatches": "Other matches:",
+    "confirm": "Confirm",
+    "reject": "Not a person",
+    "skip": "Skip",
+    "allCaughtUp": "All caught up!",
+    "remaining": "{count} remaining"
+  },
+  "photos": {
+    "heading": "Photos",
+    "empty": "No photos yet",
+    "emptySubtitle": "Photos will appear here after ingestion."
+  },
+  "files": {
+    "heading": "Files",
+    "empty": "No files yet",
+    "emptySubtitle": "Files will appear here after document ingestion."
+  },
+  "settings": {
+    "heading": "Settings",
+    "account": "Account",
+    "hubConnection": "Hub Connection",
+    "cache": "Cache",
+    "about": "About",
+    "status": "Status",
+    "hubUrl": "Hub URL",
+    "testConnection": "Test Connection",
+    "troubleshoot": "Troubleshoot Connection",
+    "cacheSize": "Cache size",
+    "maxSize": "Max size",
+    "clearCache": "Clear Cache",
+    "clearCacheConfirm": "This will remove all cached data. You'll need an internet connection to reload.",
+    "appVersion": "App version",
+    "platform": "Platform",
+    "licenses": "Open Source Licenses",
+    "connectionOk": "Successfully reached your EkamCore hub.",
+    "connectionFailed": "Could not reach your hub. Check Tailscale and try again."
+  },
+  "connectivity": {
+    "connected": "Connected",
+    "degraded": "Slow connection",
+    "reconnecting": "Reconnecting...",
+    "disconnectedCached": "Offline — showing cached data",
+    "disconnectedEmpty": "Offline — no data available",
+    "hubSleeping": "Hub is asleep — reconnecting...",
+    "hubUnreachable": "Hub unreachable",
+    "hubUnreachableSubtitle": "Cannot connect to your EkamCore hub and no cached data is available.",
+    "hubIsSleeping": "Hub is sleeping",
+    "hubSleepingSubtitle": "Your Mac appears to be asleep. Wake it up or wait for it to come online.",
+    "retry": "Retry"
+  },
+  "troubleshooting": {
+    "heading": "Connection Troubleshooting",
+    "subtitle": "Running diagnostics to find the issue...",
+    "checkNetwork": "Checking network connectivity...",
+    "checkTailscale": "Checking Tailscale connection...",
+    "checkHub": "Reaching EkamCore hub...",
+    "checkAuth": "Checking authentication...",
+    "allPassed": "All checks passed! Connection should be working.",
+    "openTailscale": "Open Tailscale App",
+    "signInAgain": "Sign In Again",
+    "runAgain": "Run Again"
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "save": "Save",
+    "loading": "Loading...",
+    "retry": "Retry",
+    "or": "or"
+  }
+}

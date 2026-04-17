@@ -11,6 +11,7 @@ import {TodayScreen} from '../screens/TodayScreen';
 import {RecapScreen} from '../screens/RecapScreen';
 import {SearchScreen} from '../screens/SearchScreen';
 import {PeopleScreen} from '../screens/PeopleScreen';
+import {SettingsScreen} from '../screens/SettingsScreen';
 import {PlaceholderScreen} from '../screens/PlaceholderScreen';
 import {Colors, Typography} from '../design-system/tokens';
 
@@ -65,10 +66,7 @@ function PeopleNavigator() {
 function SettingsNavigator() {
   return (
     <SettingsStack.Navigator screenOptions={{headerShown: false}}>
-      <SettingsStack.Screen
-        name="Settings"
-        children={() => <PlaceholderScreen title="Settings" />}
-      />
+      <SettingsStack.Screen name="Settings" component={SettingsScreen} />
     </SettingsStack.Navigator>
   );
 }
