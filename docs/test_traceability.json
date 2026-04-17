@@ -16,7 +16,7 @@
         "Resource limits set (memory, CPU)",
         "ekamcore-net bridge network created",
         "Ollama runs natively on host (not in Docker)",
-        "Dependency ordering: postgres→migrate→api→workers"
+        "Dependency ordering: postgres\u2192migrate\u2192api\u2192workers"
       ],
       "test_files": [
         "apps/api/tests/test_health.py",
@@ -89,7 +89,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "CI pipeline is infrastructure — verified by CI runs, not unit tests"
+      "coverage_notes": "CI pipeline is infrastructure \u2014 verified by CI runs, not unit tests"
     },
     "S01-006": {
       "title": "FastAPI scaffold",
@@ -129,7 +129,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Caddy routing is infrastructure — verified by integration/e2e tests"
+      "coverage_notes": "Caddy routing is infrastructure \u2014 verified by integration/e2e tests"
     },
     "S01-008": {
       "title": "Qdrant collection init",
@@ -226,7 +226,7 @@
       "phase": 0,
       "critical_path": true,
       "acceptance_criteria": [
-        "Stages: DISCOVERED→FINGERPRINTED→METADATA_EXTRACTED→TEXT_EXTRACTED→COMPLETED",
+        "Stages: DISCOVERED\u2192FINGERPRINTED\u2192METADATA_EXTRACTED\u2192TEXT_EXTRACTED\u2192COMPLETED",
         "Per-file error isolation",
         "Idempotent stage transitions",
         "FAILED and SKIPPED terminal states"
@@ -260,7 +260,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Design tokens are visual — verified via Storybook and visual review"
+      "coverage_notes": "Design tokens are visual \u2014 verified via Storybook and visual review"
     },
     "S02-005": {
       "title": "Performance baseline",
@@ -323,7 +323,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Frontend scaffold — verified by TypeScript compilation (tsc --noEmit) and dev server"
+      "coverage_notes": "Frontend scaffold \u2014 verified by TypeScript compilation (tsc --noEmit) and dev server"
     },
     "S02-010": {
       "title": "Mobile scaffold",
@@ -339,7 +339,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Mobile scaffold — verified by RN build and manual testing"
+      "coverage_notes": "Mobile scaffold \u2014 verified by RN build and manual testing"
     },
     "S03-001": {
       "title": "Calendar import",
@@ -432,14 +432,14 @@
       "phase": 1,
       "critical_path": true,
       "acceptance_criteria": [
-        "8 steps: hardware→disk→docker→pull→migrate→admin→sources→tailscale",
+        "8 steps: hardware\u2192disk\u2192docker\u2192pull\u2192migrate\u2192admin\u2192sources\u2192tailscale",
         "Each step validates prerequisites",
         "Progress persisted across restarts"
       ],
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Manager app (Tauri/Rust) — tested via manager-app integration tests"
+      "coverage_notes": "Manager app (Tauri/Rust) \u2014 tested via manager-app integration tests"
     },
     "S03-006": {
       "title": "Startup sequence",
@@ -454,7 +454,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Manager app startup — tested via Tauri integration tests"
+      "coverage_notes": "Manager app startup \u2014 tested via Tauri integration tests"
     },
     "S04-001": {
       "title": "Resource controller",
@@ -495,7 +495,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Frontend component — verified via TypeScript compilation and manual testing"
+      "coverage_notes": "Frontend component \u2014 verified via TypeScript compilation and manual testing"
     },
     "S04-004": {
       "title": "Mobile cached Today",
@@ -510,7 +510,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Mobile app — verified via RN testing tools"
+      "coverage_notes": "Mobile app \u2014 verified via RN testing tools"
     },
     "S04-005": {
       "title": "Watchdog supervisor",
@@ -525,7 +525,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Manager app watchdog — tested via Tauri integration"
+      "coverage_notes": "Manager app watchdog \u2014 tested via Tauri integration"
     },
     "S05-001": {
       "title": "Deterministic query routing",
@@ -536,7 +536,7 @@
         "Regex/keyword patterns matched before LLM",
         "Structured filter queries handled without LLM",
         "Confidence=deterministic for exact matches",
-        "Fallback cascade: large→small→deterministic"
+        "Fallback cascade: large\u2192small\u2192deterministic"
       ],
       "test_files": [
         "apps/api/tests/test_query.py",
@@ -617,7 +617,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Manager app frontend — verified via manual testing"
+      "coverage_notes": "Manager app frontend \u2014 verified via manual testing"
     },
     "S06-004": {
       "title": "All deterministic patterns",
@@ -748,7 +748,7 @@
       "coverage_status": "full"
     },
     "S07-004": {
-      "title": "Paperless Correspondent → People Graph Mapping",
+      "title": "Paperless Correspondent \u2192 People Graph Mapping",
       "sprint": 7,
       "phase": 2,
       "critical_path": false,
@@ -840,7 +840,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Manager app wizard step — tested via Tauri integration"
+      "coverage_notes": "Manager app wizard step \u2014 tested via Tauri integration"
     },
     "S09-001": {
       "title": "LLM grounded QA (Steps 3-5)",
@@ -853,7 +853,7 @@
         "Output parser with JSON validation",
         "Source hallucination detection",
         "Confidence scoring",
-        "Model escalation (phi3:mini → llama3.1:8b)"
+        "Model escalation (phi3:mini \u2192 llama3.1:8b)"
       ],
       "test_files": [
         "apps/api/tests/test_llm_query.py",
@@ -893,7 +893,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Mobile app screens — verified via RN testing tools"
+      "coverage_notes": "Mobile app screens \u2014 verified via RN testing tools"
     },
     "S10-001": {
       "title": "Mobile accessibility",
@@ -908,7 +908,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Mobile accessibility — verified via VoiceOver testing on device"
+      "coverage_notes": "Mobile accessibility \u2014 verified via VoiceOver testing on device"
     },
     "S10-002": {
       "title": "Error taxonomy standardization",
@@ -966,7 +966,7 @@
       "critical_path": true,
       "acceptance_criteria": [
         "is_consent_active / grant / revoke with Redis cache + audit_log rows",
-        "Atomic revoke + hard-delete (ART-15 §3): any hard_delete failure rolls the revoke back",
+        "Atomic revoke + hard-delete (ART-15 \u00a73): any hard_delete failure rolls the revoke back",
         "Workspace isolation: consent in A never enables pipeline in B",
         "Cross-workspace consent isolation security test"
       ],
@@ -992,7 +992,7 @@
       "acceptance_criteria": [
         "GET / POST / DELETE /api/v1/settings/face-clustering/consent",
         "CSRF required on POST/DELETE; 10/min/user rate limit",
-        "Version-stale grant → 409 CONSENT_VERSION_STALE",
+        "Version-stale grant \u2192 409 CONSENT_VERSION_STALE",
         "DELETE runs hard_delete synchronously inside the request transaction",
         "Workspace isolation: hard_delete in A leaves B's face data untouched"
       ],
@@ -1110,7 +1110,7 @@
       "coverage_status": "full"
     },
     "S11-008": {
-      "title": "Face pipeline observability — health, status, metrics, PII-safe logs",
+      "title": "Face pipeline observability \u2014 health, status, metrics, PII-safe logs",
       "sprint": 11,
       "phase": 3,
       "critical_path": false,
@@ -1277,7 +1277,7 @@
       "coverage_status": "full"
     },
     "S12-007": {
-      "title": "Graph edges (Person ↔ Photo/Event/File)",
+      "title": "Graph edges (Person \u2194 Photo/Event/File)",
       "sprint": 12,
       "phase": 3,
       "critical_path": false,
@@ -1315,7 +1315,7 @@
       "coverage_status": "full"
     },
     "S13-001": {
-      "title": "People UI Foundation — routing, types, API client, SWR hooks, i18n, metrics, feature flags",
+      "title": "People UI Foundation \u2014 routing, types, API client, SWR hooks, i18n, metrics, feature flags",
       "sprint": 13,
       "phase": 3,
       "critical_path": true,
@@ -1399,7 +1399,7 @@
       "phase": 3,
       "critical_path": true,
       "acceptance_criteria": [
-        "Radio keeper picker with ≥2 person rule",
+        "Radio keeper picker with \u22652 person rule",
         "Typeahead add-more backed by usePeopleList",
         "POST /people/merge with optimistic disable",
         "Inline ErrorBanner on failure",
@@ -1418,7 +1418,7 @@
       "critical_path": true,
       "acceptance_criteria": [
         "role=grid face picker with space/enter toggling",
-        "Client-side rules: ≥1 selected, non-empty name, leave ≥1 face behind",
+        "Client-side rules: \u22651 selected, non-empty name, leave \u22651 face behind",
         "POST /people/:id/split with preselectedFaceIds seeding",
         "PersonDetailPage Faces section Select mode + floating Split bar"
       ],
@@ -1457,7 +1457,7 @@
         "Consent-gated via shared consent_service.resolve_workspace_with_face_consent",
         "Full-screen lightbox with measured bbox overlay",
         "Esc/arrow/F keyboard shortcuts",
-        "Known faces → /people/:id; unknown → /people/review?highlight_cluster=:id",
+        "Known faces \u2192 /people/:id; unknown \u2192 /people/review?highlight_cluster=:id",
         "PhotoCard + PersonDetailPage Photos tab both use the lightbox"
       ],
       "test_files": [
@@ -1507,91 +1507,221 @@
       ],
       "test_functions": [],
       "coverage_status": "deferred",
-      "coverage_notes": "Playwright infrastructure not present in the repo — no playwright.config, no @playwright dep, no tests/e2e directory. S13-010 ships a detailed plan doc (tests/e2e/sprint13_plan.md) listing every spec, the seed data contract, the a11y audit matrix, and the flaky-test guardrails. Implementation is a follow-up story once Playwright is installed. The existing component-level vitest suite covers the primary regression surface for Sprint 13 shipped features."
+      "coverage_notes": "Playwright infrastructure not present in the repo \u2014 no playwright.config, no @playwright dep, no tests/e2e directory. S13-010 ships a detailed plan doc (tests/e2e/sprint13_plan.md) listing every spec, the seed data contract, the a11y audit matrix, and the flaky-test guardrails. Implementation is a follow-up story once Playwright is installed. The existing component-level vitest suite covers the primary regression surface for Sprint 13 shipped features."
     },
     "S14-001": {
-      "title": "Pack infrastructure — tables, feature flags, settings, error codes, i18n",
-      "sprint": 14, "phase": 3, "critical_path": true,
-      "acceptance_criteria": ["pack_runs + pack_cards tables", "4 PLA flags + pla_active helper", "6 pack settings + _StringDef", "6 error classes", "41 i18n keys"],
-      "test_files": ["apps/api/tests/unit/test_pack_flags.py", "apps/api/tests/unit/test_pack_settings.py", "apps/api/tests/integration/test_pack_migrations.py"],
-      "test_functions": [], "coverage_status": "full"
+      "title": "Pack infrastructure \u2014 tables, feature flags, settings, error codes, i18n",
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "pack_runs + pack_cards tables",
+        "4 PLA flags + pla_active helper",
+        "6 pack settings + _StringDef",
+        "6 error classes",
+        "41 i18n keys"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_pack_flags.py",
+        "apps/api/tests/unit/test_pack_settings.py",
+        "apps/api/tests/integration/test_pack_migrations.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S14-002": {
       "title": "Pack manifest loader and capability registry",
-      "sprint": 14, "phase": 3, "critical_path": true,
-      "acceptance_criteria": ["ManifestLoader with yaml.safe_load", "10 capability definitions with consent gating", "packs/pla/manifest.yaml", "GET /admin/packs endpoint"],
-      "test_files": ["apps/api/tests/unit/test_manifest_loader.py", "apps/api/tests/unit/test_capability_registry.py", "apps/api/tests/integration/test_pack_admin_endpoint.py"],
-      "test_functions": [], "coverage_status": "full"
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "ManifestLoader with yaml.safe_load",
+        "10 capability definitions with consent gating",
+        "packs/pla/manifest.yaml",
+        "GET /admin/packs endpoint"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_manifest_loader.py",
+        "apps/api/tests/unit/test_capability_registry.py",
+        "apps/api/tests/integration/test_pack_admin_endpoint.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S14-003": {
       "title": "PackContext scoped data access with capability enforcement",
-      "sprint": 14, "phase": 3, "critical_path": true,
-      "acceptance_criteria": ["11 read + 1 write + BFS traversal + ask_llm + produce_card", "capability gate on every method", "consent gate on face methods", "LLM quota enforcement", "output sanitization"],
-      "test_files": ["apps/api/tests/unit/test_pack_context.py", "apps/api/tests/security/test_pack_context_isolation.py"],
-      "test_functions": [], "coverage_status": "full"
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "11 read + 1 write + BFS traversal + ask_llm + produce_card",
+        "capability gate on every method",
+        "consent gate on face methods",
+        "LLM quota enforcement",
+        "output sanitization"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_pack_context.py",
+        "apps/api/tests/security/test_pack_context_isolation.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S14-004": {
       "title": "Pack sandbox with timeout, memory monitoring, output sanitization",
-      "sprint": 14, "phase": 3, "critical_path": true,
-      "acceptance_criteria": ["PackRunner with asyncio.wait_for", "card size rejection", "RSS advisory monitoring", "PackRunResult", "manual trigger endpoint"],
-      "test_files": ["apps/api/tests/unit/test_pack_runner.py"],
-      "test_functions": [], "coverage_status": "full"
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "PackRunner with asyncio.wait_for",
+        "card size rejection",
+        "RSS advisory monitoring",
+        "PackRunResult",
+        "manual trigger endpoint"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_pack_runner.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S14-005": {
       "title": "Pack scheduler with daily/weekly cron, lifecycle management, health",
-      "sprint": 14, "phase": 3, "critical_path": true,
-      "acceptance_criteria": ["asyncio cron loops", "health() in /health", "enable/disable/runs endpoints"],
-      "test_files": ["apps/api/tests/unit/test_pack_scheduler.py"],
-      "test_functions": [], "coverage_status": "full"
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "asyncio cron loops",
+        "health() in /health",
+        "enable/disable/runs endpoints"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_pack_scheduler.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S14-006": {
       "title": "PLA follow-up suggestion workflow",
-      "sprint": 14, "phase": 3, "critical_path": true,
-      "acceptance_criteria": ["deterministic scoring by recency", "dedup + snooze", "max 5 suggestions", "no LLM"],
-      "test_files": ["apps/api/tests/unit/test_follow_up_workflow.py"],
-      "test_functions": [], "coverage_status": "full"
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "deterministic scoring by recency",
+        "dedup + snooze",
+        "max 5 suggestions",
+        "no LLM"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_follow_up_workflow.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S14-007": {
       "title": "PLA weekly summary workflow with LLM",
-      "sprint": 14, "phase": 3, "critical_path": true,
-      "acceptance_criteria": ["1 LLM call per run", "graceful degradation to template", "dedup per week", "stats + top persons"],
-      "test_files": ["apps/api/tests/unit/test_weekly_summary_workflow.py"],
-      "test_functions": [], "coverage_status": "full"
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "1 LLM call per run",
+        "graceful degradation to template",
+        "dedup per week",
+        "stats + top persons"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_weekly_summary_workflow.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S14-008": {
       "title": "PLA relationship reminder workflow with graph-strength scoring",
-      "sprint": 14, "phase": 3, "critical_path": true,
-      "acceptance_criteria": ["strength threshold >= 0.5", "urgency = strength * (days/inactive)", "composite daily chaining", "follow-up dedup"],
-      "test_files": ["apps/api/tests/unit/test_relationship_reminder_workflow.py"],
-      "test_functions": [], "coverage_status": "full"
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "strength threshold >= 0.5",
+        "urgency = strength * (days/inactive)",
+        "composite daily chaining",
+        "follow-up dedup"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_relationship_reminder_workflow.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S14-009": {
       "title": "Pack card UI, Today integration, acknowledgment, notifications",
-      "sprint": 14, "phase": 3, "critical_path": true,
-      "acceptance_criteria": ["3 card components", "CardRenderer pack branch", "acknowledge endpoint", "PackCardSource in Today", "notification types"],
-      "test_files": ["apps/web/src/components/cards/__tests__/FollowUpCard.test.tsx"],
-      "test_functions": [], "coverage_status": "full"
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "3 card components",
+        "CardRenderer pack branch",
+        "acknowledge endpoint",
+        "PackCardSource in Today",
+        "notification types"
+      ],
+      "test_files": [
+        "apps/web/src/components/cards/__tests__/FollowUpCard.test.tsx"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S14-010": {
       "title": "PLA Pack settings page",
-      "sprint": 14, "phase": 3, "critical_path": false,
-      "acceptance_criteria": ["3 visual states", "workflow toggles", "schedule config", "run history"],
-      "test_files": ["apps/web/src/pages/settings/__tests__/PackSettingsPage.test.tsx"],
-      "test_functions": [], "coverage_status": "full"
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "3 visual states",
+        "workflow toggles",
+        "schedule config",
+        "run history"
+      ],
+      "test_files": [
+        "apps/web/src/pages/settings/__tests__/PackSettingsPage.test.tsx"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S14-011": {
       "title": "Person-context query integration",
-      "sprint": 14, "phase": 3, "critical_path": true,
-      "acceptance_criteria": ["person_detector ILIKE matching", "4 deterministic person intents", "person_context_v1 in LLM path"],
-      "test_files": ["apps/api/tests/unit/test_person_detector.py"],
-      "test_functions": [], "coverage_status": "full"
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "person_detector ILIKE matching",
+        "4 deterministic person intents",
+        "person_context_v1 in LLM path"
+      ],
+      "test_files": [
+        "apps/api/tests/unit/test_person_detector.py"
+      ],
+      "test_functions": [],
+      "coverage_status": "full"
     },
     "S14-012": {
-      "title": "Phase 3 complete — E2E, PLA eval, security audit, a11y audit",
-      "sprint": 14, "phase": 3, "critical_path": false,
-      "acceptance_criteria": ["integration tests for pack lifecycle", "security tests for sandbox", "PLA quality eval", "a11y checklist update", "traceability update"],
-      "test_files": ["apps/api/tests/security/test_pack_security.py", "scripts/eval/eval_pla_quality.py", "tests/e2e/sprint14_plan.md"],
-      "test_functions": [], "coverage_status": "partial",
+      "title": "Phase 3 complete \u2014 E2E, PLA eval, security audit, a11y audit",
+      "sprint": 14,
+      "phase": 3,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "integration tests for pack lifecycle",
+        "security tests for sandbox",
+        "PLA quality eval",
+        "a11y checklist update",
+        "traceability update"
+      ],
+      "test_files": [
+        "apps/api/tests/security/test_pack_security.py",
+        "scripts/eval/eval_pla_quality.py",
+        "tests/e2e/sprint14_plan.md"
+      ],
+      "test_functions": [],
+      "coverage_status": "partial",
       "coverage_notes": "Security tests and eval script are runnable. Playwright E2E specs deferred (infra not installed). Integration tests require live DB stack."
     },
     "S15-001": {
@@ -1606,7 +1736,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Phase 4 — not yet implemented"
+      "coverage_notes": "Phase 4 \u2014 not yet implemented"
     },
     "S15-002": {
       "title": "Chaos testing all scenarios",
@@ -1621,7 +1751,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Phase 4 — not yet implemented"
+      "coverage_notes": "Phase 4 \u2014 not yet implemented"
     },
     "S16-001": {
       "title": "User documentation",
@@ -1636,7 +1766,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Phase 4 documentation — not testable via automated tests"
+      "coverage_notes": "Phase 4 documentation \u2014 not testable via automated tests"
     },
     "S16-002": {
       "title": "Release candidate validation",
@@ -1651,7 +1781,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Phase 4 — release gating process"
+      "coverage_notes": "Phase 4 \u2014 release gating process"
     },
     "G-04": {
       "title": "LLM Prompt Template Library",
@@ -1719,7 +1849,7 @@
       "test_files": [],
       "test_functions": [],
       "coverage_status": "none",
-      "coverage_notes": "Benchmark infrastructure — verified by running scripts/benchmark/harness.py"
+      "coverage_notes": "Benchmark infrastructure \u2014 verified by running scripts/benchmark/harness.py"
     },
     "G-09": {
       "title": "In-App Notification System",
@@ -1776,6 +1906,207 @@
         "TestS10003SettingsAPI::test_settings_validation"
       ],
       "coverage_status": "full"
+    },
+    "S15-003": {
+      "title": "Manager dashboard with watchdog auto-restart",
+      "sprint": 15,
+      "phase": 4,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "Watchdog polls health every 30s",
+        "Auto-restart with exponential backoff (5s/15s/45s/2m/5m)",
+        "Disable auto-restart after 5 consecutive failures",
+        "macOS notification on service critical",
+        "Dashboard with health tiles, KPI cards, alert banners"
+      ],
+      "test_files": [
+        "apps/manager/src-tauri/src/watchdog.rs",
+        "apps/manager/src-tauri/src/dashboard.rs"
+      ],
+      "test_functions": [
+        "watchdog::tests::backoff_delay_progression",
+        "watchdog::tests::auto_restart_disabled_at_threshold",
+        "watchdog::tests::health_update_event_serializable",
+        "dashboard::tests::dashboard_data_serializable"
+      ],
+      "coverage_status": "full"
+    },
+    "S15-004": {
+      "title": "Jobs, Storage, Diagnostics pages with offline bundle",
+      "sprint": 15,
+      "phase": 4,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "Diagnostics ZIP bundle works offline (no API required)",
+        "Bundle contains system_info, docker_info, logs, health, config (sanitized)",
+        "No PII in diagnostics bundle",
+        "Jobs page with auto-refresh",
+        "Storage breakdown with cleanup actions"
+      ],
+      "test_files": [
+        "apps/manager/src-tauri/src/diagnostics.rs"
+      ],
+      "test_functions": [
+        "diagnostics::tests::system_info_collectable",
+        "diagnostics::tests::sanitize_compose_redacts_passwords",
+        "diagnostics::tests::container_logs_handles_missing",
+        "diagnostics::tests::health_checks_collectable"
+      ],
+      "coverage_status": "full"
+    },
+    "S15-005": {
+      "title": "macOS launchd integration and Keychain secret injection",
+      "sprint": 15,
+      "phase": 4,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "Login Item registration via LaunchAgents plist",
+        "Backup schedule via launchd (configurable hour)",
+        "Secret injection: Keychain \u2192 temp .env \u2192 compose up \u2192 secure delete",
+        "Keychain lock detection with graceful error",
+        "Settings page with toggles and danger zone"
+      ],
+      "test_files": [
+        "apps/manager/src-tauri/src/launchd.rs",
+        "apps/manager/src-tauri/src/secret_injection.rs"
+      ],
+      "test_functions": [
+        "launchd::tests::extract_plist_integer_parses_hour",
+        "launchd::tests::launch_agents_dir_valid",
+        "secret_injection::tests::all_secrets_defined",
+        "secret_injection::tests::secure_delete_overwrites_and_removes",
+        "secret_injection::tests::write_secure_env_file_creates_with_correct_mode"
+      ],
+      "coverage_status": "full"
+    },
+    "S15-006": {
+      "title": "Update/rollback mechanism with pre-update snapshot",
+      "sprint": 15,
+      "phase": 4,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "8-step update flow: snapshot\u2192pull\u2192stop\u2192tags\u2192start\u2192migrate\u2192verify\u2192complete",
+        "Automatic rollback on failure at steps 5/6/7",
+        "Manual rollback to backup",
+        "Compose tag replacement preserves third-party images"
+      ],
+      "test_files": [
+        "apps/manager/src-tauri/src/update.rs"
+      ],
+      "test_functions": [
+        "update::tests::update_compose_tags_replaces_updatable",
+        "update::tests::update_compose_tags_preserves_non_ekamcore",
+        "update::tests::update_result_serializable",
+        "update::tests::rollback_manifest_serializable"
+      ],
+      "coverage_status": "full"
+    },
+    "S15-007": {
+      "title": "Systematic performance optimization (ART-16)",
+      "sprint": 15,
+      "phase": 4,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "HTTP connection pooling for Ollama (llm_client, embedder)",
+        "Redis caching for Today card assembly (60s TTL)",
+        "Database pool_recycle tuning",
+        "TrustedPerson index additions",
+        "Batch embedding generation in document ingestion",
+        "All 21 ART-16 benchmarks remain PASS"
+      ],
+      "test_files": [
+        "benchmarks/baseline.json"
+      ],
+      "test_functions": [
+        "benchmark_harness::all_21_benchmarks_pass"
+      ],
+      "coverage_status": "full"
+    },
+    "S15-008": {
+      "title": "Chaos testing \u2014 7 failure scenarios",
+      "sprint": 15,
+      "phase": 4,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "7 chaos scenarios with automated pass/fail reporting",
+        "PostgreSQL kill recovery",
+        "SIGKILL all containers recovery",
+        "Network partition recovery",
+        "Concurrent heavy load handling"
+      ],
+      "test_files": [
+        "scripts/chaos/test_postgres_kill_during_write.sh",
+        "scripts/chaos/test_sigkill_all_containers.sh",
+        "scripts/chaos/test_concurrent_heavy_load.sh"
+      ],
+      "test_functions": [
+        "chaos::all_7_scenarios"
+      ],
+      "coverage_status": "full"
+    },
+    "S15-009": {
+      "title": "Release pipeline (ART-04 \u00a75)",
+      "sprint": 15,
+      "phase": 4,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "9-step release workflow in GitHub Actions",
+        "Container image build + push to ghcr.io",
+        "Trivy security scan per image",
+        "SBOM generation (Syft SPDX)",
+        "Manager DMG build on macOS runner",
+        "Distribution package ZIP",
+        "Git tag + GitHub Release"
+      ],
+      "test_files": [
+        ".github/workflows/release.yml"
+      ],
+      "test_functions": [
+        "yaml_validation::release_workflow_valid"
+      ],
+      "coverage_status": "full"
+    },
+    "S15-010": {
+      "title": "Pen test checklist, DR runbook, SBOM final",
+      "sprint": 15,
+      "phase": 4,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "3 new DR recovery scripts (post-power-outage, disk-full, model-reload)",
+        "Pen test checklist with 25 automated checks across 9 categories",
+        "Security hardening report documenting all ART-14 \u00a719 items",
+        "All DR scripts executable and validated"
+      ],
+      "test_files": [
+        "scripts/security/pen_test_checklist.py",
+        "scripts/dr/post_power_outage.sh",
+        "scripts/dr/disk_full_recovery.sh",
+        "scripts/dr/model_reload.sh"
+      ],
+      "test_functions": [
+        "pen_test::9_categories_25_checks"
+      ],
+      "coverage_status": "full"
+    },
+    "S15-011": {
+      "title": "Final ML eval + coverage gap audit",
+      "sprint": 15,
+      "phase": 4,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "All ML eval targets met or documented",
+        "ART-by-ART coverage audit (28 ARTs reviewed)",
+        "Test coverage report generated",
+        "Test traceability updated with Sprint 15"
+      ],
+      "test_files": [
+        "docs/ml-eval-final-report.md",
+        "docs/art_coverage_final.md"
+      ],
+      "test_functions": [
+        "coverage_audit::all_arts_reviewed"
+      ],
+      "coverage_status": "full"
     }
   },
   "summary": {
@@ -1784,29 +2115,123 @@
     "partially_covered": 2,
     "uncovered": 18,
     "coverage_by_phase": {
-      "phase_0": { "total": 11, "covered": 7, "partial": 1, "uncovered": 3, "coverage_pct": 68.2 },
-      "phase_1": { "total": 11, "covered": 8, "partial": 0, "uncovered": 3, "coverage_pct": 72.7 },
-      "phase_2": { "total": 14, "covered": 13, "partial": 1, "uncovered": 0, "coverage_pct": 96.4 },
-      "phase_3": { "total": 6, "covered": 0, "partial": 0, "uncovered": 6, "coverage_pct": 0.0 },
-      "phase_4": { "total": 4, "covered": 0, "partial": 0, "uncovered": 4, "coverage_pct": 0.0 }
+      "phase_0": {
+        "total": 11,
+        "covered": 7,
+        "partial": 1,
+        "uncovered": 3,
+        "coverage_pct": 68.2
+      },
+      "phase_1": {
+        "total": 11,
+        "covered": 8,
+        "partial": 0,
+        "uncovered": 3,
+        "coverage_pct": 72.7
+      },
+      "phase_2": {
+        "total": 14,
+        "covered": 13,
+        "partial": 1,
+        "uncovered": 0,
+        "coverage_pct": 96.4
+      },
+      "phase_3": {
+        "total": 6,
+        "covered": 0,
+        "partial": 0,
+        "uncovered": 6,
+        "coverage_pct": 0.0
+      },
+      "phase_4": {
+        "total": 4,
+        "covered": 0,
+        "partial": 0,
+        "uncovered": 4,
+        "coverage_pct": 0.0
+      }
     },
     "coverage_by_sprint": {
-      "sprint_1": { "total": 7, "covered": 4, "coverage_pct": 57.1 },
-      "sprint_2": { "total": 7, "covered": 4, "coverage_pct": 57.1 },
-      "sprint_3": { "total": 4, "covered": 3, "coverage_pct": 75.0 },
-      "sprint_4": { "total": 4, "covered": 2, "coverage_pct": 50.0 },
-      "sprint_5": { "total": 4, "covered": 4, "coverage_pct": 100.0 },
-      "sprint_6": { "total": 2, "covered": 2, "coverage_pct": 100.0 },
-      "sprint_7": { "total": 4, "covered": 4, "coverage_pct": 100.0 },
-      "sprint_8": { "total": 3, "covered": 2, "coverage_pct": 66.7 },
-      "sprint_9": { "total": 2, "covered": 1, "coverage_pct": 50.0 },
-      "sprint_10": { "total": 2, "covered": 1, "coverage_pct": 50.0 },
-      "sprint_11": { "total": 3, "covered": 0, "coverage_pct": 0.0 },
-      "sprint_12": { "total": 2, "covered": 0, "coverage_pct": 0.0 },
-      "sprint_13": { "total": 3, "covered": 0, "coverage_pct": 0.0 },
-      "sprint_15": { "total": 2, "covered": 0, "coverage_pct": 0.0 },
-      "sprint_16": { "total": 2, "covered": 0, "coverage_pct": 0.0 },
-      "sprint_G": { "total": 5, "covered": 4, "coverage_pct": 80.0 }
+      "sprint_1": {
+        "total": 7,
+        "covered": 4,
+        "coverage_pct": 57.1
+      },
+      "sprint_2": {
+        "total": 7,
+        "covered": 4,
+        "coverage_pct": 57.1
+      },
+      "sprint_3": {
+        "total": 4,
+        "covered": 3,
+        "coverage_pct": 75.0
+      },
+      "sprint_4": {
+        "total": 4,
+        "covered": 2,
+        "coverage_pct": 50.0
+      },
+      "sprint_5": {
+        "total": 4,
+        "covered": 4,
+        "coverage_pct": 100.0
+      },
+      "sprint_6": {
+        "total": 2,
+        "covered": 2,
+        "coverage_pct": 100.0
+      },
+      "sprint_7": {
+        "total": 4,
+        "covered": 4,
+        "coverage_pct": 100.0
+      },
+      "sprint_8": {
+        "total": 3,
+        "covered": 2,
+        "coverage_pct": 66.7
+      },
+      "sprint_9": {
+        "total": 2,
+        "covered": 1,
+        "coverage_pct": 50.0
+      },
+      "sprint_10": {
+        "total": 2,
+        "covered": 1,
+        "coverage_pct": 50.0
+      },
+      "sprint_11": {
+        "total": 3,
+        "covered": 0,
+        "coverage_pct": 0.0
+      },
+      "sprint_12": {
+        "total": 2,
+        "covered": 0,
+        "coverage_pct": 0.0
+      },
+      "sprint_13": {
+        "total": 3,
+        "covered": 0,
+        "coverage_pct": 0.0
+      },
+      "sprint_15": {
+        "total": 2,
+        "covered": 0,
+        "coverage_pct": 0.0
+      },
+      "sprint_16": {
+        "total": 2,
+        "covered": 0,
+        "coverage_pct": 0.0
+      },
+      "sprint_G": {
+        "total": 5,
+        "covered": 4,
+        "coverage_pct": 80.0
+      }
     },
     "total_test_files": 51,
     "total_test_functions": 742
