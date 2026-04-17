@@ -34,7 +34,15 @@ export default function App() {
 
   useEffect(() => {
     invoke<boolean>("is_setup_complete")
-      .then((complete) => setView(complete ? "starting" : "setup"))
+      .then((complete) => {
+        if (complete) {
+          // Skip startup sequence — go straight to dashboard.
+          // Services are managed by docker compose externally.
+          setView("main");
+        } else {
+          setView("setup");
+        }
+      })
       .catch(() => setView("setup"));
   }, []);
 
