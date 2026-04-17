@@ -7,8 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import SetupWizard from "./pages/SetupWizard";
-import StartupSequence from "./pages/StartupSequence";
+import InstallerWizard from "./pages/InstallerWizard";
 import Dashboard from "./pages/Dashboard";
 import Jobs from "./pages/Jobs";
 import Storage from "./pages/Storage";
@@ -55,11 +54,7 @@ export default function App() {
   }
 
   if (view === "setup") {
-    return <SetupWizard onComplete={() => setView("starting")} />;
-  }
-
-  if (view === "starting") {
-    return <StartupSequence onReady={() => setView("main")} />;
+    return <InstallerWizard onComplete={() => setView("main")} />;
   }
 
   // Main tabbed view

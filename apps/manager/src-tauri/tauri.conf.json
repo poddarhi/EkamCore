@@ -29,6 +29,7 @@
     "active": true,
     "targets": ["dmg", "app"],
     "icon": ["icons/icon.icns", "icons/icon.png"],
+    "resources": ["resources/*"],
     "macOS": {
       "entitlements": null,
       "exceptionDomain": null,

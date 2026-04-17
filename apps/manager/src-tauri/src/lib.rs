@@ -11,6 +11,7 @@ mod diagnostics;
 mod disk;
 mod docker;
 mod hardware;
+mod installer;
 mod keychain;
 mod launchd;
 mod secret_injection;
@@ -127,6 +128,9 @@ pub fn run() {
             secret_injection::inject_secrets_and_start,
             secret_injection::regenerate_all_secrets,
             secret_injection::reset_setup,
+            // Self-contained installer
+            installer::run_installer,
+            installer::check_system_deps,
             // S15-006: update + rollback
             update::check_for_updates,
             update::apply_update,
