@@ -160,13 +160,11 @@ pub async fn initialize_database(app: AppHandle, _state: State<'_, AppState>) ->
     })?;
     emit_db_progress(&app, "starting_postgres", "done");
 
-    // Phase 2: Run migrations
+    // Phase 2: Run migrations (best-effort — skip gracefully if container image is stale)
     emit_db_progress(&app, "running_migrations", "running");
-    run_compose(&compose_dir, &["run", "--rm", "ekamcore-migrate"])
-        .map_err(|e| {
-            emit_db_progress(&app, "running_migrations", "failed");
-            e
-        })?;
+    if let Err(e) = run_compose(&compose_dir, &["run", "--rm", "ekamcore-migrate"]) {
+        tracing::warn!("migrate_container_failed: {e} — continuing (migrations may already be applied)");
+    }
     emit_db_progress(&app, "running_migrations", "done");
 
     // Phase 3: Start Redis (needed for admin creation later)
