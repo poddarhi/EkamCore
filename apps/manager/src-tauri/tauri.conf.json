@@ -26,9 +26,9 @@
     "macOSPrivateApi": false
   },
   "bundle": {
-    "active": false,
-    "targets": "all",
-    "icon": [],
+    "active": true,
+    "targets": ["dmg", "app"],
+    "icon": ["icons/icon.icns", "icons/icon.png"],
     "macOS": {
       "entitlements": null,
       "exceptionDomain": null,
