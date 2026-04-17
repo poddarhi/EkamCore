@@ -8,6 +8,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useFlags} from '../contexts/FlagContext';
 import {LoginScreen} from '../screens/LoginScreen';
 import {TodayScreen} from '../screens/TodayScreen';
+import {RecapScreen} from '../screens/RecapScreen';
 import {PlaceholderScreen} from '../screens/PlaceholderScreen';
 import {Colors, Typography} from '../design-system/tokens';
 
@@ -38,10 +39,7 @@ function TodayNavigator() {
 function RecapNavigator() {
   return (
     <RecapStack.Navigator screenOptions={{headerShown: false}}>
-      <RecapStack.Screen
-        name="Recap"
-        children={() => <PlaceholderScreen title="Recap" />}
-      />
+      <RecapStack.Screen name="Recap" component={RecapScreen} />
     </RecapStack.Navigator>
   );
 }
