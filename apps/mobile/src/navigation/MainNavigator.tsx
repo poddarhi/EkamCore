@@ -10,6 +10,7 @@ import {LoginScreen} from '../screens/LoginScreen';
 import {TodayScreen} from '../screens/TodayScreen';
 import {RecapScreen} from '../screens/RecapScreen';
 import {SearchScreen} from '../screens/SearchScreen';
+import {PeopleScreen} from '../screens/PeopleScreen';
 import {PlaceholderScreen} from '../screens/PlaceholderScreen';
 import {Colors, Typography} from '../design-system/tokens';
 
@@ -56,10 +57,7 @@ function SearchNavigator() {
 function PeopleNavigator() {
   return (
     <PeopleStack.Navigator screenOptions={{headerShown: false}}>
-      <PeopleStack.Screen
-        name="People"
-        children={() => <PlaceholderScreen title="People" />}
-      />
+      <PeopleStack.Screen name="People" component={PeopleScreen} />
     </PeopleStack.Navigator>
   );
 }
