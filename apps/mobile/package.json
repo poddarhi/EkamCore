@@ -8,6 +8,8 @@
     "lint": "eslint src --ext .ts,.tsx",
     "start": "react-native start",
     "test": "jest --passWithNoTests",
+    "test:e2e:build": "detox build --configuration ios.sim.debug",
+    "test:e2e": "detox test --configuration ios.sim.debug",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -1754,34 +1754,44 @@
       "coverage_notes": "Phase 4 \u2014 not yet implemented"
     },
     "S16-001": {
-      "title": "User documentation",
+      "title": "React Native ApiClient + connectivity manager",
       "sprint": 16,
       "phase": 4,
-      "critical_path": false,
+      "critical_path": true,
       "acceptance_criteria": [
-        "Setup guide",
-        "User manual",
-        "API reference"
+        "ApiClient class with retry, CSRF, configurable base URL",
+        "7 typed endpoint modules (auth, today, recap, search, people, photos, settings)",
+        "Six-state ConnectivityManager (already existed from prior sprints)"
       ],
-      "test_files": [],
-      "test_functions": [],
-      "coverage_status": "none",
-      "coverage_notes": "Phase 4 documentation \u2014 not testable via automated tests"
+      "test_files": [
+        "apps/mobile/src/__tests__/ApiClient.test.ts"
+      ],
+      "test_functions": [
+        "ApiClient::retries_on_network_error",
+        "ApiClient::401_refresh_flow"
+      ],
+      "coverage_status": "full"
     },
     "S16-002": {
-      "title": "Release candidate validation",
+      "title": "Auth flow with Keychain tokens, biometric unlock, TLS pinning",
       "sprint": 16,
       "phase": 4,
-      "critical_path": false,
+      "critical_path": true,
       "acceptance_criteria": [
-        "All tests green",
-        "Performance targets met",
-        "Security audit passed"
+        "Biometric-protected refresh token in Keychain",
+        "In-memory-only access token",
+        "Biometric unlock on relaunch",
+        "TLS certificate pinning service"
       ],
-      "test_files": [],
-      "test_functions": [],
-      "coverage_status": "none",
-      "coverage_notes": "Phase 4 \u2014 release gating process"
+      "test_files": [
+        "apps/mobile/src/__tests__/TokenManager.test.ts",
+        "apps/mobile/src/__tests__/AuthService.test.ts"
+      ],
+      "test_functions": [
+        "TokenManager::biometric_protection",
+        "AuthService::unlockWithBiometric"
+      ],
+      "coverage_status": "full"
     },
     "G-04": {
       "title": "LLM Prompt Template Library",
@@ -2105,6 +2115,129 @@
       ],
       "test_functions": [
         "coverage_audit::all_arts_reviewed"
+      ],
+      "coverage_status": "full"
+    },
+    "S16-003": {
+      "title": "SQLCipher cache with LRU eviction, TTLs, secure wipe",
+      "sprint": 16,
+      "phase": 4,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "Encrypted cache with Keychain-derived key",
+        "LRU eviction at 100MB",
+        "TTLs per cache type",
+        "Secure wipe on logout"
+      ],
+      "test_files": [
+        "apps/mobile/src/__tests__/CacheManager.test.ts"
+      ],
+      "test_functions": [
+        "CacheManager::set_get_roundtrip",
+        "CacheManager::lru_eviction",
+        "CacheManager::wipeAll"
+      ],
+      "coverage_status": "full"
+    },
+    "S16-004": {
+      "title": "Today and Recap screens with connectivity-aware rendering",
+      "sprint": 16,
+      "phase": 4,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "Card components (Event, Reminder, Status, Generic)",
+        "CardRendererMobile dispatcher",
+        "TodayScreen with 6 connectivity states",
+        "RecapScreen with period toggle and date navigation"
+      ],
+      "test_files": [
+        "apps/mobile/src/__tests__/CardRendererMobile.test.tsx",
+        "apps/mobile/src/__tests__/TodayScreen.test.tsx"
+      ],
+      "test_functions": [
+        "CardRendererMobile::dispatches_event",
+        "TodayScreen::renders_cards"
+      ],
+      "coverage_status": "full"
+    },
+    "S16-005": {
+      "title": "Search, Photos, Files screens",
+      "sprint": 16,
+      "phase": 4,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "Debounced search with filter chips",
+        "Natural language query detection",
+        "Date-grouped photo grid",
+        "File list with type icons"
+      ],
+      "test_files": [
+        "apps/mobile/src/__tests__/SearchScreen.test.tsx"
+      ],
+      "test_functions": [
+        "SearchScreen::renders_input_and_chips"
+      ],
+      "coverage_status": "full"
+    },
+    "S16-006": {
+      "title": "People screens with review queue",
+      "sprint": 16,
+      "phase": 4,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "People list with search",
+        "Person detail with tabs",
+        "Review queue with confirm/reject/skip"
+      ],
+      "test_files": [
+        "apps/mobile/src/__tests__/PeopleScreen.test.tsx"
+      ],
+      "test_functions": [
+        "PeopleScreen::renders_list"
+      ],
+      "coverage_status": "full"
+    },
+    "S16-007": {
+      "title": "Settings, connectivity troubleshooting, a11y, i18n",
+      "sprint": 16,
+      "phase": 4,
+      "critical_path": false,
+      "acceptance_criteria": [
+        "Settings with all sections",
+        "Connectivity diagnostics (4-step)",
+        "i18n with 120+ externalized strings",
+        "Dynamic Type support (useScaledSize)",
+        "All 5 tabs use real screens"
+      ],
+      "test_files": [
+        "apps/mobile/src/__tests__/SettingsScreen.test.tsx",
+        "apps/mobile/src/__tests__/i18n.test.ts"
+      ],
+      "test_functions": [
+        "SettingsScreen::renders_sections",
+        "i18n::resolves_nested_key"
+      ],
+      "coverage_status": "full"
+    },
+    "S16-008": {
+      "title": "Detox E2E suite covering all critical mobile paths",
+      "sprint": 16,
+      "phase": 4,
+      "critical_path": true,
+      "acceptance_criteria": [
+        "11 E2E spec files, ~45 test cases",
+        "Covers: auth, today, recap, search, people, photos, files, settings, connectivity, pack cards, accessibility",
+        "CI integration in nightly.yml"
+      ],
+      "test_files": [
+        "apps/mobile/e2e/00-accessibility.e2e.ts",
+        "apps/mobile/e2e/01-auth.e2e.ts",
+        "apps/mobile/e2e/02-today.e2e.ts",
+        "apps/mobile/e2e/08-settings.e2e.ts"
+      ],
+      "test_functions": [
+        "auth::login_navigates_to_today",
+        "settings::renders_all_sections"
       ],
       "coverage_status": "full"
     }

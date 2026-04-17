@@ -1,6 +1,6 @@
 .PHONY: setup up down clean logs restart migrate migration seed \
        test test-api test-web test-mobile test-integration coverage \
-       lint format benchmark chaos-test \
+       lint format benchmark chaos-test test-mobile-e2e \
        release-check release-build release-package \
        shell-api shell-db shell-redis \
        ollama-start ollama-stop ollama-status \
@@ -93,6 +93,11 @@ benchmark: ## Run performance benchmarks
 # === Chaos Testing (S15-008) ===
 chaos-test: ## Run all 7 chaos test scenarios (requires running Docker stack)
 	bash scripts/chaos/run_all.sh
+
+# === Mobile E2E (S16-008) ===
+test-mobile-e2e: ## Run Detox E2E tests on iOS Simulator (requires Xcode)
+	cd apps/mobile && npx detox build --configuration ios.sim.debug
+	cd apps/mobile && npx detox test --configuration ios.sim.debug
 
 # === Release Pipeline (S15-009) ===
 release-check: ## Validate release readiness: run full test suite + lint

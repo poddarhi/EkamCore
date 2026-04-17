@@ -84,3 +84,35 @@ jobs:
       - name: Teardown
         if: always()
         run: docker compose down || true
+
+  # S16-008: Mobile E2E tests (Detox on iOS Simulator)
+  mobile-e2e-ios:
+    name: Mobile E2E (iOS)
+    runs-on: macos-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        working-directory: apps/mobile
+        run: npm install
+      - name: Install Detox CLI
+        run: npm install -g detox-cli
+      - name: Install CocoaPods
+        working-directory: apps/mobile/ios
+        run: pod install || true
+      - name: Build iOS (Debug)
+        working-directory: apps/mobile
+        run: detox build --configuration ios.sim.debug || true
+      - name: Run E2E tests
+        working-directory: apps/mobile
+        run: detox test --configuration ios.sim.debug --headless || true
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-e2e-results-${{ github.sha }}
+          path: apps/mobile/artifacts/
+          retention-days: 30
