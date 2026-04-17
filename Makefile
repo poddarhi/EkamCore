@@ -1,6 +1,6 @@
 .PHONY: setup up down clean logs restart migrate migration seed \
        test test-api test-web test-mobile test-integration coverage \
-       lint format benchmark chaos-test test-mobile-e2e \
+       lint format benchmark chaos-test test-mobile-e2e soak-test soak-test-short \
        release-check release-build release-package \
        shell-api shell-db shell-redis \
        ollama-start ollama-stop ollama-status \
@@ -98,6 +98,17 @@ chaos-test: ## Run all 7 chaos test scenarios (requires running Docker stack)
 test-mobile-e2e: ## Run Detox E2E tests on iOS Simulator (requires Xcode)
 	cd apps/mobile && npx detox build --configuration ios.sim.debug
 	cd apps/mobile && npx detox test --configuration ios.sim.debug
+
+# === Soak Testing (S16-009) ===
+soak-test: ## Run full 72-hour soak test (requires running Docker stack)
+	python3 scripts/soak_test/run_soak.py --duration-hours 72 --output soak_results/
+	python3 scripts/soak_test/consistency_check.py
+	python3 scripts/soak_test/generate_report.py
+
+soak-test-short: ## Run 8-hour abbreviated soak test (for CI/validation)
+	python3 scripts/soak_test/run_soak.py --duration-hours 8 --output soak_results/
+	python3 scripts/soak_test/consistency_check.py
+	python3 scripts/soak_test/generate_report.py
 
 # === Release Pipeline (S15-009) ===
 release-check: ## Validate release readiness: run full test suite + lint
