@@ -132,12 +132,30 @@ PLA Pack SDK + three workflows + pack card UI + person-context queries.
 | S14-012 | E2E + eval + security + a11y | 8 security tests, PLA quality eval baseline, `sprint14_plan.md`, a11y §10, traceability S14-001..012 (`tests/security/test_pack_security.py`, `scripts/eval/eval_pla_quality.py`) |
 | S14-013 | Gate review | skill updates, phase-3-gate-review.md, phase advance to 4 |
 
-## Sprint 15-16 (Weeks 29-32) — Phase 4
+## Sprint 15 (Weeks 29-30) — Phase 4 — SHIPPED
+Manager app (Tauri 2), performance optimization, chaos testing, release pipeline, security audit.
+
+| Story | Title | Evidence |
+|---|---|---|
+| S15-001 [CP] | Tauri 2 scaffold | `container_runtime.rs` (DockerRuntime + trait), `keychain.rs` (8 macOS Keychain secrets), `commands.rs` (10 IPC handlers), `state.rs` (AppState), `tauri.ts` (typed wrappers). Commit `037d1eb` |
+| S15-002 | Setup wizard | 8-step wizard (`setup.rs` + `SetupWizard.tsx`): hardware→disk→docker→pull→db→admin→sources→tailscale. Keychain secret generation (6 hex + RSA-2048 JWT). State persistence to `setup-state.json`. Commit `fe2f67a` |
+| S15-003 | Dashboard + watchdog | `watchdog.rs`: 30s poll, exponential backoff (5s/15s/45s/2m/5m), auto-restart disable after 5 failures, macOS notifications, chronic instability detection. `dashboard.rs`: aggregated health+disk+API counts. `Dashboard.tsx`: 10 service tiles, KPI cards, alerts. Commit `f4ded63` |
+| S15-004 | Jobs + Storage + Diagnostics | `diagnostics.rs`: offline-capable ZIP bundle (8 sections, no PII). `Jobs.tsx`: 4-section job list, retry, auto-refresh. `Storage.tsx`: Docker breakdown, cleanup. `Diagnostics.tsx`: export+log viewer+clipboard. Tab navigation in `App.tsx`. Commit `dbc5edc` |
+| S15-005 [CP] | macOS integration | `launchd.rs`: login item + backup schedule via LaunchAgents plists. `secret_injection.rs`: Keychain→temp .env (0600)→compose up→secure delete. Keychain lock detection. `ManagerSettings.tsx`: toggles, backup time picker, danger zone. Commit `3aeef92` |
+| S15-006 [CP] | Update/rollback | `update.rs`: 8-step atomic flow (snapshot→pull→stop→tags→start→migrate→verify→complete). Auto-rollback at steps 5/6/7 with DB restore. Manual rollback. Compose tag replacement preserves third-party images. `Updates.tsx`: progress stepper, backup list. Commit `b9729c7` |
+| S15-007 | Performance optimization | 5 optimizations: httpx connection pooling for Ollama (llm_client+embedder), Redis cache for Today (60s TTL), pool_recycle=1800, TrustedPerson indexes, batch embedding in doc ingestion. All 21 ART-16 benchmarks PASS. `performance-optimization-report.md`. Commit `bb2c98f` |
+| S15-008 | Chaos testing | 7 scenarios: postgres kill, qdrant kill, sigkill all, disk fill, ollama corruption, network partition, concurrent load. Shared `lib.sh`, `run_all.sh` master runner, JSON reports. `make chaos-test`. Commit `4dbc388` |
+| S15-009 [CP] | Release pipeline | `release.yml`: 9-step workflow (validate→test→build→scan→SBOM→DMG→changelog→package→release). ghcr.io push, Trivy scan, Syft SPDX, macOS DMG. Updated `ci.yml` (manager Rust check), `nightly.yml` (chaos smoke). `make release-check/build/package`. Commit `8a8d7e3` |
+| S15-010 | DR + security + SBOM | 3 DR scripts (post_power_outage, disk_full_recovery, model_reload). `pen_test_checklist.py`: 9 categories, ~25 checks. `SECURITY_HARDENING_REPORT.md`, updated `DR_RUNBOOK.md`. Commit `53e456e` |
+| S15-011 | ML eval + gap audit | `ml-eval-final-report.md`: all targets PASS. `art_coverage_final.md`: 28 ARTs (22 full, 4 partial, 2 deferred). `test_coverage_report_v1.0.md`: 1158 Python + 55 Rust tests. Traceability updated to 98 stories. Commit `dac2845` |
+| S15-012 | Gate review | Skill updates, status doc, sprint verification. This commit. |
+
+## Sprint 16 (Weeks 31-32) — Phase 4
 | Story | Title | Workstream |
 |---|---|---|
-| S15-001 | Performance optimization | backend+ml-ai |
-| S15-002 | Chaos testing all scenarios | infrastructure |
-| S16-001 | User documentation | (technical writer) |
-| S16-002 | Release candidate validation | infrastructure |
+| S16-001 | Mobile React Native scaffolding | mobile |
+| S16-002 | User documentation (ART-28) | docs |
+| S16-003 | Release candidate packaging | infrastructure |
+| S16-004 | Final quality gate + v1.0 tag | infrastructure |
 
 [CP] = Critical Path. Delay moves project end date.

@@ -103,3 +103,63 @@ USER nobody
 ## Backup (2am daily)
 
 pg_dump (custom format) + Qdrant snapshot API + config backup. Retain: 7 daily + 4 weekly. Restore: <30 minutes.
+
+## Manager App Architecture (Sprint 15)
+
+Tauri 2 native macOS app in `apps/manager/`. Rust backend (`src-tauri/src/`) + React frontend (`src/`).
+
+**Rust modules (18 total):**
+`hardware`, `disk`, `docker`, `tailscale` — system checks.
+`keychain` — macOS Keychain via security-framework (8 service secrets).
+`container_runtime` — `ContainerRuntime` trait + `DockerRuntime` (bollard + compose CLI).
+`startup` — 15-step startup sequence with event emission.
+`wizard_state` — setup-state.json persistence.
+`setup` — pull images, DB init, admin creation, permissions, folder picker.
+`watchdog` — 30s health polling, exponential backoff (5/15/45/120/300s), macOS notifications.
+`dashboard` — aggregated health + disk + API counts.
+`diagnostics` — offline ZIP bundle (8 sections, no PII).
+`launchd` — login item + backup schedule via ~/Library/LaunchAgents/ plists.
+`secret_injection` — Keychain → temp .env (0600) → compose up → secure delete.
+`update` — 8-step atomic update with auto-rollback on failure.
+`commands` — S15-001 IPC bridge. `state` — AppState with Arc<Mutex<Watchdog>>.
+
+**React pages (8):** SetupWizard, StartupSequence, Dashboard, Jobs, Storage, Diagnostics, Updates, ManagerSettings.
+**Sidebar tabs:** Dashboard / Jobs / Storage / Diagnostics / Updates / Settings.
+
+**Key patterns:**
+- `ContainerRuntime` trait allows `NoopRuntime` fallback when Docker unavailable at startup.
+- Watchdog spawns only after setup wizard completes.
+- Secret injection: never writes secrets to persistent disk — temp file with 0600 permissions, zero-overwritten after compose reads it.
+- Update rollback: saves old docker-compose.yml content + backup path in rollback-manifest.json, restores on any failure at steps 5/6/7.
+
+## Chaos Testing (Sprint 15)
+
+7 scenarios in `scripts/chaos/`, each with JSON pass/fail report:
+1. PostgreSQL kill during writes — recovery < 60s
+2. Qdrant kill — search degrades to exact-only
+3. SIGKILL all containers — full recovery < 180s
+4. Disk fill simulation — reads continue
+5. Ollama model corruption — non-LLM features continue
+6. Network partition — API returns errors, reconnect resumes
+7. Concurrent heavy load — rate limiting, no crashes
+
+Run: `make chaos-test` or `bash scripts/chaos/run_all.sh`.
+
+## Release Pipeline (Sprint 15)
+
+9-step `release.yml` (workflow_dispatch):
+validate-version → full-test-suite → build-container-images (ghcr.io) → Trivy scan → SBOM (Syft SPDX) → build-manager-DMG (macOS runner) → changelog → distribution ZIP → GitHub Release.
+
+Local: `make release-check`, `make release-build`, `make release-package VERSION=X.Y.Z`.
+
+## DR Scripts (Sprint 15)
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/dr/container_recovery.sh` | Detect + restart unhealthy containers |
+| `scripts/dr/database_repair.sh` | VACUUM, REINDEX, orphan cleanup |
+| `scripts/dr/restore_from_backup.sh` | Full pg_restore + Qdrant snapshot recovery |
+| `scripts/dr/verify_system_health.sh` | Comprehensive health check → JSON report |
+| `scripts/dr/post_power_outage.sh` | Docker daemon + services + integrity check |
+| `scripts/dr/disk_full_recovery.sh` | Log truncation + backup rotation + prune |
+| `scripts/dr/model_reload.sh` | Ollama + InsightFace re-download with checksum |
