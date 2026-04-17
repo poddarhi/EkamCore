@@ -166,7 +166,13 @@ export const AuthService = {
       TokenManager.setAccessToken(null);
       apiClient.clearAuth();
       await TokenManager.clearTokens();
-      // CacheManager.wipeAll() will be called here once S16-003 implements it
+      // S16-003: Secure wipe of all cached data on logout (FS-178)
+      try {
+        const {cacheManager} = await import('./CacheManager');
+        await cacheManager.wipeAll();
+      } catch {
+        // Cache wipe is best-effort — may not be initialized
+      }
     }
   },
 
