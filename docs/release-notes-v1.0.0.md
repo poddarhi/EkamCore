@@ -81,7 +81,7 @@ First-class native macOS installer and control plane built with Tauri 2. Eight-s
 
 ## Installation
 
-1. Download `EkamCore-Manager-v1.0.0.dmg` from the [GitHub Release](https://github.com/ekamcore/ekamcore/releases/tag/v1.0.0)
+1. Download `EkamCore-Manager-v1.0.0.dmg` from the [GitHub Release](https://github.com/poddarhi/EkamCore/releases/tag/v1.0.0)
 2. Drag to Applications
 3. Launch EkamCore Manager
 4. Follow the 8-step setup wizard

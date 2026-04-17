@@ -94,4 +94,4 @@ Format follows [Conventional Commits](https://www.conventionalcommits.org/).
 - ART coverage audit (28 ARTs reviewed)
 - Release candidate gate report
 
-[1.0.0]: https://github.com/ekamcore/ekamcore/releases/tag/v1.0.0
+[1.0.0]: https://github.com/poddarhi/EkamCore/releases/tag/v1.0.0
