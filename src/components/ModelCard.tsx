@@ -11,7 +11,13 @@ import { Button } from './Button';
 import { Icon } from './Icon';
 import { ProgressBar } from './ProgressBar';
 
-export function ModelCard({ model }: { model: ModelInfo }) {
+export function ModelCard({
+  model,
+  onPress,
+}: {
+  model: ModelInfo;
+  onPress?: () => void;
+}) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const {
@@ -49,33 +55,37 @@ export function ModelCard({ model }: { model: ModelInfo }) {
 
   return (
     <View style={[styles.card, isLoaded && styles.cardActive]}>
-      <View style={styles.headerRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{model.name}</Text>
-          <Text style={styles.desc}>{model.description}</Text>
+      <Pressable onPress={onPress} disabled={!onPress}>
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{model.name}</Text>
+            <Text style={styles.desc}>{model.tagline || model.description}</Text>
+          </View>
+          {isLoaded ? (
+            <View style={styles.loadedBadge}>
+              <Icon name="bolt" size={12} color={colors.onPrimary} />
+              <Text style={styles.loadedBadgeText}>LOADED</Text>
+            </View>
+          ) : onPress ? (
+            <Icon name="chevronRight" size={20} color={colors.textFaint} />
+          ) : null}
         </View>
-        {isLoaded && (
-          <View style={styles.loadedBadge}>
-            <Icon name="bolt" size={12} color={colors.onPrimary} />
-            <Text style={styles.loadedBadgeText}>LOADED</Text>
+
+        <View style={styles.metaRow}>
+          <Meta label={model.params} styles={styles} />
+          <Meta label={model.quant} styles={styles} />
+          <Meta label={formatBytes(model.sizeBytes)} styles={styles} />
+        </View>
+
+        {fit.tier !== 'unknown' && (
+          <View style={styles.fitRow}>
+            <View style={[styles.fitDot, { backgroundColor: fitColor[fit.tier] }]} />
+            <Text style={[styles.fitText, { color: fitColor[fit.tier] }]}>
+              {fit.label}
+            </Text>
           </View>
         )}
-      </View>
-
-      <View style={styles.metaRow}>
-        <Meta label={model.params} styles={styles} />
-        <Meta label={model.quant} styles={styles} />
-        <Meta label={formatBytes(model.sizeBytes)} styles={styles} />
-      </View>
-
-      {fit.tier !== 'unknown' && (
-        <View style={styles.fitRow}>
-          <View style={[styles.fitDot, { backgroundColor: fitColor[fit.tier] }]} />
-          <Text style={[styles.fitText, { color: fitColor[fit.tier] }]}>
-            {fit.label}
-          </Text>
-        </View>
-      )}
+      </Pressable>
 
       {isDownloading && (
         <View style={styles.progressWrap}>

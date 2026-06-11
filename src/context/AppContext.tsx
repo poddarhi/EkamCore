@@ -40,6 +40,10 @@ import {
   saveConversation,
 } from '../services/conversations';
 import { DeviceProfile, getDeviceProfile } from '../services/device';
+import {
+  fetchFeaturedCatalog,
+  loadCachedCatalog,
+} from '../services/catalog';
 import { ChatMessage, ConversationMeta, ModelInfo } from '../types';
 
 interface DownloadState {
@@ -92,6 +96,8 @@ const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [customModels, setCustomModels] = useState<ModelInfo[]>([]);
+  // Featured catalog: seeded with the bundled list, replaced by cache/remote.
+  const [featured, setFeatured] = useState<ModelInfo[]>(CATALOG);
   const [downloadedIds, setDownloadedIds] = useState<string[]>([]);
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({});
   const [downloadErrors, setDownloadErrors] = useState<
@@ -118,8 +124,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const createdAt = useRef<Record<string, number>>({});
 
   const models = useMemo(
-    () => [...CATALOG, ...customModels],
-    [customModels],
+    () => [...featured, ...customModels],
+    [featured, customModels],
   );
 
   const refreshDownloaded = useCallback(async (list: ModelInfo[]) => {
@@ -145,7 +151,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSystemPromptState(sysPrompt);
       setConversations(convs);
       getDeviceProfile().then(setDeviceProfile);
-      await refreshDownloaded([...CATALOG, ...custom]);
+
+      // Featured catalog: show cached-or-seed immediately, then refresh from
+      // the remote CDN in the background (offline keeps the cache/seed).
+      const cached = await loadCachedCatalog();
+      const initialFeatured = cached ?? CATALOG;
+      setFeatured(initialFeatured);
+      await refreshDownloaded([...initialFeatured, ...custom]);
+      fetchFeaturedCatalog().then(remote => {
+        if (remote) {
+          setFeatured(remote);
+          refreshDownloaded([...remote, ...custom]);
+        }
+      });
       const existing = getLoadedModel();
       if (existing) {
         setLoadedModelId(existing.modelId);

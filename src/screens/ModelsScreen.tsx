@@ -12,11 +12,14 @@ import {
 import { Button } from '../components/Button';
 import { Icon } from '../components/Icon';
 import { ModelCard } from '../components/ModelCard';
+import { ModelDetail } from '../components/ModelDetail';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { radius, spacing, type ThemeColors } from '../theme';
 import { fonts } from '../typography';
+import { ModelInfo } from '../types';
 import { formatBytes } from '../utils/format';
+import { fitOrder, rateModelFit, tierHeading } from '../utils/modelFit';
 
 export function ModelsScreen() {
   const { colors } = useTheme();
@@ -25,6 +28,37 @@ export function ModelsScreen() {
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
+  const [detailModel, setDetailModel] = useState<ModelInfo | null>(null);
+
+  const ram = deviceProfile?.totalMemoryBytes ?? null;
+  const featured = models.filter(m => !m.custom);
+  const custom = models.filter(m => m.custom);
+
+  // Best-fitting first; within a tier, larger (more capable) first.
+  const sortedFeatured = [...featured].sort((a, b) => {
+    const d =
+      fitOrder(rateModelFit(a, ram).tier) - fitOrder(rateModelFit(b, ram).tier);
+    return d !== 0 ? d : b.sizeBytes - a.sizeBytes;
+  });
+
+  // Walk the sorted list, inserting a tier header whenever the tier changes
+  // (only when we actually know the device's RAM).
+  const featuredNodes: React.ReactNode[] = [];
+  let lastTier: string | null = null;
+  for (const m of sortedFeatured) {
+    const tier = rateModelFit(m, ram).tier;
+    if (ram && tier !== lastTier) {
+      featuredNodes.push(
+        <Text key={`hdr-${tier}`} style={styles.sectionHeader}>
+          {tierHeading(tier)}
+        </Text>,
+      );
+      lastTier = tier;
+    }
+    featuredNodes.push(
+      <ModelCard key={m.id} model={m} onPress={() => setDetailModel(m)} />,
+    );
+  }
 
   const onAdd = async () => {
     if (!url.trim()) {
@@ -60,9 +94,19 @@ export function ModelsScreen() {
             </View>
           </View>
         ) : null}
-        {models.map(m => (
-          <ModelCard key={m.id} model={m} />
-        ))}
+        {featuredNodes}
+        {custom.length > 0 && (
+          <>
+            <Text style={styles.sectionHeader}>Your added models</Text>
+            {custom.map(m => (
+              <ModelCard
+                key={m.id}
+                model={m}
+                onPress={() => setDetailModel(m)}
+              />
+            ))}
+          </>
+        )}
         <Button
           label="Add model from GGUF URL"
           icon="plus"
@@ -72,6 +116,8 @@ export function ModelsScreen() {
         />
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
+
+      <ModelDetail model={detailModel} onClose={() => setDetailModel(null)} />
 
       <Modal
         visible={showAdd}
@@ -149,6 +195,15 @@ const makeStyles = (colors: ThemeColors) =>
       fontSize: 12,
       marginTop: 2,
       fontFamily: fonts.body.regular,
+    },
+    sectionHeader: {
+      color: colors.textDim,
+      fontSize: 12.5,
+      fontFamily: fonts.body.bold,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
     },
     addBtn: { marginTop: spacing.sm },
     modalRoot: { flex: 1, justifyContent: 'flex-end' },

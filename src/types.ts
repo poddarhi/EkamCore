@@ -21,6 +21,24 @@ export interface ModelInfo {
   quant: string;
   /** True when the user added it manually (e.g. custom HF url) */
   custom?: boolean;
+
+  // --- Optional marketplace metadata (from the remote Featured catalog) ---
+  /** Who made the model, e.g. "Google", "Meta", "Qwen (Alibaba)". */
+  publisher?: string;
+  /** One-line hook shown on the card / detail header. */
+  tagline?: string;
+  /** Use-case tags, e.g. ["Chat", "Coding", "Reasoning"]. */
+  goodFor?: string[];
+  /** Longer plain-language description for the detail screen. */
+  longDescription?: string;
+  /** Native max context length in tokens (informational). */
+  contextLength?: number;
+  /** License label, e.g. "Apache-2.0", "MIT", "Llama 3.2 Community". */
+  license?: string;
+  /** ISO date the model was released (drives a "NEW" badge). */
+  releasedAt?: string;
+  /** True if the model can understand images (not wired yet). */
+  vision?: boolean;
 }
 
 export interface DownloadProgress {

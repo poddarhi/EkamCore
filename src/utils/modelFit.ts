@@ -7,6 +7,36 @@ export interface FitRating {
   label: string;
 }
 
+// Display order: best-fitting first.
+const TIER_ORDER: Record<FitTier, number> = {
+  great: 0,
+  good: 1,
+  slow: 2,
+  'too-large': 3,
+  unknown: 4,
+};
+
+/** Sort key for a fit tier (lower = shown higher). */
+export function fitOrder(tier: FitTier): number {
+  return TIER_ORDER[tier];
+}
+
+/** Short section heading for a tier (used to group the model list). */
+export function tierHeading(tier: FitTier): string {
+  switch (tier) {
+    case 'great':
+      return 'Runs great on your device';
+    case 'good':
+      return 'Runs well on your device';
+    case 'slow':
+      return 'May run slowly';
+    case 'too-large':
+      return 'Too large for this device';
+    default:
+      return 'Other models';
+  }
+}
+
 // A model's runtime footprint is roughly its weights (≈ the GGUF file size)
 // times a small overhead, plus a fixed floor for the KV cache (n_ctx = 2048)
 // and runtime buffers.

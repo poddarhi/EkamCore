@@ -1,4 +1,8 @@
-import { estimateRequiredBytes, rateModelFit } from '../src/utils/modelFit';
+import {
+  estimateRequiredBytes,
+  fitOrder,
+  rateModelFit,
+} from '../src/utils/modelFit';
 import { ModelInfo } from '../src/types';
 
 const GB = 1024 * 1024 * 1024;
@@ -50,5 +54,14 @@ describe('rateModelFit', () => {
   it('rates a ~1.5B model on a 2GB device as "too-large"', () => {
     // ~1.6GB required vs 1GB usable → ratio ~1.49
     expect(rateModelFit(model(986_000_000), 2 * GB).tier).toBe('too-large');
+  });
+});
+
+describe('fitOrder', () => {
+  it('orders best-fitting tiers first', () => {
+    expect(fitOrder('great')).toBeLessThan(fitOrder('good'));
+    expect(fitOrder('good')).toBeLessThan(fitOrder('slow'));
+    expect(fitOrder('slow')).toBeLessThan(fitOrder('too-large'));
+    expect(fitOrder('too-large')).toBeLessThan(fitOrder('unknown'));
   });
 });
