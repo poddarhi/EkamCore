@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { AuroraBackground } from '../components/AuroraBackground';
 import { BrandLogo } from '../components/BrandLogo';
+import { ChatPlusSheet } from '../components/ChatPlusSheet';
 import { Icon } from '../components/Icon';
 import { MessageBubble } from '../components/MessageBubble';
 import { useApp } from '../context/AppContext';
@@ -117,6 +118,7 @@ export function ChatScreen({
     newConversation,
   } = useApp();
   const [text, setText] = useState('');
+  const [plusOpen, setPlusOpen] = useState(false);
   const listRef = useRef<FlatList>(null);
   // Whether the user is parked near the bottom. Only then do we auto-scroll,
   // so scrolling up to re-read older messages is never interrupted.
@@ -217,13 +219,8 @@ export function ChatScreen({
           <Pressable
             style={styles.leadBtn}
             hitSlop={6}
-            onPress={hasMessages ? newConversation : undefined}
-            disabled={!hasMessages}>
-            <Icon
-              name="plus"
-              size={20}
-              color={hasMessages ? colors.textDim : colors.textFaint}
-            />
+            onPress={() => setPlusOpen(true)}>
+            <Icon name="plus" size={20} color={colors.textDim} />
           </Pressable>
 
           <TextInput
@@ -264,6 +261,12 @@ export function ChatScreen({
           </Text>
         )}
       </View>
+
+      <ChatPlusSheet
+        visible={plusOpen}
+        onClose={() => setPlusOpen(false)}
+        onGoToModels={onGoToModels}
+      />
     </View>
   );
 }
