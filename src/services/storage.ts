@@ -4,6 +4,7 @@ import { ModelInfo } from '../types';
 const KEYS = {
   customModels: 'ekamcore.customModels.v1',
   lastModelId: 'ekamcore.lastModelId.v1',
+  defaultModelId: 'ekamcore.defaultModelId.v1',
   systemPrompt: 'ekamcore.systemPrompt.v1',
   themeMode: 'ekamcore.themeMode.v1',
   onboardingSeen: 'ekamcore.onboardingSeen.v1',
@@ -50,6 +51,23 @@ export async function loadLastModelId(): Promise<string | null> {
 
 export async function saveLastModelId(id: string): Promise<void> {
   await AsyncStorage.setItem(KEYS.lastModelId, id);
+}
+
+/**
+ * The model the app auto-loads into Chat on launch. Chosen once (the first
+ * time the user has more than one model downloaded) and changeable later in
+ * Settings; an empty string clears it.
+ */
+export async function loadDefaultModelId(): Promise<string | null> {
+  return AsyncStorage.getItem(KEYS.defaultModelId);
+}
+
+export async function saveDefaultModelId(id: string): Promise<void> {
+  if (id) {
+    await AsyncStorage.setItem(KEYS.defaultModelId, id);
+  } else {
+    await AsyncStorage.removeItem(KEYS.defaultModelId);
+  }
 }
 
 const DEFAULT_SYSTEM_PROMPT =

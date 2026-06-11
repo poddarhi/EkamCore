@@ -147,13 +147,19 @@ function Shell({ navRef }: { navRef: React.MutableRefObject<((t: Tab) => void) |
             <Pressable
               onPress={() => setHistoryOpen(true)}
               hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Chat history"
               style={styles.backBtn}>
-              <Icon name="history" size={22} color={colors.text} />
+              <Icon name="sidebar" size={21} color={colors.text} />
             </Pressable>
             <View style={{ flex: 1 }}>
-              <Text style={styles.title} numberOfLines={1}>
-                {headerTitle}
-              </Text>
+              <View style={styles.brandRow}>
+                <Text style={styles.brandMark} numberOfLines={1}>
+                  <Text style={styles.brandEkam}>Ekam</Text>
+                  <Text style={styles.brandCore}>Core</Text>
+                </Text>
+                <Icon name="sparkles" size={15} color={colors.accent} />
+              </View>
               <Text style={styles.subtitle} numberOfLines={1}>
                 {subtitle}
               </Text>
@@ -363,6 +369,14 @@ const makeStyles = (colors: ThemeColors) =>
       fontFamily: fonts.display.bold,
       letterSpacing: -0.5,
     },
+    brandRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    brandMark: {
+      fontSize: 27,
+      fontFamily: fonts.display.bold,
+      letterSpacing: -0.6,
+    },
+    brandEkam: { color: colors.text },
+    brandCore: { color: colors.primary },
     subtitle: {
       color: colors.textDim,
       fontSize: 13,

@@ -53,6 +53,26 @@ export function estimateRequiredBytes(model: ModelInfo): number {
 }
 
 /**
+ * Pick the "best" model from a set for the given device: the one with the
+ * strongest fit tier, and within a tier the larger (more capable) one. Used to
+ * preselect a sensible default when the user has several models downloaded.
+ */
+export function pickBestModel<T extends ModelInfo>(
+  models: T[],
+  totalMemoryBytes: number | null,
+): T | null {
+  if (models.length === 0) {
+    return null;
+  }
+  return [...models].sort((a, b) => {
+    const d =
+      fitOrder(rateModelFit(a, totalMemoryBytes).tier) -
+      fitOrder(rateModelFit(b, totalMemoryBytes).tier);
+    return d !== 0 ? d : b.sizeBytes - a.sizeBytes;
+  })[0];
+}
+
+/**
  * Rate how well a model is expected to run on a device with the given total
  * RAM. `totalMemoryBytes` of null/0 (or an unknown size) yields 'unknown'.
  */

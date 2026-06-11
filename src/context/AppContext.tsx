@@ -13,6 +13,7 @@ import {
   deleteModel as fsDeleteModel,
   ensureModelsDir,
   isModelDownloaded,
+  listDownloadedModelIds,
   modelFilePath,
   startDownload,
 } from '../services/download';
@@ -25,9 +26,10 @@ import {
 } from '../services/llama';
 import {
   loadCustomModels,
-  loadLastModelId,
+  loadDefaultModelId,
   loadSystemPrompt,
   saveCustomModels,
+  saveDefaultModelId,
   saveLastModelId,
   saveSystemPrompt,
 } from '../services/storage';
@@ -84,6 +86,10 @@ interface AppState {
   memory: MemoryProfile;
   remoteEndpoints: RemoteEndpoint[];
   activeRemote: { endpointId: string; model: string } | null;
+  /** Model auto-loaded into Chat on launch (null = none chosen yet). */
+  defaultModelId: string | null;
+  /** True on first launch where several models exist but no default is set. */
+  needsDefaultChoice: boolean;
 
   download: (model: ModelInfo) => void;
   cancelDownload: (model: ModelInfo) => void;
@@ -109,6 +115,10 @@ interface AppState {
   addEndpoint: (ep: RemoteEndpoint) => void;
   removeEndpoint: (id: string) => void;
   selectRemoteModel: (endpointId: string, model: string) => void;
+  /** Set (or change) the default model; loads it and remembers it. */
+  setDefaultModel: (id: string) => void;
+  /** Dismiss the first-time "choose a default" prompt without picking. */
+  dismissDefaultChoice: () => void;
 }
 
 export interface CompleteOptions {
@@ -152,6 +162,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     endpointId: string;
     model: string;
   } | null>(null);
+  const [defaultModelId, setDefaultModelId] = useState<string | null>(null);
+  const [needsDefaultChoice, setNeedsDefaultChoice] = useState(false);
+  // Id queued for auto-load on launch; a dedicated effect performs the load
+  // once `models` and `load` are ready (keeps the heavy work out of startup).
+  const [autoLoadTargetId, setAutoLoadTargetId] = useState<string | null>(null);
 
   const handles = useRef<Record<string, DownloadHandle>>({});
 
@@ -172,15 +187,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setDownloadedIds(present);
+    return present;
   }, []);
 
   useEffect(() => {
     (async () => {
       await ensureModelsDir();
-      const [custom, sysPrompt, lastId, convs] = await Promise.all([
+      const [custom, sysPrompt, convs] = await Promise.all([
         loadCustomModels(),
         loadSystemPrompt(),
-        loadLastModelId(),
         listConversations(),
       ]);
       setCustomModels(custom);
@@ -202,11 +217,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           refreshDownloaded([...remote, ...custom]);
         }
       });
+
+      const savedDefault = await loadDefaultModelId();
+      setDefaultModelId(savedDefault);
+
+      // Launch decision, from filesystem ground truth (not the catalog, which
+      // is still settling) so it's deterministic:
+      //  • an existing in-memory context → adopt it
+      //  • a saved default still on disk → auto-load it
+      //  • exactly one model on disk → auto-load it
+      //  • several on disk, no default → ask the user to choose one
       const existing = getLoadedModel();
       if (existing) {
         setLoadedModelId(existing.modelId);
-      } else if (lastId) {
-        // Don't auto-load (heavy); just remember last selection visually.
+      } else {
+        const diskIds = await listDownloadedModelIds();
+        if (savedDefault && diskIds.includes(savedDefault)) {
+          setAutoLoadTargetId(savedDefault);
+        } else if (diskIds.length === 1) {
+          setAutoLoadTargetId(diskIds[0]);
+        } else if (diskIds.length > 1) {
+          setNeedsDefaultChoice(true);
+        }
       }
     })();
     return () => {
@@ -293,6 +325,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       await fsDeleteModel(model);
       setDownloadedIds(ids => ids.filter(id => id !== model.id));
+      // If the removed model was the default, forget it.
+      setDefaultModelId(prev => {
+        if (prev === model.id) {
+          saveDefaultModelId('').catch(() => {});
+          return null;
+        }
+        return prev;
+      });
     },
     [loadedModelId],
   );
@@ -350,6 +390,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await releaseModel();
     setLoadedModelId(null);
   }, []);
+
+  // Performs the queued launch auto-load once models + load() are ready.
+  useEffect(() => {
+    if (!autoLoadTargetId) {
+      return;
+    }
+    if (loadedModelId || loadingModelId) {
+      setAutoLoadTargetId(null);
+      return;
+    }
+    const m = models.find(x => x.id === autoLoadTargetId);
+    if (m) {
+      setAutoLoadTargetId(null);
+      load(m).catch(() => {});
+    }
+  }, [autoLoadTargetId, models, loadedModelId, loadingModelId, load]);
+
+  const setDefaultModel = useCallback(
+    (id: string) => {
+      setDefaultModelId(id);
+      saveDefaultModelId(id).catch(() => {});
+      setNeedsDefaultChoice(false);
+      const m = models.find(x => x.id === id);
+      if (m && id !== loadedModelId) {
+        load(m).catch(() => {});
+      }
+    },
+    [models, loadedModelId, load],
+  );
+
+  const dismissDefaultChoice = useCallback(
+    () => setNeedsDefaultChoice(false),
+    [],
+  );
 
   const persistActive = useCallback(
     async (convId: string, msgs: ChatMessage[]) => {
@@ -720,6 +794,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     memory,
     remoteEndpoints,
     activeRemote,
+    defaultModelId,
+    needsDefaultChoice,
     download,
     cancelDownload,
     removeModel,
@@ -743,6 +819,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addEndpoint,
     removeEndpoint,
     selectRemoteModel,
+    setDefaultModel,
+    dismissDefaultChoice,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

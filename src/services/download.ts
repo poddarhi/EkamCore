@@ -41,6 +41,33 @@ export async function isModelDownloaded(model: ModelInfo): Promise<boolean> {
   return size > 1_000_000; // > 1 MB
 }
 
+/**
+ * Ground-truth list of downloaded model ids, read straight from disk (file
+ * names are `${id}.gguf`). Catalog-independent, so the launch decision can't
+ * be skewed by cache/remote-catalog timing. Only counts plausibly-sized files.
+ */
+export async function listDownloadedModelIds(): Promise<string[]> {
+  try {
+    if (!(await RNBlobUtil.fs.exists(MODELS_DIR))) {
+      return [];
+    }
+    const files = await RNBlobUtil.fs.ls(MODELS_DIR);
+    const ids: string[] = [];
+    for (const f of files) {
+      if (!f.endsWith('.gguf')) {
+        continue;
+      }
+      const size = await fileSize(`${MODELS_DIR}/${f}`);
+      if (size > 1_000_000) {
+        ids.push(f.replace(/\.gguf$/, ''));
+      }
+    }
+    return ids;
+  } catch {
+    return [];
+  }
+}
+
 export async function deleteModel(model: ModelInfo): Promise<void> {
   const path = modelFilePath(model);
   if (await RNBlobUtil.fs.exists(path)) {

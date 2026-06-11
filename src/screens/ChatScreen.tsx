@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   FlatList,
@@ -13,6 +14,7 @@ import {
 import { AuroraBackground } from '../components/AuroraBackground';
 import { BrandLogo } from '../components/BrandLogo';
 import { ChatPlusSheet } from '../components/ChatPlusSheet';
+import { DefaultModelSheet } from '../components/DefaultModelSheet';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
 import { MessageBubble } from '../components/MessageBubble';
@@ -187,6 +189,8 @@ export function ChatScreen({
   const {
     models,
     loadedModelId,
+    loadingModelId,
+    downloadedIds,
     messages,
     isGenerating,
     sendMessage,
@@ -194,10 +198,15 @@ export function ChatScreen({
     stop,
     newConversation,
     activeRemote,
+    defaultModelId,
+    needsDefaultChoice,
+    setDefaultModel,
+    dismissDefaultChoice,
   } = useApp();
   const [text, setText] = useState('');
   const [plusOpen, setPlusOpen] = useState(false);
   const [showJump, setShowJump] = useState(false);
+  const [defaultSheetOpen, setDefaultSheetOpen] = useState(false);
   const listRef = useRef<FlatList>(null);
   // Whether the user is parked near the bottom. Only then do we auto-scroll,
   // so scrolling up to re-read older messages is never interrupted.
@@ -205,10 +214,20 @@ export function ChatScreen({
   const jumpAnim = useRef(new Animated.Value(0)).current;
 
   const loadedModel = models.find(m => m.id === loadedModelId);
+  const warmingModel = models.find(m => m.id === loadingModelId);
   const activeLabel = activeRemote ? activeRemote.model : loadedModel?.name;
   const ready = !!loadedModelId || !!activeRemote;
+  const isWarming = !ready && !!loadingModelId;
+  const hasDownloaded = downloadedIds.length > 0;
   const hasMessages = messages.length > 0;
   const lastId = messages.length ? messages[messages.length - 1].id : null;
+
+  // First launch with several models and no default chosen yet: prompt once.
+  useEffect(() => {
+    if (needsDefaultChoice) {
+      setDefaultSheetOpen(true);
+    }
+  }, [needsDefaultChoice]);
 
   useEffect(() => {
     if (messages.length > 0 && atBottomRef.current) {
@@ -257,7 +276,81 @@ export function ChatScreen({
     send(value);
   };
 
+  const defaultSheet = (
+    <DefaultModelSheet
+      visible={defaultSheetOpen}
+      currentId={defaultModelId}
+      allowSkip
+      onPick={id => {
+        setDefaultModel(id);
+        setDefaultSheetOpen(false);
+      }}
+      onClose={() => {
+        dismissDefaultChoice();
+        setDefaultSheetOpen(false);
+      }}
+    />
+  );
+
   if (!ready) {
+    // Auto-loading the default model on launch.
+    if (isWarming) {
+      return (
+        <View style={styles.empty}>
+          <AuroraBackground active />
+          <View style={styles.emptyIcon}>
+            <GradientFill
+              colors={[colors.gradientStart, colors.gradientEnd]}
+              radius={radius.lg + 8}
+            />
+            <Icon name="bolt" size={40} color={colors.onPrimary} />
+          </View>
+          <Text style={styles.emptyTitle}>Warming up</Text>
+          <Text style={styles.emptyText}>
+            Loading {warmingModel?.name ?? 'your model'} into memory — this
+            takes a few seconds the first time.
+          </Text>
+          <ActivityIndicator
+            color={colors.primary}
+            style={{ marginTop: spacing.lg }}
+          />
+        </View>
+      );
+    }
+
+    // Has models but none active — invite the user to pick one to start.
+    if (hasDownloaded) {
+      return (
+        <View style={styles.empty}>
+          <AuroraBackground active={false} />
+          <View style={styles.emptyIcon}>
+            <GradientFill
+              colors={[colors.gradientStart, colors.gradientEnd]}
+              radius={radius.lg + 8}
+            />
+            <Icon name="sparkles" size={40} color={colors.onPrimary} />
+          </View>
+          <Text style={styles.emptyTitle}>Ready when you are</Text>
+          <Text style={styles.emptyText}>
+            Pick the model you'd like to chat with. We'll remember it for next
+            time.
+          </Text>
+          <Pressable
+            style={({ pressed }) => [
+              styles.emptyBtn,
+              pressed && { transform: [{ scale: 0.97 }] },
+            ]}
+            accessibilityRole="button"
+            onPress={() => setDefaultSheetOpen(true)}>
+            <Icon name="bolt" size={18} color={colors.onPrimary} />
+            <Text style={styles.emptyBtnText}>Choose a model</Text>
+          </Pressable>
+          {defaultSheet}
+        </View>
+      );
+    }
+
+    // No models at all — send the user to the catalog.
     return (
       <View style={styles.empty}>
         <AuroraBackground active={false} />

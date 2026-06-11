@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BrandLogo } from '../components/BrandLogo';
 import { Icon, IconName } from '../components/Icon';
 import { ConnectionsSheet } from '../components/ConnectionsSheet';
+import { DefaultModelSheet } from '../components/DefaultModelSheet';
 import { PersonalizationSheet } from '../components/PersonalizationSheet';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
@@ -19,12 +20,21 @@ const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: IconName }[] = [
 export function SettingsScreen() {
   const { colors, mode, setMode } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { models, loadedModelId, downloadedIds, memory, remoteEndpoints } =
-    useApp();
+  const {
+    models,
+    loadedModelId,
+    downloadedIds,
+    memory,
+    remoteEndpoints,
+    defaultModelId,
+    setDefaultModel,
+  } = useApp();
   const [showPersonalization, setShowPersonalization] = useState(false);
   const [showConnections, setShowConnections] = useState(false);
+  const [showDefaultModel, setShowDefaultModel] = useState(false);
 
   const loadedModel = models.find(m => m.id === loadedModelId);
+  const defaultModel = models.find(m => m.id === defaultModelId);
 
   return (
     <ScrollView
@@ -65,6 +75,33 @@ export function SettingsScreen() {
           Auto follows your phone's light / dark setting.
         </Text>
       </View>
+
+      {/* Default model (on launch) */}
+      {downloadedIds.length > 0 && (
+        <>
+          <Text style={styles.sectionLabel}>ON LAUNCH</Text>
+          <Pressable
+            style={styles.card}
+            onPress={() => setShowDefaultModel(true)}>
+            <View style={styles.row}>
+              <View style={styles.rowLeft}>
+                <Icon name="bolt" size={18} color={colors.primary} />
+                <Text style={styles.rowLabel}>Default model</Text>
+              </View>
+              <View style={styles.rowLeft}>
+                <Text style={styles.rowValue} numberOfLines={1}>
+                  {defaultModel?.name ??
+                    (downloadedIds.length === 1 ? 'Your model' : 'Best fit')}
+                </Text>
+                <Icon name="chevronRight" size={18} color={colors.textFaint} />
+              </View>
+            </View>
+            <Text style={styles.personalizationHint}>
+              Opens automatically in Chat when you start the app.
+            </Text>
+          </Pressable>
+        </>
+      )}
 
       {/* Personalization */}
       <Text style={styles.sectionLabel}>PERSONALIZATION</Text>
@@ -166,6 +203,15 @@ export function SettingsScreen() {
       <ConnectionsSheet
         visible={showConnections}
         onClose={() => setShowConnections(false)}
+      />
+      <DefaultModelSheet
+        visible={showDefaultModel}
+        currentId={defaultModelId}
+        onPick={id => {
+          setDefaultModel(id);
+          setShowDefaultModel(false);
+        }}
+        onClose={() => setShowDefaultModel(false)}
       />
     </ScrollView>
   );

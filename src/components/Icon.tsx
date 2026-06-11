@@ -33,7 +33,8 @@ export type IconName =
   | 'sparkles'
   | 'history'
   | 'search'
-  | 'arrowDown';
+  | 'arrowDown'
+  | 'sidebar';
 
 interface Props {
   name: IconName;
@@ -329,6 +330,21 @@ function renderPaths(
         <>
           <Path {...c} d="M12 5v14" />
           <Path {...c} d="M19 12l-7 7-7-7" />
+        </>
+      );
+    case 'sidebar':
+      // A panel with a left rail of conversation lines — reads as "open the
+      // list of past chats".
+      return (
+        <>
+          <Path
+            {...c}
+            d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
+          />
+          <Path {...c} d="M9 4v16" />
+          <Path {...c} d="M5.6 8.5h1.8" />
+          <Path {...c} d="M5.6 12h1.8" />
+          <Path {...c} d="M5.6 15.5h1.8" />
         </>
       );
     default:
