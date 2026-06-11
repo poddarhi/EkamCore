@@ -44,6 +44,16 @@ import {
   fetchFeaturedCatalog,
   loadCachedCatalog,
 } from '../services/catalog';
+import {
+  buildMemoryBlock,
+  buildTranscript,
+  EMPTY_MEMORY,
+  LEARN_SYSTEM,
+  loadMemory,
+  MemoryProfile,
+  parseLearnedProfile,
+  saveMemory,
+} from '../services/memory';
 import { ChatMessage, ConversationMeta, ModelInfo } from '../types';
 
 interface DownloadState {
@@ -65,6 +75,7 @@ interface AppState {
   activeConversationId: string | null;
   isGenerating: boolean;
   systemPrompt: string;
+  memory: MemoryProfile;
 
   download: (model: ModelInfo) => void;
   cancelDownload: (model: ModelInfo) => void;
@@ -81,6 +92,10 @@ interface AppState {
   deleteConversation: (id: string) => Promise<void>;
   renameConversation: (id: string, title: string) => Promise<void>;
   setSystemPrompt: (prompt: string) => void;
+  setMemoryEnabled: (enabled: boolean) => void;
+  updateMemory: (facts: string[], style: string) => void;
+  learnFromChats: () => Promise<boolean>;
+  clearMemory: () => void;
 }
 
 export interface CompleteOptions {
@@ -117,6 +132,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [systemPrompt, setSystemPromptState] = useState(
     'You are a helpful assistant.',
   );
+  const [memory, setMemory] = useState<MemoryProfile>(EMPTY_MEMORY);
 
   const handles = useRef<Record<string, DownloadHandle>>({});
 
@@ -151,6 +167,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCustomModels(custom);
       setSystemPromptState(sysPrompt);
       setConversations(convs);
+      loadMemory().then(setMemory);
       getDeviceProfile().then(setDeviceProfile);
 
       // Featured catalog: show cached-or-seed immediately, then refresh from
@@ -392,7 +409,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const result = await generate({
-          systemPrompt,
+          systemPrompt: systemPrompt + buildMemoryBlock(memory),
           history,
           onToken: token => {
             target += token;
@@ -457,6 +474,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       activeConversationId,
       isGenerating,
       loadedModelId,
+      memory,
       messages,
       persistActive,
       systemPrompt,
@@ -537,6 +555,70 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     saveSystemPrompt(prompt).catch(() => {});
   }, []);
 
+  const setMemoryEnabled = useCallback((enabled: boolean) => {
+    setMemory(prev => {
+      const next = { ...prev, enabled };
+      saveMemory(next);
+      return next;
+    });
+  }, []);
+
+  const updateMemory = useCallback((facts: string[], style: string) => {
+    setMemory(prev => {
+      const next = { ...prev, facts, style };
+      saveMemory(next);
+      return next;
+    });
+  }, []);
+
+  const clearMemory = useCallback(() => {
+    setMemory(prev => {
+      const next = { ...prev, facts: [], style: '' };
+      saveMemory(next);
+      return next;
+    });
+  }, []);
+
+  // Ask the loaded model to summarize the active chat into facts + style.
+  const learnFromChats = useCallback(async (): Promise<boolean> => {
+    if (!loadedModelId || isGenerating) {
+      return false;
+    }
+    const transcript = buildTranscript(messages);
+    if (!transcript.trim()) {
+      return false;
+    }
+    setIsGenerating(true);
+    try {
+      const result = await generate({
+        systemPrompt: LEARN_SYSTEM,
+        history: [{ id: uid(), role: 'user', content: transcript }],
+        temperature: 0.2,
+        maxTokens: 400,
+        onToken: () => {},
+      });
+      const learned = parseLearnedProfile(result.text || '');
+      if (learned.facts.length === 0 && !learned.style) {
+        return false;
+      }
+      setMemory(prev => {
+        const facts = Array.from(
+          new Set([...prev.facts, ...learned.facts]),
+        ).slice(0, 12);
+        const next: MemoryProfile = {
+          enabled: true,
+          facts,
+          style: learned.style || prev.style,
+        };
+        saveMemory(next);
+        return next;
+      });
+      return true;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [loadedModelId, isGenerating, messages]);
+
   const value: AppState = {
     models,
     downloadedIds,
@@ -551,6 +633,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     activeConversationId,
     isGenerating,
     systemPrompt,
+    memory,
     download,
     cancelDownload,
     removeModel,
@@ -566,6 +649,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     deleteConversation,
     renameConversation,
     setSystemPrompt,
+    setMemoryEnabled,
+    updateMemory,
+    learnFromChats,
+    clearMemory,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

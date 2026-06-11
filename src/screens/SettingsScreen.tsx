@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BrandLogo } from '../components/BrandLogo';
 import { Icon, IconName } from '../components/Icon';
+import { PersonalizationSheet } from '../components/PersonalizationSheet';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { radius, spacing, type ThemeColors } from '../theme';
@@ -10,7 +11,8 @@ import { fonts } from '../typography';
 export function SettingsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { models, loadedModelId, downloadedIds } = useApp();
+  const { models, loadedModelId, downloadedIds, memory } = useApp();
+  const [showPersonalization, setShowPersonalization] = useState(false);
 
   const loadedModel = models.find(m => m.id === loadedModelId);
 
@@ -19,6 +21,25 @@ export function SettingsScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}>
+      {/* Personalization */}
+      <Text style={styles.sectionLabel}>PERSONALIZATION</Text>
+      <Pressable style={styles.card} onPress={() => setShowPersonalization(true)}>
+        <View style={styles.row}>
+          <View style={styles.rowLeft}>
+            <Icon name="sparkles" size={18} color={colors.primary} />
+            <Text style={styles.rowLabel}>Adapt to me</Text>
+          </View>
+          <View style={styles.rowLeft}>
+            <Text style={styles.rowValue}>{memory.enabled ? 'On' : 'Off'}</Text>
+            <Icon name="chevronRight" size={18} color={colors.textFaint} />
+          </View>
+        </View>
+        <Text style={styles.personalizationHint}>
+          Learns your preferences from chats to tailor replies — stored only on
+          this device.
+        </Text>
+      </Pressable>
+
       {/* Status */}
       <Text style={styles.sectionLabel}>STATUS</Text>
       <View style={styles.card}>
@@ -69,6 +90,11 @@ export function SettingsScreen() {
       </View>
 
       <View style={{ height: spacing.xxl }} />
+
+      <PersonalizationSheet
+        visible={showPersonalization}
+        onClose={() => setShowPersonalization(false)}
+      />
     </ScrollView>
   );
 }
@@ -132,6 +158,12 @@ const makeStyles = (colors: ThemeColors) =>
     rowLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     rowLabel: { color: colors.textDim, fontSize: 14 },
     rowValue: { color: colors.text, fontSize: 14, fontWeight: '600' },
+    personalizationHint: {
+      color: colors.textDim,
+      fontSize: 12.5,
+      lineHeight: 17,
+      marginTop: spacing.sm,
+    },
     divider: { height: 1, backgroundColor: colors.border },
     aboutHeader: {
       flexDirection: 'row',
