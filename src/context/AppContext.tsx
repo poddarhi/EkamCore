@@ -39,6 +39,7 @@ import {
   renameConversation as svcRenameConversation,
   saveConversation,
 } from '../services/conversations';
+import { DeviceProfile, getDeviceProfile } from '../services/device';
 import { ChatMessage, ConversationMeta, ModelInfo } from '../types';
 
 interface DownloadState {
@@ -54,6 +55,7 @@ interface AppState {
   loadedModelId: string | null;
   loadingModelId: string | null;
   loadProgress: number;
+  deviceProfile: DeviceProfile | null;
   messages: ChatMessage[];
   conversations: ConversationMeta[];
   activeConversationId: string | null;
@@ -98,6 +100,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loadedModelId, setLoadedModelId] = useState<string | null>(null);
   const [loadingModelId, setLoadingModelId] = useState<string | null>(null);
   const [loadProgress, setLoadProgress] = useState(0);
+  const [deviceProfile, setDeviceProfile] = useState<DeviceProfile | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversations, setConversations] = useState<ConversationMeta[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<
@@ -141,6 +144,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCustomModels(custom);
       setSystemPromptState(sysPrompt);
       setConversations(convs);
+      getDeviceProfile().then(setDeviceProfile);
       await refreshDownloaded([...CATALOG, ...custom]);
       const existing = getLoadedModel();
       if (existing) {
@@ -511,6 +515,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadedModelId,
     loadingModelId,
     loadProgress,
+    deviceProfile,
     messages,
     conversations,
     activeConversationId,

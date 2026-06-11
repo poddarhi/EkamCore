@@ -10,16 +10,18 @@ import {
   View,
 } from 'react-native';
 import { Button } from '../components/Button';
+import { Icon } from '../components/Icon';
 import { ModelCard } from '../components/ModelCard';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { radius, spacing, type ThemeColors } from '../theme';
 import { fonts } from '../typography';
+import { formatBytes } from '../utils/format';
 
 export function ModelsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { models, addCustomModel } = useApp();
+  const { models, addCustomModel, deviceProfile } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
@@ -44,6 +46,20 @@ export function ModelsScreen() {
           Download a model once, then run it fully offline. Everything stays on
           your device.
         </Text>
+        {deviceProfile?.totalMemoryBytes ? (
+          <View style={styles.deviceBanner}>
+            <Icon name="phone" size={18} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.deviceTitle}>
+                {deviceProfile.modelName || 'Your device'}
+              </Text>
+              <Text style={styles.deviceMeta}>
+                {formatBytes(deviceProfile.totalMemoryBytes)} RAM • estimates
+                below are tailored to it
+              </Text>
+            </View>
+          </View>
+        ) : null}
         {models.map(m => (
           <ModelCard key={m.id} model={m} />
         ))}
@@ -113,6 +129,26 @@ const makeStyles = (colors: ThemeColors) =>
       fontSize: 13,
       lineHeight: 19,
       marginBottom: spacing.lg,
+    },
+    deviceBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    deviceTitle: {
+      color: colors.text,
+      fontSize: 14,
+      fontFamily: fonts.body.bold,
+    },
+    deviceMeta: {
+      color: colors.textDim,
+      fontSize: 12,
+      marginTop: 2,
+      fontFamily: fonts.body.regular,
     },
     addBtn: { marginTop: spacing.sm },
     modalRoot: { flex: 1, justifyContent: 'flex-end' },

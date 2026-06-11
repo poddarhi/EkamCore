@@ -74,6 +74,15 @@ jest.mock('llama.rn', () => ({
   releaseAllLlama: jest.fn(() => Promise.resolve()),
 }));
 
+// --- react-native-device-info (default import) ---
+jest.mock('react-native-device-info', () => ({
+  __esModule: true,
+  default: {
+    getTotalMemory: jest.fn(() => Promise.resolve(8 * 1024 * 1024 * 1024)),
+    getModel: jest.fn(() => 'iPhone'),
+  },
+}));
+
 // --- @react-native-clipboard/clipboard (default import) ---
 jest.mock('@react-native-clipboard/clipboard', () => ({
   __esModule: true,

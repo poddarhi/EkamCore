@@ -6,6 +6,7 @@ import { radius, spacing, type ThemeColors } from '../theme';
 import { fonts } from '../typography';
 import { ModelInfo } from '../types';
 import { formatBytes } from '../utils/format';
+import { FitTier, rateModelFit } from '../utils/modelFit';
 import { Button } from './Button';
 import { Icon } from './Icon';
 import { ProgressBar } from './ProgressBar';
@@ -20,12 +21,22 @@ export function ModelCard({ model }: { model: ModelInfo }) {
     loadedModelId,
     loadingModelId,
     loadProgress,
+    deviceProfile,
     download,
     cancelDownload,
     removeModel,
     load,
     unload,
   } = useApp();
+
+  const fit = rateModelFit(model, deviceProfile?.totalMemoryBytes ?? null);
+  const fitColor: Record<FitTier, string> = {
+    great: colors.success,
+    good: colors.success,
+    slow: colors.warning,
+    'too-large': colors.danger,
+    unknown: colors.textFaint,
+  };
 
   const isDownloaded = downloadedIds.includes(model.id);
   const dl = downloads[model.id];
@@ -56,6 +67,15 @@ export function ModelCard({ model }: { model: ModelInfo }) {
         <Meta label={model.quant} styles={styles} />
         <Meta label={formatBytes(model.sizeBytes)} styles={styles} />
       </View>
+
+      {fit.tier !== 'unknown' && (
+        <View style={styles.fitRow}>
+          <View style={[styles.fitDot, { backgroundColor: fitColor[fit.tier] }]} />
+          <Text style={[styles.fitText, { color: fitColor[fit.tier] }]}>
+            {fit.label}
+          </Text>
+        </View>
+      )}
 
       {isDownloading && (
         <View style={styles.progressWrap}>
@@ -175,6 +195,14 @@ const makeStyles = (colors: ThemeColors) =>
       borderRadius: radius.sm,
     },
     metaText: { color: colors.textDim, fontSize: 12, fontWeight: '600' },
+    fitRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: spacing.sm,
+    },
+    fitDot: { width: 8, height: 8, borderRadius: 4 },
+    fitText: { fontSize: 12.5, fontFamily: fonts.body.semibold },
     errorText: {
       color: colors.danger,
       fontSize: 12,
