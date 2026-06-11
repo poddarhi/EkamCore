@@ -70,6 +70,7 @@ interface AppState {
   cancelDownload: (model: ModelInfo) => void;
   removeModel: (model: ModelInfo) => Promise<void>;
   addCustomModel: (name: string, url: string) => Promise<void>;
+  addModel: (model: ModelInfo) => Promise<void>;
   load: (model: ModelInfo) => Promise<void>;
   unload: () => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
@@ -278,6 +279,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     },
     [customModels],
   );
+
+  const addModel = useCallback(async (model: ModelInfo) => {
+    setCustomModels(prev => {
+      if (prev.some(m => m.id === model.id)) {
+        return prev;
+      }
+      const next = [...prev, model];
+      saveCustomModels(next).catch(() => {});
+      return next;
+    });
+  }, []);
 
   const load = useCallback(
     async (model: ModelInfo) => {
@@ -543,6 +555,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     cancelDownload,
     removeModel,
     addCustomModel,
+    addModel,
     load,
     unload,
     sendMessage,

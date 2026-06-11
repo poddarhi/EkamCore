@@ -13,6 +13,7 @@ import { Button } from '../components/Button';
 import { Icon } from '../components/Icon';
 import { ModelCard } from '../components/ModelCard';
 import { ModelDetail } from '../components/ModelDetail';
+import { HuggingFaceSearch } from './HuggingFaceSearch';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { radius, spacing, type ThemeColors } from '../theme';
@@ -29,6 +30,7 @@ export function ModelsScreen() {
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [detailModel, setDetailModel] = useState<ModelInfo | null>(null);
+  const [showBrowse, setShowBrowse] = useState(false);
 
   const ram = deviceProfile?.totalMemoryBytes ?? null;
   const featured = models.filter(m => !m.custom);
@@ -108,7 +110,13 @@ export function ModelsScreen() {
           </>
         )}
         <Button
-          label="Add model from GGUF URL"
+          label="Browse Hugging Face"
+          icon="sparkles"
+          onPress={() => setShowBrowse(true)}
+          style={styles.addBtn}
+        />
+        <Button
+          label="Add from GGUF URL"
           icon="plus"
           variant="secondary"
           onPress={() => setShowAdd(true)}
@@ -118,6 +126,11 @@ export function ModelsScreen() {
       </ScrollView>
 
       <ModelDetail model={detailModel} onClose={() => setDetailModel(null)} />
+
+      <HuggingFaceSearch
+        visible={showBrowse}
+        onClose={() => setShowBrowse(false)}
+      />
 
       <Modal
         visible={showAdd}
