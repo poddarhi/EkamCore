@@ -116,6 +116,7 @@ export function ChatScreen({
     sendMessage,
     stop,
     newConversation,
+    activeRemote,
   } = useApp();
   const [text, setText] = useState('');
   const [plusOpen, setPlusOpen] = useState(false);
@@ -125,6 +126,8 @@ export function ChatScreen({
   const atBottomRef = useRef(true);
 
   const loadedModel = models.find(m => m.id === loadedModelId);
+  const activeLabel = activeRemote ? activeRemote.model : loadedModel?.name;
+  const ready = !!loadedModelId || !!activeRemote;
   const hasMessages = messages.length > 0;
 
   useEffect(() => {
@@ -155,7 +158,7 @@ export function ChatScreen({
     sendMessage(value);
   };
 
-  if (!loadedModelId) {
+  if (!ready) {
     return (
       <View style={styles.empty}>
         <View style={styles.emptyIcon}>
@@ -181,7 +184,9 @@ export function ChatScreen({
         <View style={styles.statusBar}>
           <View style={styles.statusDot} />
           <Text style={styles.statusText} numberOfLines={1}>
-            {loadedModel?.name ?? 'Model'} • on-device
+            {activeRemote
+              ? `${activeRemote.model} • remote`
+              : `${loadedModel?.name ?? 'Model'} • on-device`}
           </Text>
           <Pressable onPress={newConversation} hitSlop={8} style={styles.clearBtn}>
             <Icon name="plus" size={15} color={colors.primary} />
@@ -225,7 +230,7 @@ export function ChatScreen({
 
           <TextInput
             style={styles.input}
-            placeholder={`Ask ${loadedModel?.name ?? 'anything'}`}
+            placeholder={`Ask ${activeLabel ?? 'anything'}`}
             placeholderTextColor={colors.textFaint}
             value={text}
             onChangeText={setText}

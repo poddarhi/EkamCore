@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -9,6 +10,7 @@ import {
 } from 'react-native';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { listRemoteModels } from '../services/remote';
 import { radius, spacing, type ThemeColors } from '../theme';
 import { fonts } from '../typography';
 import { formatBytes } from '../utils/format';
@@ -32,14 +34,40 @@ export function ChatPlusSheet({
     loadingModelId,
     load,
     newConversation,
+    remoteEndpoints,
+    activeRemote,
+    selectRemoteModel,
   } = useApp();
 
   const downloaded = models.filter(m => downloadedIds.includes(m.id));
   const loadedModel = models.find(m => m.id === loadedModelId);
-  const supportsVision = !!loadedModel?.vision;
+  const supportsVision = !activeRemote && !!loadedModel?.vision;
+
+  const [remoteModels, setRemoteModels] = useState<Record<string, string[]>>({});
+  const [loadingRemote, setLoadingRemote] = useState(false);
+
+  // Fetch each connected server's model list when the sheet opens.
+  useEffect(() => {
+    if (!visible || remoteEndpoints.length === 0) {
+      return;
+    }
+    let cancelled = false;
+    setLoadingRemote(true);
+    Promise.all(
+      remoteEndpoints.map(async ep => [ep.id, await listRemoteModels(ep)] as const),
+    ).then(pairs => {
+      if (!cancelled) {
+        setRemoteModels(Object.fromEntries(pairs));
+        setLoadingRemote(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, remoteEndpoints]);
 
   const switchModel = (id: string) => {
-    if (id === loadedModelId) {
+    if (id === loadedModelId && !activeRemote) {
       onClose();
       return;
     }
@@ -47,6 +75,11 @@ export function ChatPlusSheet({
     if (m) {
       load(m);
     }
+    onClose();
+  };
+
+  const pickRemote = (endpointId: string, model: string) => {
+    selectRemoteModel(endpointId, model);
     onClose();
   };
 
@@ -91,7 +124,7 @@ export function ChatPlusSheet({
           ) : (
             <ScrollView style={styles.modelList}>
               {downloaded.map(m => {
-                const active = m.id === loadedModelId;
+                const active = !activeRemote && m.id === loadedModelId;
                 const loading = m.id === loadingModelId;
                 return (
                   <Pressable
@@ -115,6 +148,45 @@ export function ChatPlusSheet({
                 );
               })}
             </ScrollView>
+          )}
+
+          {remoteEndpoints.length > 0 && (
+            <>
+              <Text style={styles.sectionLabel}>Your computers (remote)</Text>
+              {loadingRemote && (
+                <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.sm }} />
+              )}
+              {remoteEndpoints.map(ep => {
+                const list = remoteModels[ep.id] ?? [];
+                return (
+                  <View key={ep.id}>
+                    <Text style={styles.epHeader}>{ep.name}</Text>
+                    {list.length === 0 && !loadingRemote ? (
+                      <Text style={styles.epEmpty}>Not reachable right now</Text>
+                    ) : (
+                      list.map(model => {
+                        const active =
+                          activeRemote?.endpointId === ep.id &&
+                          activeRemote?.model === model;
+                        return (
+                          <Pressable
+                            key={model}
+                            style={[styles.row, active && styles.rowActive]}
+                            onPress={() => pickRemote(ep.id, model)}>
+                            <Text style={[styles.rowLabel, { flex: 1 }]} numberOfLines={1}>
+                              {model}
+                            </Text>
+                            {active && (
+                              <Icon name="check" size={18} color={colors.primary} />
+                            )}
+                          </Pressable>
+                        );
+                      })
+                    )}
+                  </View>
+                );
+              })}
+            </>
           )}
 
           <Pressable
@@ -219,6 +291,20 @@ const makeStyles = (colors: ThemeColors) =>
       fontFamily: fonts.body.regular,
     },
     loadingText: { color: colors.primary, fontSize: 13, fontFamily: fonts.body.semibold },
+    epHeader: {
+      color: colors.text,
+      fontSize: 13,
+      fontFamily: fonts.body.bold,
+      marginTop: spacing.sm,
+      marginLeft: spacing.sm,
+    },
+    epEmpty: {
+      color: colors.textFaint,
+      fontSize: 12.5,
+      marginLeft: spacing.sm,
+      marginVertical: spacing.xs,
+      fontFamily: fonts.body.regular,
+    },
     newChat: {
       flexDirection: 'row',
       alignItems: 'center',

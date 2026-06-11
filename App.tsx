@@ -55,7 +55,7 @@ function Shell() {
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const { loadedModelId, downloadedIds } = useApp();
+  const { loadedModelId, downloadedIds, activeRemote } = useApp();
 
   const selectTab = (t: Tab) => {
     setTab(t);
@@ -88,7 +88,9 @@ function Shell() {
 
   const subtitle =
     tab === 'chat'
-      ? loadedModelId
+      ? activeRemote
+        ? 'Remote • your computer'
+        : loadedModelId
         ? 'Offline • private'
         : 'No model loaded'
       : tab === 'tools'

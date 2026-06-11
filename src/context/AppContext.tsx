@@ -41,6 +41,12 @@ import {
 } from '../services/conversations';
 import { DeviceProfile, getDeviceProfile } from '../services/device';
 import {
+  loadEndpoints,
+  remoteChat,
+  RemoteEndpoint,
+  saveEndpoints,
+} from '../services/remote';
+import {
   fetchFeaturedCatalog,
   loadCachedCatalog,
 } from '../services/catalog';
@@ -76,6 +82,8 @@ interface AppState {
   isGenerating: boolean;
   systemPrompt: string;
   memory: MemoryProfile;
+  remoteEndpoints: RemoteEndpoint[];
+  activeRemote: { endpointId: string; model: string } | null;
 
   download: (model: ModelInfo) => void;
   cancelDownload: (model: ModelInfo) => void;
@@ -96,6 +104,9 @@ interface AppState {
   updateMemory: (facts: string[], style: string) => void;
   learnFromChats: () => Promise<boolean>;
   clearMemory: () => void;
+  addEndpoint: (ep: RemoteEndpoint) => void;
+  removeEndpoint: (id: string) => void;
+  selectRemoteModel: (endpointId: string, model: string) => void;
 }
 
 export interface CompleteOptions {
@@ -133,6 +144,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     'You are a helpful assistant.',
   );
   const [memory, setMemory] = useState<MemoryProfile>(EMPTY_MEMORY);
+  const [remoteEndpoints, setRemoteEndpoints] = useState<RemoteEndpoint[]>([]);
+  // When set, chat is routed to a model on the user's own remote compute.
+  const [activeRemote, setActiveRemote] = useState<{
+    endpointId: string;
+    model: string;
+  } | null>(null);
 
   const handles = useRef<Record<string, DownloadHandle>>({});
 
@@ -168,6 +185,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSystemPromptState(sysPrompt);
       setConversations(convs);
       loadMemory().then(setMemory);
+      loadEndpoints().then(setRemoteEndpoints);
       getDeviceProfile().then(setDeviceProfile);
 
       // Featured catalog: show cached-or-seed immediately, then refresh from
@@ -317,6 +335,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setLoadProgress(p),
         );
         setLoadedModelId(model.id);
+        setActiveRemote(null);
         await saveLastModelId(model.id);
       } finally {
         setLoadingModelId(null);
@@ -362,7 +381,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
-      if (!trimmed || isGenerating || !loadedModelId) {
+      if (!trimmed || isGenerating || (!loadedModelId && !activeRemote)) {
         return;
       }
       let convId = activeConversationId;
@@ -407,15 +426,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         );
       }, 18);
 
+      let tps: number | undefined;
       try {
-        const result = await generate({
-          systemPrompt: systemPrompt + buildMemoryBlock(memory),
-          history,
-          onToken: token => {
-            target += token;
-          },
-        });
-        target = result.text || target;
+        if (activeRemote) {
+          const ep = remoteEndpoints.find(e => e.id === activeRemote.endpointId);
+          if (!ep) {
+            throw new Error('That connection is no longer available.');
+          }
+          const msgs = [
+            { role: 'system', content: systemPrompt + buildMemoryBlock(memory) },
+            ...history
+              .filter(m => m.role !== 'system')
+              .map(m => ({ role: m.role, content: m.content })),
+          ];
+          // Non-streaming; the typewriter below reveals the full reply.
+          target = await remoteChat(ep, activeRemote.model, msgs);
+        } else {
+          const result = await generate({
+            systemPrompt: systemPrompt + buildMemoryBlock(memory),
+            history,
+            onToken: token => {
+              target += token;
+            },
+          });
+          target = result.text || target;
+          tps = result.tokensPerSecond;
+        }
         // Let the typewriter finish revealing everything that was generated.
         await new Promise<void>(resolve => {
           const finish = setInterval(() => {
@@ -433,7 +469,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   ...m,
                   content: target,
                   streaming: false,
-                  tokensPerSecond: result.tokensPerSecond,
+                  tokensPerSecond: tps,
                 }
               : m,
           ),
@@ -444,7 +480,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             id: assistantId,
             role: 'assistant',
             content: target,
-            tokensPerSecond: result.tokensPerSecond,
+            tokensPerSecond: tps,
           },
         ]);
       } catch (e: any) {
@@ -472,11 +508,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     },
     [
       activeConversationId,
+      activeRemote,
       isGenerating,
       loadedModelId,
       memory,
       messages,
       persistActive,
+      remoteEndpoints,
       systemPrompt,
     ],
   );
@@ -571,6 +609,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const addEndpoint = useCallback((ep: RemoteEndpoint) => {
+    setRemoteEndpoints(prev => {
+      const next = [...prev.filter(e => e.id !== ep.id), ep];
+      saveEndpoints(next);
+      return next;
+    });
+  }, []);
+
+  const removeEndpoint = useCallback((id: string) => {
+    setRemoteEndpoints(prev => {
+      const next = prev.filter(e => e.id !== id);
+      saveEndpoints(next);
+      return next;
+    });
+    setActiveRemote(prev => (prev?.endpointId === id ? null : prev));
+  }, []);
+
+  const selectRemoteModel = useCallback(
+    (endpointId: string, model: string) => {
+      setActiveRemote({ endpointId, model });
+    },
+    [],
+  );
+
   const clearMemory = useCallback(() => {
     setMemory(prev => {
       const next = { ...prev, facts: [], style: '' };
@@ -634,6 +696,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isGenerating,
     systemPrompt,
     memory,
+    remoteEndpoints,
+    activeRemote,
     download,
     cancelDownload,
     removeModel,
@@ -653,6 +717,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateMemory,
     learnFromChats,
     clearMemory,
+    addEndpoint,
+    removeEndpoint,
+    selectRemoteModel,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

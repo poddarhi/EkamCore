@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BrandLogo } from '../components/BrandLogo';
 import { Icon, IconName } from '../components/Icon';
+import { ConnectionsSheet } from '../components/ConnectionsSheet';
 import { PersonalizationSheet } from '../components/PersonalizationSheet';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
@@ -11,8 +12,10 @@ import { fonts } from '../typography';
 export function SettingsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { models, loadedModelId, downloadedIds, memory } = useApp();
+  const { models, loadedModelId, downloadedIds, memory, remoteEndpoints } =
+    useApp();
   const [showPersonalization, setShowPersonalization] = useState(false);
+  const [showConnections, setShowConnections] = useState(false);
 
   const loadedModel = models.find(m => m.id === loadedModelId);
 
@@ -37,6 +40,29 @@ export function SettingsScreen() {
         <Text style={styles.personalizationHint}>
           Learns your preferences from chats to tailor replies — stored only on
           this device.
+        </Text>
+      </Pressable>
+
+      {/* Connections */}
+      <Text style={styles.sectionLabel}>YOUR COMPUTERS</Text>
+      <Pressable style={styles.card} onPress={() => setShowConnections(true)}>
+        <View style={styles.row}>
+          <View style={styles.rowLeft}>
+            <Icon name="phone" size={18} color={colors.primary} />
+            <Text style={styles.rowLabel}>Remote models</Text>
+          </View>
+          <View style={styles.rowLeft}>
+            <Text style={styles.rowValue}>
+              {remoteEndpoints.length > 0
+                ? `${remoteEndpoints.length} connected`
+                : 'None'}
+            </Text>
+            <Icon name="chevronRight" size={18} color={colors.textFaint} />
+          </View>
+        </View>
+        <Text style={styles.personalizationHint}>
+          Connect to a bigger model on your own computer (Ollama / LM Studio)
+          and switch to it inside any chat.
         </Text>
       </Pressable>
 
@@ -94,6 +120,10 @@ export function SettingsScreen() {
       <PersonalizationSheet
         visible={showPersonalization}
         onClose={() => setShowPersonalization(false)}
+      />
+      <ConnectionsSheet
+        visible={showConnections}
+        onClose={() => setShowConnections(false)}
       />
     </ScrollView>
   );
