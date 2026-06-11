@@ -31,7 +31,15 @@ import {
   saveLastModelId,
   saveSystemPrompt,
 } from '../services/storage';
-import { ChatMessage, ModelInfo } from '../types';
+import {
+  deleteConversation as svcDeleteConversation,
+  deriveTitle,
+  listConversations,
+  loadMessages,
+  renameConversation as svcRenameConversation,
+  saveConversation,
+} from '../services/conversations';
+import { ChatMessage, ConversationMeta, ModelInfo } from '../types';
 
 interface DownloadState {
   received: number;
@@ -47,6 +55,8 @@ interface AppState {
   loadingModelId: string | null;
   loadProgress: number;
   messages: ChatMessage[];
+  conversations: ConversationMeta[];
+  activeConversationId: string | null;
   isGenerating: boolean;
   systemPrompt: string;
 
@@ -59,7 +69,10 @@ interface AppState {
   sendMessage: (text: string) => Promise<void>;
   complete: (opts: CompleteOptions) => Promise<string>;
   stop: () => Promise<void>;
-  clearChat: () => void;
+  newConversation: () => void;
+  openConversation: (id: string) => Promise<void>;
+  deleteConversation: (id: string) => Promise<void>;
+  renameConversation: (id: string, title: string) => Promise<void>;
   setSystemPrompt: (prompt: string) => void;
 }
 
@@ -86,12 +99,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loadingModelId, setLoadingModelId] = useState<string | null>(null);
   const [loadProgress, setLoadProgress] = useState(0);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [conversations, setConversations] = useState<ConversationMeta[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [systemPrompt, setSystemPromptState] = useState(
     'You are a helpful assistant.',
   );
 
   const handles = useRef<Record<string, DownloadHandle>>({});
+
+  // Remembers createdAt for conversations created this session before they
+  // first land in the `conversations` index.
+  const createdAt = useRef<Record<string, number>>({});
 
   const models = useMemo(
     () => [...CATALOG, ...customModels],
@@ -111,13 +132,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       await ensureModelsDir();
-      const [custom, sysPrompt, lastId] = await Promise.all([
+      const [custom, sysPrompt, lastId, convs] = await Promise.all([
         loadCustomModels(),
         loadSystemPrompt(),
         loadLastModelId(),
+        listConversations(),
       ]);
       setCustomModels(custom);
       setSystemPromptState(sysPrompt);
+      setConversations(convs);
       await refreshDownloaded([...CATALOG, ...custom]);
       const existing = getLoadedModel();
       if (existing) {
@@ -244,7 +267,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         );
         setLoadedModelId(model.id);
         await saveLastModelId(model.id);
-        setMessages([]);
       } finally {
         setLoadingModelId(null);
       }
@@ -257,11 +279,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLoadedModelId(null);
   }, []);
 
+  const persistActive = useCallback(
+    async (convId: string, msgs: ChatMessage[]) => {
+      if (msgs.length === 0) {
+        return;
+      }
+      const existing = conversations.find(c => c.id === convId);
+      const meta: ConversationMeta = {
+        id: convId,
+        // Preserve a previously stored/renamed title; derive on first save.
+        title: existing?.title ?? deriveTitle(msgs),
+        createdAt: createdAt.current[convId] ?? existing?.createdAt ?? Date.now(),
+        updatedAt: Date.now(),
+        modelId: loadedModelId,
+        messageCount: msgs.length,
+      };
+      try {
+        await saveConversation(meta, msgs);
+        setConversations(prev =>
+          [meta, ...prev.filter(c => c.id !== convId)].sort(
+            (a, b) => b.updatedAt - a.updatedAt,
+          ),
+        );
+      } catch (e) {
+        console.warn('[conversations] save failed:', e);
+      }
+    },
+    [conversations, loadedModelId],
+  );
+
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || isGenerating || !loadedModelId) {
         return;
+      }
+      let convId = activeConversationId;
+      if (!convId) {
+        convId = uid();
+        createdAt.current[convId] = Date.now();
+        setActiveConversationId(convId);
       }
       const userMsg: ChatMessage = {
         id: uid(),
@@ -330,6 +387,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               : m,
           ),
         );
+        await persistActive(convId, [
+          ...history,
+          {
+            id: assistantId,
+            role: 'assistant',
+            content: target,
+            tokensPerSecond: result.tokensPerSecond,
+          },
+        ]);
       } catch (e: any) {
         clearInterval(revealTimer);
         setMessages(prev =>
@@ -345,11 +411,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               : m,
           ),
         );
+        await persistActive(convId, [
+          ...history,
+          { id: assistantId, role: 'assistant', content: target },
+        ]);
       } finally {
         setIsGenerating(false);
       }
     },
-    [isGenerating, loadedModelId, messages, systemPrompt],
+    [
+      activeConversationId,
+      isGenerating,
+      loadedModelId,
+      messages,
+      persistActive,
+      systemPrompt,
+    ],
   );
 
   // One-shot completion used by the AI Tools (email, summarizer, etc.).
@@ -390,7 +467,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const clearChat = useCallback(() => setMessages([]), []);
+  const newConversation = useCallback(() => {
+    setActiveConversationId(null);
+    setMessages([]);
+  }, []);
+
+  const openConversation = useCallback(async (id: string) => {
+    const msgs = await loadMessages(id);
+    setActiveConversationId(id);
+    setMessages(msgs);
+  }, []);
+
+  const deleteConversation = useCallback(async (id: string) => {
+    await svcDeleteConversation(id);
+    delete createdAt.current[id];
+    setConversations(prev => prev.filter(c => c.id !== id));
+    setActiveConversationId(prev => {
+      if (prev === id) {
+        setMessages([]);
+        return null;
+      }
+      return prev;
+    });
+  }, []);
+
+  const renameConversation = useCallback(async (id: string, title: string) => {
+    await svcRenameConversation(id, title);
+    setConversations(prev =>
+      prev.map(c => (c.id === id ? { ...c, title } : c)),
+    );
+  }, []);
 
   const setSystemPrompt = useCallback((prompt: string) => {
     setSystemPromptState(prompt);
@@ -406,6 +512,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadingModelId,
     loadProgress,
     messages,
+    conversations,
+    activeConversationId,
     isGenerating,
     systemPrompt,
     download,
@@ -417,7 +525,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     sendMessage,
     complete,
     stop,
-    clearChat,
+    newConversation,
+    openConversation,
+    deleteConversation,
+    renameConversation,
     setSystemPrompt,
   };
 

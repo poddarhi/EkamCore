@@ -114,7 +114,7 @@ export function ChatScreen({
     isGenerating,
     sendMessage,
     stop,
-    clearChat,
+    newConversation,
   } = useApp();
   const [text, setText] = useState('');
   const listRef = useRef<FlatList>(null);
@@ -181,7 +181,7 @@ export function ChatScreen({
           <Text style={styles.statusText} numberOfLines={1}>
             {loadedModel?.name ?? 'Model'} • on-device
           </Text>
-          <Pressable onPress={clearChat} hitSlop={8} style={styles.clearBtn}>
+          <Pressable onPress={newConversation} hitSlop={8} style={styles.clearBtn}>
             <Icon name="plus" size={15} color={colors.primary} />
             <Text style={styles.clear}>New</Text>
           </Pressable>
@@ -217,7 +217,7 @@ export function ChatScreen({
           <Pressable
             style={styles.leadBtn}
             hitSlop={6}
-            onPress={hasMessages ? clearChat : undefined}
+            onPress={hasMessages ? newConversation : undefined}
             disabled={!hasMessages}>
             <Icon
               name="plus"

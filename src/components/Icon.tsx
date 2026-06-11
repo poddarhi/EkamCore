@@ -30,7 +30,8 @@ export type IconName =
   | 'arrowLeft'
   | 'share'
   | 'copy'
-  | 'sparkles';
+  | 'sparkles'
+  | 'history';
 
 interface Props {
   name: IconName;
@@ -304,6 +305,14 @@ function renderPaths(
             d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"
           />
           <Path {...c} d="M19 14l.7 1.8L21.5 16.5l-1.8.7L19 19l-.7-1.8L16.5 16.5l1.8-.7z" />
+        </>
+      );
+    case 'history':
+      return (
+        <>
+          <Path {...c} d="M3 3v5h5" />
+          <Path {...c} d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
+          <Path {...c} d="M12 7v5l4 2" />
         </>
       );
     default:
