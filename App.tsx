@@ -19,6 +19,7 @@ import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import { HistoryPanel } from './src/components/HistoryPanel';
 import { Icon, IconName } from './src/components/Icon';
 import { Onboarding } from './src/components/Onboarding';
 import { SplashScreen } from './src/components/SplashScreen';
@@ -53,6 +54,7 @@ function Shell() {
   const [tab, setTab] = useState<Tab>('models');
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { loadedModelId, downloadedIds } = useApp();
 
   const selectTab = (t: Tab) => {
@@ -117,6 +119,23 @@ function Shell() {
               </Text>
             </View>
           </View>
+        ) : tab === 'chat' ? (
+          <View style={styles.headerRow}>
+            <Pressable
+              onPress={() => setHistoryOpen(true)}
+              hitSlop={10}
+              style={styles.backBtn}>
+              <Icon name="history" size={22} color={colors.text} />
+            </Pressable>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title} numberOfLines={1}>
+                {headerTitle}
+              </Text>
+              <Text style={styles.subtitle} numberOfLines={1}>
+                {subtitle}
+              </Text>
+            </View>
+          </View>
         ) : (
           <>
             <Text style={styles.title}>{headerTitle}</Text>
@@ -164,6 +183,11 @@ function Shell() {
           ))}
         </View>
       )}
+
+      <HistoryPanel
+        visible={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+      />
     </View>
   );
 }
