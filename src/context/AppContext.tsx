@@ -93,6 +93,8 @@ interface AppState {
   load: (model: ModelInfo) => Promise<void>;
   unload: () => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
+  /** Re-run the last user message, replacing the assistant reply after it. */
+  regenerate: () => Promise<void>;
   complete: (opts: CompleteOptions) => Promise<string>;
   stop: () => Promise<void>;
   newConversation: () => void;
@@ -378,8 +380,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [conversations, loadedModelId],
   );
 
-  const sendMessage = useCallback(
-    async (text: string) => {
+  // Shared send path: `base` is the history the new user turn appends to.
+  // sendMessage passes the live message list; regenerate passes a truncated one.
+  const runSend = useCallback(
+    async (text: string, base: ChatMessage[]) => {
       const trimmed = text.trim();
       if (!trimmed || isGenerating || (!loadedModelId && !activeRemote)) {
         return;
@@ -403,7 +407,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         streaming: true,
       };
 
-      const history = [...messages, userMsg];
+      const history = [...base, userMsg];
       setMessages([...history, assistantMsg]);
       setIsGenerating(true);
 
@@ -420,9 +424,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Reveal faster when the buffer is large so we never lag too far behind.
         const step = Math.max(2, Math.ceil(remaining / 25));
         shown = Math.min(target.length, shown + step);
-        const text = target.slice(0, shown);
+        const revealed = target.slice(0, shown);
         setMessages(prev =>
-          prev.map(m => (m.id === assistantId ? { ...m, content: text } : m)),
+          prev.map(m => (m.id === assistantId ? { ...m, content: revealed } : m)),
         );
       }, 18);
 
@@ -512,12 +516,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isGenerating,
       loadedModelId,
       memory,
-      messages,
       persistActive,
       remoteEndpoints,
       systemPrompt,
     ],
   );
+
+  const sendMessage = useCallback(
+    (text: string) => runSend(text, messages),
+    [runSend, messages],
+  );
+
+  const regenerate = useCallback(async () => {
+    if (isGenerating) {
+      return;
+    }
+    const lastUserIdx = messages.map(m => m.role).lastIndexOf('user');
+    if (lastUserIdx < 0) {
+      return;
+    }
+    const lastUser = messages[lastUserIdx];
+    const base = messages.slice(0, lastUserIdx);
+    setMessages(base);
+    await runSend(lastUser.content, base);
+  }, [isGenerating, messages, runSend]);
 
   // One-shot completion used by the AI Tools (email, summarizer, etc.).
   // Streams the accumulated text via onUpdate; shares the generation lock.
@@ -706,6 +728,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     load,
     unload,
     sendMessage,
+    regenerate,
     complete,
     stop,
     newConversation,

@@ -1,17 +1,71 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { useTheme } from '../context/ThemeContext';
 import { radius, spacing, type ThemeColors } from '../theme';
 import { fonts } from '../typography';
 import { ChatMessage } from '../types';
+import { Icon, IconName } from './Icon';
 import { TypingDots } from './TypingDots';
 
-export function MessageBubble({ message }: { message: ChatMessage }) {
+/** Small ghost icon button used in the action row under finished AI replies. */
+function ActionChip({
+  icon,
+  label,
+  onPress,
+  colors,
+}: {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+  colors: ThemeColors;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [
+        chipStyles.chip,
+        pressed && { backgroundColor: colors.surfaceAlt, opacity: 0.85 },
+      ]}>
+      <Icon name={icon} size={14} color={colors.textDim} />
+      <Text style={[chipStyles.chipText, { color: colors.textDim }]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+const chipStyles = StyleSheet.create({
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+  },
+  chipText: { fontSize: 12, fontFamily: fonts.body.semibold },
+});
+
+export function MessageBubble({
+  message,
+  isLast = false,
+  onRegenerate,
+}: {
+  message: ChatMessage;
+  /** True for the final message in the thread (enables Retry). */
+  isLast?: boolean;
+  onRegenerate?: () => void;
+}) {
   const { colors } = useTheme();
   const isUser = message.role === 'user';
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const markdownStyles = useMemo(() => makeMarkdownStyles(colors), [colors]);
+  const [copied, setCopied] = useState(false);
 
   const enter = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -23,13 +77,31 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
     }).start();
   }, [enter]);
 
+  useEffect(() => {
+    if (!copied) {
+      return;
+    }
+    const t = setTimeout(() => setCopied(false), 1400);
+    return () => clearTimeout(t);
+  }, [copied]);
+
+  const copy = () => {
+    Clipboard.setString(message.content);
+    setCopied(true);
+  };
+
   const renderBody = () => {
     if (isUser) {
       return <Text style={styles.userText}>{message.content}</Text>;
     }
     if (message.streaming) {
       if (!message.content) {
-        return <TypingDots color={colors.accent} />;
+        return (
+          <View style={styles.thinkingRow}>
+            <TypingDots color={colors.accent} />
+            <Text style={styles.thinkingText}>Thinking…</Text>
+          </View>
+        );
       }
       return (
         <Text style={styles.text}>
@@ -40,6 +112,8 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
     }
     return <Markdown style={markdownStyles}>{message.content}</Markdown>;
   };
+
+  const showActions = !isUser && !message.streaming && !!message.content;
 
   return (
     <Animated.View
@@ -54,11 +128,40 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
           ],
         },
       ]}>
-      <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-        {renderBody()}
-        {!isUser && !message.streaming && message.tokensPerSecond ? (
-          <Text style={styles.meta}>{message.tokensPerSecond} tok/s</Text>
-        ) : null}
+      <View style={isUser ? styles.colUser : styles.colAssistant}>
+        <Pressable
+          onLongPress={copy}
+          delayLongPress={350}
+          accessibilityLabel={isUser ? 'Your message' : 'Assistant message'}
+          accessibilityHint="Long-press to copy"
+          style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
+          {renderBody()}
+        </Pressable>
+
+        {showActions && (
+          <View style={styles.actionRow}>
+            <ActionChip
+              icon={copied ? 'check' : 'copy'}
+              label={copied ? 'Copied' : 'Copy'}
+              onPress={copy}
+              colors={colors}
+            />
+            {isLast && onRegenerate ? (
+              <ActionChip
+                icon="refresh"
+                label="Retry"
+                onPress={onRegenerate}
+                colors={colors}
+              />
+            ) : null}
+            {message.tokensPerSecond ? (
+              <Text style={styles.meta}>{message.tokensPerSecond} tok/s</Text>
+            ) : null}
+          </View>
+        )}
+        {isUser && copied && (
+          <Text style={styles.copiedNote}>Copied</Text>
+        )}
       </View>
     </Animated.View>
   );
@@ -69,8 +172,9 @@ const makeStyles = (colors: ThemeColors) =>
     row: { marginBottom: spacing.md, flexDirection: 'row' },
     rowUser: { justifyContent: 'flex-end' },
     rowAssistant: { justifyContent: 'flex-start' },
+    colUser: { maxWidth: '88%', alignItems: 'flex-end' },
+    colAssistant: { maxWidth: '88%', alignItems: 'flex-start' },
     bubble: {
-      maxWidth: '88%',
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm + 2,
       borderRadius: radius.lg,
@@ -98,10 +202,33 @@ const makeStyles = (colors: ThemeColors) =>
       fontFamily: fonts.body.medium,
     },
     caret: { color: colors.accent, fontSize: 12 },
+    thinkingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    thinkingText: {
+      color: colors.textDim,
+      fontSize: 13,
+      fontFamily: fonts.body.medium,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginTop: 2,
+      marginLeft: spacing.xs,
+    },
     meta: {
       color: colors.textFaint,
       fontSize: 11,
-      marginTop: spacing.xs,
+      marginLeft: spacing.xs,
+      fontFamily: fonts.body.medium,
+    },
+    copiedNote: {
+      color: colors.textFaint,
+      fontSize: 11,
+      marginTop: 2,
       fontFamily: fonts.body.medium,
     },
   });

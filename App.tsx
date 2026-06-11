@@ -7,6 +7,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Easing,
   Keyboard,
   Platform,
   Pressable,
@@ -47,22 +48,42 @@ const TAB_META: Record<Tab, { title: string; icon: IconName }> = {
   settings: { title: 'Settings', icon: 'settings' },
 };
 
-function Shell() {
+function Shell({ navRef }: { navRef: React.MutableRefObject<((t: Tab) => void) | null> }) {
   const { colors } = useTheme();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState<Tab>('models');
+  // Chat-first: the product is a chat app, so land on Chat. Its empty state
+  // walks brand-new users to Models.
+  const [tab, setTab] = useState<Tab>('chat');
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { loadedModelId, downloadedIds, activeRemote } = useApp();
+  // Cross-fade/rise the body content whenever the active tab changes.
+  const bodyAnim = useRef(new Animated.Value(1)).current;
 
   const selectTab = (t: Tab) => {
-    setTab(t);
+    setTab(prev => {
+      if (prev !== t) {
+        bodyAnim.setValue(0);
+        Animated.timing(bodyAnim, {
+          toValue: 1,
+          duration: 240,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      }
+      return t;
+    });
     if (t !== 'tools') {
       setActiveTool(null);
     }
   };
+
+  useEffect(() => {
+    navRef.current = selectTab;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const showEvt =
@@ -146,7 +167,21 @@ function Shell() {
         )}
       </View>
 
-      <View style={styles.body}>
+      <Animated.View
+        style={[
+          styles.body,
+          {
+            opacity: bodyAnim,
+            transform: [
+              {
+                translateY: bodyAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [10, 0],
+                }),
+              },
+            ],
+          },
+        ]}>
         {tab === 'chat' && (
           <ChatScreen
             onGoToModels={() => selectTab('models')}
@@ -168,7 +203,7 @@ function Shell() {
           ))}
         {tab === 'models' && <ModelsScreen />}
         {tab === 'settings' && <SettingsScreen />}
-      </View>
+      </Animated.View>
 
       {!keyboardOpen && (
         <View
@@ -221,7 +256,12 @@ function TabButton({
   const lift = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -2] });
 
   return (
-    <Pressable style={tabStyles.btn} onPress={onPress}>
+    <Pressable
+      style={tabStyles.btn}
+      onPress={onPress}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}>
       <Animated.View
         style={[
           tabStyles.pill,
@@ -251,9 +291,10 @@ function TabButton({
 }
 
 function Root() {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const navRef = useRef<((t: Tab) => void) | null>(null);
 
   useEffect(() => {
     loadOnboardingSeen()
@@ -261,15 +302,21 @@ function Root() {
       .catch(() => {});
   }, []);
 
-  const finishOnboarding = () => {
+  const finishOnboarding = (goToModels?: boolean) => {
     setShowOnboarding(false);
     saveOnboardingSeen().catch(() => {});
+    if (goToModels) {
+      navRef.current?.('models');
+    }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-      <Shell />
+      <StatusBar
+        barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.bg}
+      />
+      <Shell navRef={navRef} />
       {showOnboarding && !showSplash && (
         <Onboarding onDone={finishOnboarding} />
       )}

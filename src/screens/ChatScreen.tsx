@@ -13,11 +13,12 @@ import {
 import { AuroraBackground } from '../components/AuroraBackground';
 import { BrandLogo } from '../components/BrandLogo';
 import { ChatPlusSheet } from '../components/ChatPlusSheet';
+import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
 import { MessageBubble } from '../components/MessageBubble';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
-import { radius, spacing, type ThemeColors } from '../theme';
+import { radius, shadows, spacing, type ThemeColors } from '../theme';
 import { fonts } from '../typography';
 
 function greetingForNow() {
@@ -29,12 +30,43 @@ function greetingForNow() {
   return 'Good night';
 }
 
-/** Animated hero shown before the first message — Gemini-style landing. */
-function LandingHero({ colors }: { colors: ThemeColors }) {
+/** Conversation starters shown on the landing hero — tap to send. */
+const STARTERS: { icon: 'sparkles' | 'edit' | 'brain' | 'fileText'; label: string; prompt: string }[] = [
+  {
+    icon: 'sparkles',
+    label: 'Spark an idea',
+    prompt: 'Give me three creative ideas for a weekend project.',
+  },
+  {
+    icon: 'edit',
+    label: 'Help me write',
+    prompt: 'Help me write a short, friendly message. Ask me what it’s for.',
+  },
+  {
+    icon: 'brain',
+    label: 'Explain something',
+    prompt: 'Explain a fascinating concept from science in simple words.',
+  },
+  {
+    icon: 'fileText',
+    label: 'Summarize text',
+    prompt: 'I’ll paste some text — summarize it in a few bullet points. Ready?',
+  },
+];
+
+/** Animated hero shown before the first message — greeting + starter chips. */
+function LandingHero({
+  colors,
+  onStarter,
+}: {
+  colors: ThemeColors;
+  onStarter: (prompt: string) => void;
+}) {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const fade = useRef(new Animated.Value(0)).current;
   const rise = useRef(new Animated.Value(24)).current;
   const pulse = useRef(new Animated.Value(0)).current;
+  const chipAnims = useRef(STARTERS.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -52,6 +84,20 @@ function LandingHero({ colors }: { colors: ThemeColors }) {
       }),
     ]).start();
 
+    // Starter chips cascade in after the greeting settles.
+    Animated.stagger(
+      70,
+      chipAnims.map(a =>
+        Animated.spring(a, {
+          toValue: 1,
+          useNativeDriver: true,
+          friction: 7,
+          tension: 80,
+          delay: 350,
+        }),
+      ),
+    ).start();
+
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, {
@@ -68,7 +114,7 @@ function LandingHero({ colors }: { colors: ThemeColors }) {
         }),
       ]),
     ).start();
-  }, [fade, rise, pulse]);
+  }, [fade, rise, pulse, chipAnims]);
 
   const logoScale = pulse.interpolate({
     inputRange: [0, 1],
@@ -95,6 +141,36 @@ function LandingHero({ colors }: { colors: ThemeColors }) {
 
       <Text style={styles.greetingSmall}>{greetingForNow()},</Text>
       <Text style={styles.greetingBig}>What's on your mind?</Text>
+
+      <View style={styles.starters}>
+        {STARTERS.map((s, i) => (
+          <Animated.View
+            key={s.label}
+            style={{
+              opacity: chipAnims[i],
+              transform: [
+                {
+                  translateY: chipAnims[i].interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [16, 0],
+                  }),
+                },
+              ],
+            }}>
+            <Pressable
+              onPress={() => onStarter(s.prompt)}
+              accessibilityRole="button"
+              accessibilityLabel={s.label}
+              style={({ pressed }) => [
+                styles.starterChip,
+                pressed && styles.starterChipPressed,
+              ]}>
+              <Icon name={s.icon} size={15} color={colors.primary} />
+              <Text style={styles.starterText}>{s.label}</Text>
+            </Pressable>
+          </Animated.View>
+        ))}
+      </View>
     </Animated.View>
   );
 }
@@ -114,21 +190,25 @@ export function ChatScreen({
     messages,
     isGenerating,
     sendMessage,
+    regenerate,
     stop,
     newConversation,
     activeRemote,
   } = useApp();
   const [text, setText] = useState('');
   const [plusOpen, setPlusOpen] = useState(false);
+  const [showJump, setShowJump] = useState(false);
   const listRef = useRef<FlatList>(null);
   // Whether the user is parked near the bottom. Only then do we auto-scroll,
   // so scrolling up to re-read older messages is never interrupted.
   const atBottomRef = useRef(true);
+  const jumpAnim = useRef(new Animated.Value(0)).current;
 
   const loadedModel = models.find(m => m.id === loadedModelId);
   const activeLabel = activeRemote ? activeRemote.model : loadedModel?.name;
   const ready = !!loadedModelId || !!activeRemote;
   const hasMessages = messages.length > 0;
+  const lastId = messages.length ? messages[messages.length - 1].id : null;
 
   useEffect(() => {
     if (messages.length > 0 && atBottomRef.current) {
@@ -137,6 +217,15 @@ export function ChatScreen({
       );
     }
   }, [messages]);
+
+  useEffect(() => {
+    Animated.spring(jumpAnim, {
+      toValue: showJump ? 1 : 0,
+      useNativeDriver: true,
+      friction: 7,
+      tension: 90,
+    }).start();
+  }, [showJump, jumpAnim]);
 
   const onScroll = (e: {
     nativeEvent: {
@@ -149,30 +238,54 @@ export function ChatScreen({
     const distanceFromBottom =
       contentSize.height - (contentOffset.y + layoutMeasurement.height);
     atBottomRef.current = distanceFromBottom < 80;
+    setShowJump(distanceFromBottom > 240);
+  };
+
+  const jumpToLatest = () => {
+    atBottomRef.current = true;
+    listRef.current?.scrollToEnd({ animated: true });
+  };
+
+  const send = (value: string) => {
+    atBottomRef.current = true;
+    sendMessage(value);
   };
 
   const onSend = () => {
     const value = text;
     setText('');
-    atBottomRef.current = true;
-    sendMessage(value);
+    send(value);
   };
 
   if (!ready) {
     return (
       <View style={styles.empty}>
+        <AuroraBackground active={false} />
         <View style={styles.emptyIcon}>
-          <Icon name="brain" size={40} color={colors.primary} />
+          <GradientFill
+            colors={[colors.gradientStart, colors.gradientEnd]}
+            radius={radius.lg + 8}
+          />
+          <Icon name="brain" size={42} color={colors.onPrimary} />
         </View>
-        <Text style={styles.emptyTitle}>No model loaded</Text>
+        <Text style={styles.emptyTitle}>Let's get you a model</Text>
         <Text style={styles.emptyText}>
-          Head to the Models tab, download a model, then tap “Load” to start
-          chatting offline.
+          Pick a model made for your phone, download it once, and chat
+          privately — even in airplane mode.
         </Text>
-        <Pressable style={styles.emptyBtn} onPress={onGoToModels}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.emptyBtn,
+            pressed && { transform: [{ scale: 0.97 }] },
+          ]}
+          accessibilityRole="button"
+          onPress={onGoToModels}>
           <Icon name="models" size={18} color={colors.onPrimary} />
-          <Text style={styles.emptyBtnText}>Go to Models</Text>
+          <Text style={styles.emptyBtnText}>Choose your model</Text>
         </Pressable>
+        <Text style={styles.emptyFootnote}>
+          One download • works offline forever
+        </Text>
       </View>
     );
   }
@@ -180,27 +293,57 @@ export function ChatScreen({
   return (
     <View style={styles.container}>
       <AuroraBackground active={isGenerating} />
-      {hasMessages && (
-        <View style={styles.statusBar}>
-          <View style={styles.statusDot} />
+
+      {/* Model pill — the current brain, always visible and tappable. */}
+      <View style={styles.statusBar}>
+        <Pressable
+          onPress={() => setPlusOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`Current model: ${activeLabel ?? 'none'}. Tap to switch.`}
+          style={({ pressed }) => [
+            styles.modelPill,
+            pressed && { opacity: 0.85 },
+          ]}>
+          <View
+            style={[
+              styles.statusDot,
+              { backgroundColor: activeRemote ? colors.accent : colors.success },
+            ]}
+          />
           <Text style={styles.statusText} numberOfLines={1}>
-            {activeRemote
-              ? `${activeRemote.model} • remote`
-              : `${loadedModel?.name ?? 'Model'} • on-device`}
+            {activeLabel ?? 'Model'}
           </Text>
-          <Pressable onPress={newConversation} hitSlop={8} style={styles.clearBtn}>
+          <Text style={styles.statusKind}>
+            {activeRemote ? 'remote' : 'on-device'}
+          </Text>
+          <Icon name="chevronRight" size={14} color={colors.textFaint} />
+        </Pressable>
+        <View style={{ flex: 1 }} />
+        {hasMessages && (
+          <Pressable
+            onPress={newConversation}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="New chat"
+            style={styles.clearBtn}>
             <Icon name="plus" size={15} color={colors.primary} />
             <Text style={styles.clear}>New</Text>
           </Pressable>
-        </View>
-      )}
+        )}
+      </View>
 
       {hasMessages ? (
         <FlatList
           ref={listRef}
           data={messages}
           keyExtractor={m => m.id}
-          renderItem={({ item }) => <MessageBubble message={item} />}
+          renderItem={({ item }) => (
+            <MessageBubble
+              message={item}
+              isLast={item.id === lastId}
+              onRegenerate={isGenerating ? undefined : regenerate}
+            />
+          )}
           contentContainerStyle={styles.listContent}
           keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
@@ -209,9 +352,37 @@ export function ChatScreen({
         />
       ) : (
         <View style={styles.heroWrap}>
-          <LandingHero colors={colors} />
+          <LandingHero colors={colors} onStarter={send} />
         </View>
       )}
+
+      {/* Jump back to the latest message after scrolling up. */}
+      <Animated.View
+        pointerEvents={showJump ? 'auto' : 'none'}
+        style={[
+          styles.jumpWrap,
+          keyboardHeight > 0 ? { bottom: keyboardHeight + 86 } : null,
+          {
+            opacity: jumpAnim,
+            transform: [
+              { scale: jumpAnim },
+              {
+                translateY: jumpAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [12, 0],
+                }),
+              },
+            ],
+          },
+        ]}>
+        <Pressable
+          onPress={jumpToLatest}
+          accessibilityRole="button"
+          accessibilityLabel="Scroll to latest message"
+          style={styles.jumpBtn}>
+          <Icon name="arrowDown" size={18} color={colors.text} />
+        </Pressable>
+      </Animated.View>
 
       <View
         style={[
@@ -224,6 +395,8 @@ export function ChatScreen({
           <Pressable
             style={styles.leadBtn}
             hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Attachments and model options"
             onPress={() => setPlusOpen(true)}>
             <Icon name="plus" size={20} color={colors.textDim} />
           </Pressable>
@@ -244,6 +417,8 @@ export function ChatScreen({
                 styles.stopBtn,
                 pressed && styles.btnPressed,
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Stop generating"
               onPress={stop}>
               <Icon name="stop" size={18} color={colors.onPrimary} />
             </Pressable>
@@ -254,6 +429,8 @@ export function ChatScreen({
                 !text.trim() && styles.sendDisabled,
                 pressed && !!text.trim() && styles.btnPressed,
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Send message"
               onPress={onSend}
               disabled={!text.trim()}>
               <Icon name="send" size={19} color={colors.onPrimary} />
@@ -262,7 +439,9 @@ export function ChatScreen({
         </View>
         {!keyboardHeight && (
           <Text style={styles.footNote}>
-            Runs fully on-device • your chats stay private
+            {activeRemote
+              ? 'Replies come from your own computer'
+              : 'Runs fully on-device • your chats stay private'}
           </Text>
         )}
       </View>
@@ -282,22 +461,38 @@ const makeStyles = (colors: ThemeColors) =>
     statusBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
       gap: spacing.sm,
+    },
+    modelPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingLeft: spacing.md,
+      paddingRight: spacing.sm,
+      paddingVertical: 7,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      maxWidth: '78%',
+      ...shadows.card,
     },
     statusDot: {
       width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: colors.success,
     },
     statusText: {
-      color: colors.textDim,
+      color: colors.text,
       fontSize: 13,
-      flex: 1,
+      fontFamily: fonts.body.semibold,
+      flexShrink: 1,
+    },
+    statusKind: {
+      color: colors.textFaint,
+      fontSize: 12,
       fontFamily: fonts.body.medium,
     },
     clearBtn: {
@@ -305,12 +500,12 @@ const makeStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       gap: 4,
       paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-      borderRadius: radius.md,
+      paddingVertical: 6,
+      borderRadius: radius.pill,
       backgroundColor: colors.surfaceAlt,
     },
     clear: { color: colors.primary, fontSize: 13, fontFamily: fonts.body.semibold },
-    listContent: { padding: spacing.lg },
+    listContent: { padding: spacing.lg, paddingTop: spacing.sm },
 
     // Landing hero
     heroWrap: {
@@ -324,10 +519,7 @@ const makeStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: spacing.xl,
-      shadowColor: colors.primary,
-      shadowOpacity: 0.35,
-      shadowRadius: 18,
-      shadowOffset: { width: 0, height: 8 },
+      ...shadows.glow(colors.primary),
     },
     greetingSmall: {
       color: colors.textDim,
@@ -342,6 +534,53 @@ const makeStyles = (colors: ThemeColors) =>
       textAlign: 'center',
       marginTop: 4,
       letterSpacing: -0.6,
+    },
+    starters: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      marginTop: spacing.xl,
+      maxWidth: 360,
+    },
+    starterChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...shadows.card,
+    },
+    starterChipPressed: {
+      backgroundColor: colors.surfaceAlt,
+      transform: [{ scale: 0.96 }],
+    },
+    starterText: {
+      color: colors.text,
+      fontSize: 13.5,
+      fontFamily: fonts.body.semibold,
+    },
+
+    // Jump-to-latest
+    jumpWrap: {
+      position: 'absolute',
+      right: spacing.lg,
+      bottom: 96,
+    },
+    jumpBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadows.raised,
     },
 
     // Input
@@ -362,11 +601,7 @@ const makeStyles = (colors: ThemeColors) =>
       paddingRight: 6,
       paddingVertical: 6,
       gap: spacing.xs,
-      shadowColor: '#000',
-      shadowOpacity: 0.12,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 3,
+      ...shadows.raised,
     },
     leadBtn: {
       width: 40,
@@ -393,13 +628,9 @@ const makeStyles = (colors: ThemeColors) =>
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: colors.primary,
-      shadowOpacity: 0.5,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 4,
+      ...shadows.glow(colors.primary),
     },
-    sendDisabled: { backgroundColor: colors.surfaceAlt },
+    sendDisabled: { backgroundColor: colors.surfaceAlt, shadowOpacity: 0, elevation: 0 },
     stopBtn: { backgroundColor: colors.danger },
     btnPressed: { transform: [{ scale: 0.88 }], opacity: 0.9 },
     footNote: {
@@ -419,25 +650,26 @@ const makeStyles = (colors: ThemeColors) =>
       padding: spacing.xl,
     },
     emptyIcon: {
-      width: 88,
-      height: 88,
-      borderRadius: radius.lg + 4,
-      backgroundColor: colors.surfaceAlt,
+      width: 92,
+      height: 92,
+      borderRadius: radius.lg + 8,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: spacing.lg,
+      ...shadows.glow(colors.primary),
     },
     emptyTitle: {
       color: colors.text,
-      fontSize: 21,
+      fontSize: 24,
       fontFamily: fonts.display.bold,
+      letterSpacing: -0.4,
     },
     emptyText: {
       color: colors.textDim,
-      fontSize: 14,
+      fontSize: 14.5,
       textAlign: 'center',
       marginTop: spacing.sm,
-      lineHeight: 20,
+      lineHeight: 21,
       maxWidth: 320,
       fontFamily: fonts.body.regular,
     },
@@ -448,12 +680,19 @@ const makeStyles = (colors: ThemeColors) =>
       marginTop: spacing.xl,
       backgroundColor: colors.primary,
       paddingHorizontal: spacing.xl,
-      paddingVertical: spacing.md,
-      borderRadius: radius.md,
+      paddingVertical: spacing.md + 2,
+      borderRadius: radius.pill,
+      ...shadows.glow(colors.primary),
     },
     emptyBtnText: {
       color: colors.onPrimary,
       fontFamily: fonts.body.bold,
       fontSize: 15,
+    },
+    emptyFootnote: {
+      color: colors.textFaint,
+      fontSize: 12,
+      marginTop: spacing.md,
+      fontFamily: fonts.body.medium,
     },
   });

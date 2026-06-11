@@ -92,5 +92,42 @@ export const radius = {
   sm: 8,
   md: 12,
   lg: 18,
+  xl: 24,
   pill: 999,
 };
+
+/**
+ * Elevation scale — one shadow vocabulary for the whole app instead of
+ * ad-hoc per-component values. `glow(color)` is the branded halo used on
+ * primary CTAs and the hero logo.
+ */
+export const shadows = {
+  card: {
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  raised: {
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
+  },
+  overlay: {
+    shadowColor: '#000',
+    shadowOpacity: 0.22,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 10,
+  },
+  glow: (color: string) => ({
+    shadowColor: color,
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
+  }),
+} as const;

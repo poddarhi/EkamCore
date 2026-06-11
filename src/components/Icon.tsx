@@ -31,7 +31,9 @@ export type IconName =
   | 'share'
   | 'copy'
   | 'sparkles'
-  | 'history';
+  | 'history'
+  | 'search'
+  | 'arrowDown';
 
 interface Props {
   name: IconName;
@@ -313,6 +315,20 @@ function renderPaths(
           <Path {...c} d="M3 3v5h5" />
           <Path {...c} d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
           <Path {...c} d="M12 7v5l4 2" />
+        </>
+      );
+    case 'search':
+      return (
+        <>
+          <Circle cx={11} cy={11} r={8} {...c} />
+          <Path {...c} d="M21 21l-4.35-4.35" />
+        </>
+      );
+    case 'arrowDown':
+      return (
+        <>
+          <Path {...c} d="M12 5v14" />
+          <Path {...c} d="M19 12l-7 7-7-7" />
         </>
       );
     default:

@@ -188,6 +188,7 @@ const makeStyles = (colors: ThemeColors) =>
       fontSize: 13,
       lineHeight: 19,
       marginBottom: spacing.lg,
+      fontFamily: fonts.body.regular,
     },
     deviceBanner: {
       flexDirection: 'row',

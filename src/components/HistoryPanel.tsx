@@ -15,6 +15,7 @@ import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { radius, spacing, type ThemeColors } from '../theme';
 import { fonts } from '../typography';
+import { ConversationMeta } from '../types';
 import { Icon } from './Icon';
 
 function relativeTime(ts: number): string {
@@ -28,6 +29,24 @@ function relativeTime(ts: number): string {
   if (day < 7) return `${day}d ago`;
   return new Date(ts).toLocaleDateString();
 }
+
+/** Bucket label used to group the list by recency. */
+function dateBucket(ts: number): string {
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  ).getTime();
+  if (ts >= startOfToday) return 'Today';
+  if (ts >= startOfToday - 86400000) return 'Yesterday';
+  if (ts >= startOfToday - 6 * 86400000) return 'Previous 7 days';
+  return 'Earlier';
+}
+
+type ListEntry =
+  | { kind: 'header'; key: string; label: string }
+  | { kind: 'row'; key: string; conv: ConversationMeta };
 
 const PANEL_WIDTH = Math.min(330, Dimensions.get('window').width * 0.84);
 
@@ -53,6 +72,27 @@ export function HistoryPanel({
   const [renaming, setRenaming] = useState<{ id: string; text: string } | null>(
     null,
   );
+  const [query, setQuery] = useState('');
+
+  // Filter by title, then weave in date-bucket headers (list is already
+  // sorted newest-first by the context).
+  const entries = useMemo<ListEntry[]>(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = q
+      ? conversations.filter(c => c.title.toLowerCase().includes(q))
+      : conversations;
+    const out: ListEntry[] = [];
+    let lastBucket: string | null = null;
+    for (const c of filtered) {
+      const bucket = dateBucket(c.updatedAt);
+      if (bucket !== lastBucket) {
+        out.push({ kind: 'header', key: `h-${bucket}`, label: bucket });
+        lastBucket = bucket;
+      }
+      out.push({ kind: 'row', key: c.id, conv: c });
+    }
+    return out;
+  }, [conversations, query]);
 
   const slide = useRef(new Animated.Value(-PANEL_WIDTH)).current;
   const fade = useRef(new Animated.Value(0)).current;
@@ -115,6 +155,7 @@ export function HistoryPanel({
 
         <Pressable
           style={styles.newBtn}
+          accessibilityRole="button"
           onPress={() => {
             newConversation();
             onClose();
@@ -123,46 +164,83 @@ export function HistoryPanel({
           <Text style={styles.newBtnText}>New chat</Text>
         </Pressable>
 
+        {conversations.length > 0 && (
+          <View style={styles.searchBox}>
+            <Icon name="search" size={16} color={colors.textFaint} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search chats"
+              placeholderTextColor={colors.textFaint}
+              value={query}
+              onChangeText={setQuery}
+              autoCorrect={false}
+              accessibilityLabel="Search chats"
+            />
+            {query.length > 0 && (
+              <Pressable hitSlop={8} onPress={() => setQuery('')}>
+                <Icon name="close" size={15} color={colors.textFaint} />
+              </Pressable>
+            )}
+          </View>
+        )}
+
         <FlatList
-          data={conversations}
-          keyExtractor={c => c.id}
+          data={entries}
+          keyExtractor={e => e.key}
           contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
-            <Text style={styles.empty}>No conversations yet.</Text>
+            <View style={styles.emptyWrap}>
+              <Icon name="chat" size={28} color={colors.textFaint} />
+              <Text style={styles.empty}>
+                {query
+                  ? 'No chats match your search.'
+                  : 'Your conversations will appear here.'}
+              </Text>
+            </View>
           }
-          renderItem={({ item }) => (
-            <Pressable
-              style={[
-                styles.row,
-                item.id === activeConversationId && styles.rowActive,
-              ]}
-              onPress={() => {
-                openConversation(item.id);
-                onClose();
-              }}
-              onLongPress={() => confirmDelete(item.id, item.title)}>
-              <View style={styles.rowText}>
-                <Text style={styles.rowTitle} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={styles.rowMeta}>
-                  {relativeTime(item.updatedAt)} • {item.messageCount} msgs
-                </Text>
-              </View>
+          renderItem={({ item }) => {
+            if (item.kind === 'header') {
+              return <Text style={styles.groupHeader}>{item.label}</Text>;
+            }
+            const conv = item.conv;
+            const active = conv.id === activeConversationId;
+            return (
               <Pressable
-                hitSlop={8}
-                style={styles.rowAction}
-                onPress={() => setRenaming({ id: item.id, text: item.title })}>
-                <Icon name="edit" size={16} color={colors.textFaint} />
+                style={[styles.row, active && styles.rowActive]}
+                onPress={() => {
+                  openConversation(conv.id);
+                  onClose();
+                }}
+                onLongPress={() => confirmDelete(conv.id, conv.title)}>
+                {active && <View style={styles.activeBar} />}
+                <View style={styles.rowText}>
+                  <Text
+                    style={[styles.rowTitle, active && { color: colors.primary }]}
+                    numberOfLines={1}>
+                    {conv.title}
+                  </Text>
+                  <Text style={styles.rowMeta}>
+                    {relativeTime(conv.updatedAt)} • {conv.messageCount} msgs
+                  </Text>
+                </View>
+                <Pressable
+                  hitSlop={8}
+                  style={styles.rowAction}
+                  accessibilityLabel="Rename chat"
+                  onPress={() => setRenaming({ id: conv.id, text: conv.title })}>
+                  <Icon name="edit" size={16} color={colors.textFaint} />
+                </Pressable>
+                <Pressable
+                  hitSlop={8}
+                  style={styles.rowAction}
+                  accessibilityLabel="Delete chat"
+                  onPress={() => confirmDelete(conv.id, conv.title)}>
+                  <Icon name="trash" size={17} color={colors.textFaint} />
+                </Pressable>
               </Pressable>
-              <Pressable
-                hitSlop={8}
-                style={styles.rowAction}
-                onPress={() => confirmDelete(item.id, item.title)}>
-                <Icon name="trash" size={17} color={colors.textFaint} />
-              </Pressable>
-            </Pressable>
-          )}
+            );
+          }}
         />
       </Animated.View>
 
@@ -262,11 +340,44 @@ const makeStyles = (colors: ThemeColors) =>
       fontSize: 15,
     },
     listContent: { paddingBottom: spacing.xl },
+    searchBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.md,
+      height: 40,
+    },
+    searchInput: {
+      flex: 1,
+      color: colors.text,
+      fontSize: 14,
+      fontFamily: fonts.body.regular,
+      paddingVertical: 0,
+    },
+    groupHeader: {
+      color: colors.textFaint,
+      fontSize: 11.5,
+      fontFamily: fonts.body.bold,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      marginTop: spacing.md,
+      marginBottom: spacing.xs,
+      paddingHorizontal: spacing.sm,
+    },
+    emptyWrap: {
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginTop: spacing.xxl,
+    },
     empty: {
       color: colors.textFaint,
       fontFamily: fonts.body.regular,
       textAlign: 'center',
-      marginTop: spacing.xl,
+      maxWidth: 220,
+      lineHeight: 19,
     },
     row: {
       flexDirection: 'row',
@@ -277,6 +388,12 @@ const makeStyles = (colors: ThemeColors) =>
       borderRadius: radius.md,
     },
     rowActive: { backgroundColor: colors.surfaceAlt },
+    activeBar: {
+      width: 3,
+      alignSelf: 'stretch',
+      borderRadius: 2,
+      backgroundColor: colors.primary,
+    },
     rowText: { flex: 1 },
     rowAction: {
       width: 30,

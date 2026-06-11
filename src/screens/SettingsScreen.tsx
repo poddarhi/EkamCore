@@ -6,11 +6,18 @@ import { ConnectionsSheet } from '../components/ConnectionsSheet';
 import { PersonalizationSheet } from '../components/PersonalizationSheet';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import type { ThemeMode } from '../services/storage';
 import { radius, spacing, type ThemeColors } from '../theme';
 import { fonts } from '../typography';
 
+const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: IconName }[] = [
+  { mode: 'system', label: 'Auto', icon: 'phone' },
+  { mode: 'light', label: 'Light', icon: 'sun' },
+  { mode: 'dark', label: 'Dark', icon: 'moon' },
+];
+
 export function SettingsScreen() {
-  const { colors } = useTheme();
+  const { colors, mode, setMode } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { models, loadedModelId, downloadedIds, memory, remoteEndpoints } =
     useApp();
@@ -24,6 +31,41 @@ export function SettingsScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}>
+      {/* Appearance */}
+      <Text style={styles.sectionLabel}>APPEARANCE</Text>
+      <View style={styles.card}>
+        <View style={styles.segmented}>
+          {THEME_OPTIONS.map(opt => {
+            const selected = mode === opt.mode;
+            return (
+              <Pressable
+                key={opt.mode}
+                onPress={() => setMode(opt.mode)}
+                accessibilityRole="button"
+                accessibilityLabel={`${opt.label} theme`}
+                accessibilityState={{ selected }}
+                style={[styles.segment, selected && styles.segmentActive]}>
+                <Icon
+                  name={opt.icon}
+                  size={16}
+                  color={selected ? colors.onPrimary : colors.textDim}
+                />
+                <Text
+                  style={[
+                    styles.segmentText,
+                    selected && styles.segmentTextActive,
+                  ]}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.personalizationHint}>
+          Auto follows your phone's light / dark setting.
+        </Text>
+      </View>
+
       {/* Personalization */}
       <Text style={styles.sectionLabel}>PERSONALIZATION</Text>
       <Pressable style={styles.card} onPress={() => setShowPersonalization(true)}>
@@ -195,6 +237,29 @@ const makeStyles = (colors: ThemeColors) =>
       marginTop: spacing.sm,
     },
     divider: { height: 1, backgroundColor: colors.border },
+    segmented: {
+      flexDirection: 'row',
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: radius.md,
+      padding: 3,
+      gap: 3,
+    },
+    segment: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: spacing.sm + 2,
+      borderRadius: radius.md - 3,
+    },
+    segmentActive: { backgroundColor: colors.primary },
+    segmentText: {
+      color: colors.textDim,
+      fontSize: 13,
+      fontFamily: fonts.body.semibold,
+    },
+    segmentTextActive: { color: colors.onPrimary },
     aboutHeader: {
       flexDirection: 'row',
       alignItems: 'center',
