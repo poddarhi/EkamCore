@@ -64,11 +64,11 @@ end-to-end chat tap-through, and the push destination.
   `idb`/`cliclick` absent). Verify by tapping through the running simulator, or
   install `idb` to automate it.
 
-- [ ] **6. Push to remote.** Remote `origin` is `poddarhi/EkamCore` (branch
-  `development`), which is the OLD product's repo — `development` is ~84 commits
-  ahead of it. Pushing the app code there would mix it into the product branch.
-  **Blocked** pending a decision: fresh orphan branch / new repo for the app, or
-  something else.
+- [x] **6. Push — done.** Created an orphan branch `app-main` (clean app-only
+  root commit, no old-product history; tree identical to `development`'s tracked
+  files) and pushed it to `origin` (`poddarhi/EkamCore`). It's isolated from
+  `development` (the old product's line) and from `main`. The old-product history
+  remains on `development` if ever needed.
 
 ## Done (earlier)
 
