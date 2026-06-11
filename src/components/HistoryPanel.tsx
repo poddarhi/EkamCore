@@ -1,12 +1,14 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
   Dimensions,
   FlatList,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useApp } from '../context/AppContext';
@@ -43,8 +45,14 @@ export function HistoryPanel({
     activeConversationId,
     openConversation,
     deleteConversation,
+    renameConversation,
     newConversation,
   } = useApp();
+
+  // Holds the conversation currently being renamed (null = modal closed).
+  const [renaming, setRenaming] = useState<{ id: string; text: string } | null>(
+    null,
+  );
 
   const slide = useRef(new Animated.Value(-PANEL_WIDTH)).current;
   const fade = useRef(new Animated.Value(0)).current;
@@ -67,6 +75,17 @@ export function HistoryPanel({
   if (!visible) {
     return null;
   }
+
+  const commitRename = () => {
+    if (!renaming) {
+      return;
+    }
+    const title = renaming.text.trim();
+    if (title) {
+      renameConversation(renaming.id, title);
+    }
+    setRenaming(null);
+  };
 
   const confirmDelete = (id: string, title: string) => {
     Alert.alert('Delete conversation', `Delete “${title}”?`, [
@@ -132,6 +151,13 @@ export function HistoryPanel({
               </View>
               <Pressable
                 hitSlop={8}
+                style={styles.rowAction}
+                onPress={() => setRenaming({ id: item.id, text: item.title })}>
+                <Icon name="edit" size={16} color={colors.textFaint} />
+              </Pressable>
+              <Pressable
+                hitSlop={8}
+                style={styles.rowAction}
                 onPress={() => confirmDelete(item.id, item.title)}>
                 <Icon name="trash" size={17} color={colors.textFaint} />
               </Pressable>
@@ -139,6 +165,42 @@ export function HistoryPanel({
           )}
         />
       </Animated.View>
+
+      <Modal
+        visible={renaming !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRenaming(null)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setRenaming(null)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Rename chat</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={renaming?.text ?? ''}
+              onChangeText={t =>
+                setRenaming(prev => (prev ? { ...prev, text: t } : prev))
+              }
+              placeholder="Conversation name"
+              placeholderTextColor={colors.textFaint}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={commitRename}
+            />
+            <View style={styles.modalRow}>
+              <Pressable
+                style={[styles.modalBtn, styles.modalCancel]}
+                onPress={() => setRenaming(null)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalBtn, styles.modalSave]}
+                onPress={commitRename}>
+                <Text style={styles.modalSaveText}>Save</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -216,6 +278,12 @@ const makeStyles = (colors: ThemeColors) =>
     },
     rowActive: { backgroundColor: colors.surfaceAlt },
     rowText: { flex: 1 },
+    rowAction: {
+      width: 30,
+      height: 30,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     rowTitle: {
       color: colors.text,
       fontSize: 15,
@@ -226,5 +294,59 @@ const makeStyles = (colors: ThemeColors) =>
       fontSize: 12,
       marginTop: 2,
       fontFamily: fonts.body.regular,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xl,
+    },
+    modalCard: {
+      width: '100%',
+      maxWidth: 360,
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    },
+    modalTitle: {
+      color: colors.text,
+      fontSize: 18,
+      fontFamily: fonts.display.bold,
+      marginBottom: spacing.md,
+    },
+    modalInput: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      color: colors.text,
+      fontSize: 16,
+      fontFamily: fonts.body.regular,
+      backgroundColor: colors.bg,
+    },
+    modalRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: spacing.sm,
+      marginTop: spacing.lg,
+    },
+    modalBtn: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.md,
+    },
+    modalCancel: { backgroundColor: colors.surfaceAlt },
+    modalCancelText: {
+      color: colors.text,
+      fontFamily: fonts.body.semibold,
+      fontSize: 15,
+    },
+    modalSave: { backgroundColor: colors.primary },
+    modalSaveText: {
+      color: colors.onPrimary,
+      fontFamily: fonts.body.bold,
+      fontSize: 15,
     },
   });
