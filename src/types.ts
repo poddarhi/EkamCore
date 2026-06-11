@@ -42,3 +42,14 @@ export interface ChatMessage {
   /** tokens-per-second once generation finishes */
   tokensPerSecond?: number;
 }
+
+export interface ConversationMeta {
+  id: string;
+  /** Auto-derived from the first user message; user-editable. */
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  /** Model most recently used in this thread (for display). */
+  modelId: string | null;
+  messageCount: number;
+}
