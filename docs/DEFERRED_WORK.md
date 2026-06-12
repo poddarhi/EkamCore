@@ -189,3 +189,21 @@ DOES wrap it in `<KeyboardAvoidingView behavior={ios?'padding':undefined}>` and 
   4000`; the embedded jsbundle was confirmed to contain the new strings).
 - Both platforms running the latest build: physical iPhone (Release) + Android emulator
   (Debug). Vision/multimodal feature is spec-only — NOT in any build yet.
+
+## 2026-06-12 — On-device vision + photo attach (implemented, pending device verification)
+Feature built on branch `feat/vision-attach` (vision models = base GGUF + mmproj;
+gated attach flow; llama.rn multimodal inference; image-in-history). Unit-tested
+(tsc clean, 48 jest pass, 0 lint errors). **Device verification still required**
+(Task 12 of the plan: gate states, model swap, inference, history persistence).
+
+Deferred fast-follows surfaced by the final code review (none blocking merge):
+- **Chat-image cleanup on conversation delete.** `deleteConversation` removes the
+  AsyncStorage blob but not the `chat-images/${id}.jpg` files → unbounded on-device
+  storage growth. Fix: read a conversation's messages before deleting and unlink any
+  `imagePath` files.
+- **Camera permission-denied has no user feedback.** `onPickImage` silently returns
+  on `errorCode`; add a "Camera access is off — enable it in Settings" toast.
+- **No existence guard before `media_paths`.** `generate` attaches `imagePath`
+  without checking the file still exists; a stale persisted path (e.g. after the
+  cleanup above, or an OS purge) hands a dead path to native. Add an `exists` check
+  that degrades to text-only.

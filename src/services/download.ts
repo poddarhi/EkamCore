@@ -88,6 +88,8 @@ export async function listDownloadedModelIds(): Promise<string[]> {
     const files = await RNBlobUtil.fs.ls(MODELS_DIR);
     const ids: string[] = [];
     for (const f of files) {
+      // Skip non-GGUFs and mmproj sidecars (they share the .gguf extension but
+      // are companions, not selectable base models).
       if (!f.endsWith('.gguf') || f.endsWith('.mmproj.gguf')) {
         continue;
       }

@@ -46,6 +46,9 @@ export async function loadModel(
     const ok = await context.initMultimodal({
       path: mmprojPath,
       use_gpu: Platform.OS === 'ios',
+      // Cap image tokens so a high-res photo can't overflow the 2048-token
+      // context (dynamic-resolution models like Qwen2-VL scale with image size).
+      image_max_tokens: 512,
     });
     if (!ok) {
       await context.release();

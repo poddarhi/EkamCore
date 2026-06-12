@@ -234,11 +234,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setLoadedModelId(existing.modelId);
       } else {
         const diskIds = await listDownloadedModelIds();
-        if (savedDefault && diskIds.includes(savedDefault)) {
+        // listDownloadedModelIds lists base GGUFs only. A vision model can have
+        // its base on disk without its mmproj (interrupted download); auto-loading
+        // it would call initMultimodal on a missing projector. Drop such ids so the
+        // launch decision only considers fully-ready models.
+        const known = [...initialFeatured, ...custom];
+        const readyIds: string[] = [];
+        for (const id of diskIds) {
+          const m = known.find(x => x.id === id);
+          if (m?.mmprojUrl && !(await isModelDownloaded(m))) {
+            continue;
+          }
+          readyIds.push(id);
+        }
+        if (savedDefault && readyIds.includes(savedDefault)) {
           setAutoLoadTargetId(savedDefault);
-        } else if (diskIds.length === 1) {
-          setAutoLoadTargetId(diskIds[0]);
-        } else if (diskIds.length > 1) {
+        } else if (readyIds.length === 1) {
+          setAutoLoadTargetId(readyIds[0]);
+        } else if (readyIds.length > 1) {
           setNeedsDefaultChoice(true);
         }
       }

@@ -208,7 +208,9 @@ export function ChatScreen({
     if (res.didCancel || res.errorCode || !res.assets?.[0]?.uri) {
       return;
     }
-    const persisted = await persistChatImage(res.assets[0].uri, String(Date.now()));
+    const imageId =
+      Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const persisted = await persistChatImage(res.assets[0].uri, imageId);
     setPendingImage(persisted);
   };
 
