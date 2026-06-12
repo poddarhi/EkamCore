@@ -34,7 +34,8 @@ export type IconName =
   | 'history'
   | 'search'
   | 'arrowDown'
-  | 'sidebar';
+  | 'sidebar'
+  | 'camera';
 
 interface Props {
   name: IconName;
@@ -345,6 +346,16 @@ function renderPaths(
           <Path {...c} d="M5.6 8.5h1.8" />
           <Path {...c} d="M5.6 12h1.8" />
           <Path {...c} d="M5.6 15.5h1.8" />
+        </>
+      );
+    case 'camera':
+      return (
+        <>
+          <Path
+            {...c}
+            d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"
+          />
+          <Path {...c} d="M12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
         </>
       );
     default:

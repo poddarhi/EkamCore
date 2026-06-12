@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { downloadedVisionModels } from '../services/capabilities';
 import { listRemoteModels } from '../services/remote';
 import { radius, spacing, type ThemeColors } from '../theme';
 import { fonts } from '../typography';
@@ -20,10 +21,13 @@ export function ChatPlusSheet({
   visible,
   onClose,
   onGoToModels,
+  onPickImage,
 }: {
   visible: boolean;
   onClose: () => void;
   onGoToModels: () => void;
+  /** Called once a vision model is active; source picks the input. */
+  onPickImage: (source: 'library' | 'camera') => void;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -40,8 +44,7 @@ export function ChatPlusSheet({
   } = useApp();
 
   const downloaded = models.filter(m => downloadedIds.includes(m.id));
-  const loadedModel = models.find(m => m.id === loadedModelId);
-  const supportsVision = !activeRemote && !!loadedModel?.vision;
+  const visionModels = downloadedVisionModels(models, downloadedIds);
 
   const [remoteModels, setRemoteModels] = useState<Record<string, string[]>>({});
   const [loadingRemote, setLoadingRemote] = useState(false);
@@ -83,6 +86,40 @@ export function ChatPlusSheet({
     onClose();
   };
 
+  const [chooserSource, setChooserSource] = useState<null | 'library' | 'camera'>(
+    null,
+  );
+
+  const ensureActiveThenPick = async (
+    modelId: string,
+    source: 'library' | 'camera',
+  ) => {
+    if (modelId !== loadedModelId || activeRemote) {
+      const m = models.find(x => x.id === modelId);
+      if (m) {
+        await load(m); // swaps + initMultimodal; "Loading…" shows via loadingModelId
+      }
+    }
+    onClose();
+    onPickImage(source);
+  };
+
+  const beginAttach = (source: 'library' | 'camera') => {
+    if (activeRemote) {
+      return; // remote vision unsupported; rows are disabled in that case
+    }
+    if (visionModels.length === 0) {
+      onClose();
+      onGoToModels(); // route to Models to download a vision model
+      return;
+    }
+    if (visionModels.length === 1) {
+      ensureActiveThenPick(visionModels[0].id, source);
+      return;
+    }
+    setChooserSource(source); // many → show in-place chooser
+  };
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.root}>
@@ -90,24 +127,58 @@ export function ChatPlusSheet({
         <View style={styles.sheet}>
           <View style={styles.handle} />
 
-          {/* Attachments (model-aware). Wired up when a vision model is added. */}
           <Text style={styles.sectionLabel}>Attach</Text>
           <AttachRow
             icon="grid"
-            label="Photo"
-            sub={supportsVision ? 'Send a photo' : 'Current model can’t see images'}
-            disabled={!supportsVision}
+            label="Photo Library"
+            sub={
+              activeRemote
+                ? 'Not Available On Remote'
+                : visionModels.length === 0
+                ? 'Get A Vision Model'
+                : 'Send A Photo'
+            }
+            disabled={!!activeRemote}
+            onPress={() => beginAttach('library')}
+            styles={styles}
+            colors={colors}
+          />
+          <AttachRow
+            icon="camera"
+            label="Camera"
+            sub={activeRemote ? 'Not Available On Remote' : 'Take A Photo'}
+            disabled={!!activeRemote}
+            onPress={() => beginAttach('camera')}
             styles={styles}
             colors={colors}
           />
           <AttachRow
             icon="fileText"
             label="File"
-            sub="Coming soon"
+            sub="Coming Soon"
             disabled
             styles={styles}
             colors={colors}
           />
+          {chooserSource && (
+            <>
+              <Text style={styles.sectionLabel}>Use Which Image Model?</Text>
+              {visionModels.map(m => (
+                <Pressable
+                  key={m.id}
+                  style={styles.row}
+                  onPress={() => {
+                    const src = chooserSource;
+                    setChooserSource(null);
+                    ensureActiveThenPick(m.id, src);
+                  }}>
+                  <Text style={styles.rowLabel} numberOfLines={1}>
+                    {m.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </>
+          )}
 
           {/* In-chat model switcher. */}
           <Text style={styles.sectionLabel}>Model for this chat</Text>
@@ -209,6 +280,7 @@ function AttachRow({
   label,
   sub,
   disabled,
+  onPress,
   styles,
   colors,
 }: {
@@ -216,11 +288,15 @@ function AttachRow({
   label: string;
   sub: string;
   disabled?: boolean;
+  onPress?: () => void;
   styles: ReturnType<typeof makeStyles>;
   colors: ThemeColors;
 }) {
   return (
-    <View style={[styles.row, disabled && styles.rowDisabled]}>
+    <Pressable
+      style={[styles.row, disabled && styles.rowDisabled]}
+      disabled={disabled}
+      onPress={onPress}>
       <Icon
         name={icon}
         size={18}
@@ -232,7 +308,7 @@ function AttachRow({
         </Text>
         <Text style={styles.rowSub}>{sub}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
