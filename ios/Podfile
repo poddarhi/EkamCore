@@ -8,6 +8,17 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
+# Build React Native *core* from source instead of the prebuilt xcframework.
+# RN 0.85 defaults RCT_USE_PREBUILT_RNCORE='1', but that prebuilt React framework
+# omits the Fabric C++ RTTI (typeinfo/vtable) symbols that react-native-svg's
+# from-source Fabric code links against. That breaks Debug iOS-Simulator builds with
+# "Undefined symbols: facebook::react::Props / YogaStylableProps / BaseViewProps /
+# DebugStringConvertible …" (device-Release survives only because -dead_strip drops
+# the unreferenced RNSVG Fabric code). Building core from source emits those symbols.
+# Trade-off: slower first clean build. Re-run `pod install` after changing this.
+# See docs/DEFERRED_WORK.md (2026-06-12).
+ENV['RCT_USE_PREBUILT_RNCORE'] ||= '0'
+
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
@@ -30,5 +41,15 @@ target 'EkamCore' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # Silence the (hundreds of) deprecation/nullability warnings emitted by
+    # third-party pods (React Native core, llama.rn, folly, etc.). These are
+    # not actionable in our app and only add noise to the Xcode build log.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
+        config.build_settings['CLANG_WARN_DOCUMENTATION_COMMENTS'] = 'NO'
+      end
+    end
   end
 end
