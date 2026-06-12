@@ -35,9 +35,11 @@ export function ModelsScreen() {
   const ram = deviceProfile?.totalMemoryBytes ?? null;
   const featured = models.filter(m => !m.custom);
   const custom = models.filter(m => m.custom);
+  const textFeatured = featured.filter(m => !m.vision);
+  const visionFeatured = featured.filter(m => m.vision);
 
   // Best-fitting first; within a tier, larger (more capable) first.
-  const sortedFeatured = [...featured].sort((a, b) => {
+  const sortedFeatured = [...textFeatured].sort((a, b) => {
     const d =
       fitOrder(rateModelFit(a, ram).tier) - fitOrder(rateModelFit(b, ram).tier);
     return d !== 0 ? d : b.sizeBytes - a.sizeBytes;
@@ -97,6 +99,14 @@ export function ModelsScreen() {
           </View>
         ) : null}
         {featuredNodes}
+        {visionFeatured.length > 0 && (
+          <>
+            <Text style={styles.sectionHeader}>Vision</Text>
+            {visionFeatured.map(m => (
+              <ModelCard key={m.id} model={m} onPress={() => setDetailModel(m)} />
+            ))}
+          </>
+        )}
         {custom.length > 0 && (
           <>
             <Text style={styles.sectionHeader}>Your added models</Text>

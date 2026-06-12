@@ -121,12 +121,21 @@ export function ModelCard({
         </View>
 
         <View style={styles.metaRow}>
+          {model.vision && (
+            <View style={styles.visionBadge}>
+              <Icon name="grid" size={11} color={colors.onPrimary} />
+              <Text style={styles.visionBadgeText}>Vision</Text>
+            </View>
+          )}
           <Meta label={model.params} styles={styles} />
           <Meta
             label={`${quantLabel(model.quant)} · ${model.quant}`}
             styles={styles}
           />
-          <Meta label={formatBytes(model.sizeBytes)} styles={styles} />
+          <Meta
+            label={formatBytes(model.sizeBytes + (model.mmprojSizeBytes ?? 0))}
+            styles={styles}
+          />
         </View>
 
         {fit.tier !== 'unknown' && (
@@ -289,6 +298,21 @@ const makeStyles = (colors: ThemeColors) =>
       marginLeft: spacing.sm,
     },
     loadedBadgeText: {
+      color: colors.onPrimary,
+      fontSize: 10,
+      fontFamily: fonts.body.extrabold,
+      letterSpacing: 0.4,
+    },
+    visionBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.accent,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: radius.sm,
+    },
+    visionBadgeText: {
       color: colors.onPrimary,
       fontSize: 10,
       fontFamily: fonts.body.extrabold,
