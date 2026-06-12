@@ -98,10 +98,21 @@ export function ModelsScreen() {
             </View>
           </View>
         ) : null}
-        {featuredNodes}
+        {sortedFeatured.length > 0 && (
+          <>
+            <Text style={styles.groupHeader}>Text Models</Text>
+            <Text style={styles.groupSub}>
+              Chat, reasoning and writing — text in, text out.
+            </Text>
+            {featuredNodes}
+          </>
+        )}
         {visionFeatured.length > 0 && (
           <>
-            <Text style={styles.sectionHeader}>Vision</Text>
+            <Text style={styles.groupHeader}>Image Models</Text>
+            <Text style={styles.groupSub}>
+              Attach a photo and ask about it — these models can see.
+            </Text>
             {visionFeatured.map(m => (
               <ModelCard key={m.id} model={m} onPress={() => setDetailModel(m)} />
             ))}
@@ -227,6 +238,21 @@ const makeStyles = (colors: ThemeColors) =>
       textTransform: 'uppercase',
       letterSpacing: 0.6,
       marginTop: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    // Prominent top-level header that splits the catalog by modality
+    // (Text Models vs Image Models) — visually above the small tier sub-headers.
+    groupHeader: {
+      color: colors.text,
+      fontSize: 19,
+      fontFamily: fonts.body.extrabold,
+      marginTop: spacing.xl,
+      marginBottom: spacing.xs,
+    },
+    groupSub: {
+      color: colors.textDim,
+      fontSize: 13,
+      fontFamily: fonts.body.regular,
       marginBottom: spacing.sm,
     },
     addBtn: { marginTop: spacing.sm },
