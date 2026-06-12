@@ -1,4 +1,4 @@
-import { initLlama, LlamaContext } from 'llama.rn';
+import { initLlama, LlamaContext, RNLLAMA_MTMD_DEFAULT_MEDIA_MARKER } from 'llama.rn';
 import { Platform } from 'react-native';
 import { ChatMessage } from '../types';
 
@@ -22,6 +22,7 @@ export async function loadModel(
   modelId: string,
   filePath: string,
   onProgress?: (percent: number) => void,
+  mmprojPath?: string,
 ): Promise<LoadedModel> {
   await releaseModel();
 
@@ -39,6 +40,18 @@ export async function loadModel(
     },
     p => onProgress?.(p),
   );
+
+  if (mmprojPath) {
+    // Enable vision. use_gpu follows the same Metal/CPU split as the base model.
+    const ok = await context.initMultimodal({
+      path: mmprojPath,
+      use_gpu: Platform.OS === 'ios',
+    });
+    if (!ok) {
+      await context.release();
+      throw new Error('Failed to enable vision (mmproj incompatible with this model).');
+    }
+  }
 
   current = { context, filePath, modelId };
   return current;
@@ -61,6 +74,8 @@ export interface GenerateOptions {
   temperature?: number;
   maxTokens?: number;
   onToken: (token: string) => void;
+  /** Local image path to attach to the latest user turn (vision models). */
+  imagePath?: string;
 }
 
 export interface GenerateResult {
@@ -78,13 +93,23 @@ export async function generate(
   if (!current) {
     throw new Error('No model is loaded.');
   }
-  const { systemPrompt, history, temperature = 0.7, maxTokens = 512 } = options;
+  const { systemPrompt, history, temperature = 0.7, maxTokens = 512, imagePath } =
+    options;
 
+  const chatHistory = history.filter(m => m.role !== 'system');
   const messages = [
     { role: 'system', content: systemPrompt },
-    ...history
-      .filter(m => m.role !== 'system')
-      .map(m => ({ role: m.role, content: m.content })),
+    ...chatHistory.map((m, i) => {
+      // Prepend the media marker to the LAST user turn when an image is attached.
+      const isLastUser =
+        imagePath != null && m.role === 'user' && i === chatHistory.length - 1;
+      return {
+        role: m.role,
+        content: isLastUser
+          ? `${RNLLAMA_MTMD_DEFAULT_MEDIA_MARKER}\n${m.content}`
+          : m.content,
+      };
+    }),
   ];
 
   const started = Date.now();
@@ -97,6 +122,7 @@ export async function generate(
       n_predict: maxTokens,
       temperature,
       stop: ['<|im_end|>', '<|eot_id|>', '<|end_of_text|>', '</s>'],
+      ...(imagePath ? { media_paths: [imagePath] } : {}),
     },
     data => {
       if (data.token) {
