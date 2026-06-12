@@ -28,7 +28,11 @@ export async function loadModel(
   const context = await initLlama(
     {
       model: filePath,
-      use_mlock: true,
+      // Lazily memory-map the model instead of locking it all into RAM up front.
+      // `use_mlock: true` forces the entire GGUF to be paged in before the load
+      // returns, which adds many seconds to startup; mmap keeps launch snappy.
+      use_mlock: false,
+      use_mmap: true,
       n_ctx: 2048,
       // Offload to GPU on iOS (Metal). Keep CPU on Android for broad device support.
       n_gpu_layers: Platform.OS === 'ios' ? 99 : 0,

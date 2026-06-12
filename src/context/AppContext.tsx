@@ -540,6 +540,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }, 18);
         });
         clearInterval(revealTimer);
+
+        // Safety net: if the model returned nothing usable (e.g. a broken
+        // backend or a degenerate tiny model), never leave a blank bubble.
+        if (!target.trim()) {
+          const note =
+            '⚠️ The model returned an empty response. Tap Retry, or switch to a larger model under Models.';
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === assistantId
+                ? { ...m, content: note, streaming: false }
+                : m,
+            ),
+          );
+          await persistActive(convId, [
+            ...history,
+            { id: assistantId, role: 'assistant', content: note },
+          ]);
+          return;
+        }
+
         setMessages(prev =>
           prev.map(m =>
             m.id === assistantId

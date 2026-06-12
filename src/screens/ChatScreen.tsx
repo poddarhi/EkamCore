@@ -32,43 +32,12 @@ function greetingForNow() {
   return 'Good night';
 }
 
-/** Conversation starters shown on the landing hero — tap to send. */
-const STARTERS: { icon: 'sparkles' | 'edit' | 'brain' | 'fileText'; label: string; prompt: string }[] = [
-  {
-    icon: 'sparkles',
-    label: 'Spark an idea',
-    prompt: 'Give me three creative ideas for a weekend project.',
-  },
-  {
-    icon: 'edit',
-    label: 'Help me write',
-    prompt: 'Help me write a short, friendly message. Ask me what it’s for.',
-  },
-  {
-    icon: 'brain',
-    label: 'Explain something',
-    prompt: 'Explain a fascinating concept from science in simple words.',
-  },
-  {
-    icon: 'fileText',
-    label: 'Summarize text',
-    prompt: 'I’ll paste some text — summarize it in a few bullet points. Ready?',
-  },
-];
-
-/** Animated hero shown before the first message — greeting + starter chips. */
-function LandingHero({
-  colors,
-  onStarter,
-}: {
-  colors: ThemeColors;
-  onStarter: (prompt: string) => void;
-}) {
+/** Animated hero shown before the first message — greeting only. */
+function LandingHero({ colors }: { colors: ThemeColors }) {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const fade = useRef(new Animated.Value(0)).current;
   const rise = useRef(new Animated.Value(24)).current;
   const pulse = useRef(new Animated.Value(0)).current;
-  const chipAnims = useRef(STARTERS.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -86,20 +55,6 @@ function LandingHero({
       }),
     ]).start();
 
-    // Starter chips cascade in after the greeting settles.
-    Animated.stagger(
-      70,
-      chipAnims.map(a =>
-        Animated.spring(a, {
-          toValue: 1,
-          useNativeDriver: true,
-          friction: 7,
-          tension: 80,
-          delay: 350,
-        }),
-      ),
-    ).start();
-
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, {
@@ -116,7 +71,7 @@ function LandingHero({
         }),
       ]),
     ).start();
-  }, [fade, rise, pulse, chipAnims]);
+  }, [fade, rise, pulse]);
 
   const logoScale = pulse.interpolate({
     inputRange: [0, 1],
@@ -143,36 +98,6 @@ function LandingHero({
 
       <Text style={styles.greetingSmall}>{greetingForNow()},</Text>
       <Text style={styles.greetingBig}>What's on your mind?</Text>
-
-      <View style={styles.starters}>
-        {STARTERS.map((s, i) => (
-          <Animated.View
-            key={s.label}
-            style={{
-              opacity: chipAnims[i],
-              transform: [
-                {
-                  translateY: chipAnims[i].interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [16, 0],
-                  }),
-                },
-              ],
-            }}>
-            <Pressable
-              onPress={() => onStarter(s.prompt)}
-              accessibilityRole="button"
-              accessibilityLabel={s.label}
-              style={({ pressed }) => [
-                styles.starterChip,
-                pressed && styles.starterChipPressed,
-              ]}>
-              <Icon name={s.icon} size={15} color={colors.primary} />
-              <Text style={styles.starterText}>{s.label}</Text>
-            </Pressable>
-          </Animated.View>
-        ))}
-      </View>
     </Animated.View>
   );
 }
@@ -445,7 +370,7 @@ export function ChatScreen({
         />
       ) : (
         <View style={styles.heroWrap}>
-          <LandingHero colors={colors} onStarter={send} />
+          <LandingHero colors={colors} />
         </View>
       )}
 
@@ -628,36 +553,6 @@ const makeStyles = (colors: ThemeColors) =>
       marginTop: 4,
       letterSpacing: -0.6,
     },
-    starters: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      gap: spacing.sm,
-      marginTop: spacing.xl,
-      maxWidth: 360,
-    },
-    starterChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm + 2,
-      borderRadius: radius.pill,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      ...shadows.card,
-    },
-    starterChipPressed: {
-      backgroundColor: colors.surfaceAlt,
-      transform: [{ scale: 0.96 }],
-    },
-    starterText: {
-      color: colors.text,
-      fontSize: 13.5,
-      fontFamily: fonts.body.semibold,
-    },
-
     // Jump-to-latest
     jumpWrap: {
       position: 'absolute',

@@ -271,6 +271,21 @@ const makeMarkdownStyles = (colors: ThemeColors) =>
     list_item: { marginBottom: 2 },
     bullet_list_icon: { color: colors.primary },
     ordered_list_icon: { color: colors.primary },
+    // The library defaults these to `flex: 1` (flexBasis 0%), which collapses to
+    // ~zero width on iOS inside an auto-width bubble and wraps list text one
+    // character per line. Use intrinsic width + shrink so text wraps normally.
+    bullet_list_content: {
+      flex: undefined,
+      flexGrow: 0,
+      flexShrink: 1,
+      flexBasis: 'auto',
+    },
+    ordered_list_content: {
+      flex: undefined,
+      flexGrow: 0,
+      flexShrink: 1,
+      flexBasis: 'auto',
+    },
     code_inline: {
       backgroundColor: colors.surfaceAlt,
       color: colors.text,
