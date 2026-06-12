@@ -49,7 +49,7 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
         EkamCore
       </Animated.Text>
       <Animated.Text style={[styles.tag, { color: colors.textDim, opacity }]}>
-        Private AI, fully on your device
+        Private AI, Fully on Your Device
       </Animated.Text>
     </Animated.View>
   );

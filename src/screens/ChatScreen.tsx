@@ -302,7 +302,7 @@ export function ChatScreen({
           <Text style={styles.emptyBtnText}>Choose your model</Text>
         </Pressable>
         <Text style={styles.emptyFootnote}>
-          One download • works offline forever
+          One Download • Works Offline Forever
         </Text>
       </View>
     );
@@ -332,7 +332,7 @@ export function ChatScreen({
             {activeLabel ?? 'Model'}
           </Text>
           <Text style={styles.statusKind}>
-            {activeRemote ? 'remote' : 'on-device'}
+            {activeRemote ? 'Remote' : 'On-Device'}
           </Text>
           <Icon name="chevronRight" size={14} color={colors.textFaint} />
         </Pressable>
@@ -458,8 +458,8 @@ export function ChatScreen({
         {!keyboardHeight && (
           <Text style={styles.footNote}>
             {activeRemote
-              ? 'Replies come from your own computer'
-              : 'Runs fully on-device • your chats stay private'}
+              ? 'Replies Come From Your Own Computer'
+              : 'Runs Fully On-Device • Your Chats Stay Private'}
           </Text>
         )}
       </View>

@@ -110,17 +110,17 @@ function Shell({ navRef }: { navRef: React.MutableRefObject<((t: Tab) => void) |
   const subtitle =
     tab === 'chat'
       ? activeRemote
-        ? 'Remote • your computer'
+        ? 'Remote • Your Computer'
         : loadedModelId
-        ? 'Offline • private'
-        : 'No model loaded'
+        ? 'Offline • Private'
+        : 'No Model Loaded'
       : tab === 'tools'
       ? openTool
         ? openTool.tagline
-        : 'Smart assistants, on-device'
+        : 'Smart Assistants, On-Device'
       : tab === 'models'
-      ? `${downloadedIds.length} downloaded`
-      : 'Personalize your app';
+      ? `${downloadedIds.length} Downloaded`
+      : 'Personalize Your App';
 
   return (
     <View style={styles.root}>
