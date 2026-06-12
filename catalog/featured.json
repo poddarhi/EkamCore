@@ -177,6 +177,40 @@
       "goodFor": ["Reasoning", "Coding"],
       "releasedAt": "2024-08-20",
       "url": "https://huggingface.co/bartowski/Phi-3.5-mini-instruct-GGUF/resolve/main/Phi-3.5-mini-instruct-Q4_K_M.gguf"
+    },
+    {
+      "id": "smolvlm-500m-instruct-q8",
+      "name": "SmolVLM 500M Instruct",
+      "publisher": "Hugging Face",
+      "tagline": "See images on any phone.",
+      "description": "Tiny vision model — the first to try for on-device image chat.",
+      "longDescription": "A featherweight vision-language model: send it a photo and ask about it, fully on-device. The smallest vision option here, so it loads fast even on modest phones. Downloads as two files — the base model plus its image projector.",
+      "params": "500M",
+      "quant": "Q8_0",
+      "sizeBytes": 436806912,
+      "license": "Apache-2.0",
+      "goodFor": ["Vision", "Chat"],
+      "vision": true,
+      "mmprojUrl": "https://huggingface.co/ggml-org/SmolVLM-500M-Instruct-GGUF/resolve/main/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf",
+      "mmprojSizeBytes": 108783360,
+      "url": "https://huggingface.co/ggml-org/SmolVLM-500M-Instruct-GGUF/resolve/main/SmolVLM-500M-Instruct-Q8_0.gguf"
+    },
+    {
+      "id": "qwen2-vl-2b-instruct-q4",
+      "name": "Qwen2-VL 2B Instruct",
+      "publisher": "Qwen (Alibaba)",
+      "tagline": "Stronger on-device vision.",
+      "description": "More capable vision model. Larger download, better answers.",
+      "longDescription": "Qwen2-VL understands images in more detail than SmolVLM and writes stronger answers about them — at the cost of a much larger download. Best reserved for higher-end phones with generous RAM. Downloads as two files — the base model plus its image projector.",
+      "params": "2B",
+      "quant": "Q4_K_M",
+      "sizeBytes": 986046944,
+      "license": "Apache-2.0",
+      "goodFor": ["Vision", "Chat"],
+      "vision": true,
+      "mmprojUrl": "https://huggingface.co/ggml-org/Qwen2-VL-2B-Instruct-GGUF/resolve/main/mmproj-Qwen2-VL-2B-Instruct-Q8_0.gguf",
+      "mmprojSizeBytes": 709883360,
+      "url": "https://huggingface.co/ggml-org/Qwen2-VL-2B-Instruct-GGUF/resolve/main/Qwen2-VL-2B-Instruct-Q4_K_M.gguf"
     }
   ]
 }

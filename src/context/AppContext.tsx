@@ -66,6 +66,15 @@ import {
 } from '../services/memory';
 import { ChatMessage, ConversationMeta, ModelInfo } from '../types';
 
+// Vision models ship in the bundled seed catalog but not (yet) in the remote
+// Featured catalog, which otherwise replaces the seed. Fold the vision seeds
+// back into whatever catalog loads, deduped by id, so they always appear.
+const VISION_SEEDS = CATALOG.filter(m => m.vision);
+function withVisionSeeds(list: ModelInfo[]): ModelInfo[] {
+  const ids = new Set(list.map(m => m.id));
+  return [...list, ...VISION_SEEDS.filter(m => !ids.has(m.id))];
+}
+
 interface DownloadState {
   received: number;
   total: number;
@@ -208,15 +217,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       getDeviceProfile().then(setDeviceProfile);
 
       // Featured catalog: show cached-or-seed immediately, then refresh from
-      // the remote CDN in the background (offline keeps the cache/seed).
+      // the remote CDN in the background (offline keeps the cache/seed). The
+      // remote/cached catalog doesn't carry vision models yet, so always fold
+      // in the bundled vision seeds (deduped) so Models → Vision is present.
       const cached = await loadCachedCatalog();
-      const initialFeatured = cached ?? CATALOG;
+      const initialFeatured = withVisionSeeds(cached ?? CATALOG);
       setFeatured(initialFeatured);
       await refreshDownloaded([...initialFeatured, ...custom]);
       fetchFeaturedCatalog().then(remote => {
         if (remote) {
-          setFeatured(remote);
-          refreshDownloaded([...remote, ...custom]);
+          const merged = withVisionSeeds(remote);
+          setFeatured(merged);
+          refreshDownloaded([...merged, ...custom]);
         }
       });
 
