@@ -89,3 +89,17 @@ describe('conversations CRUD', () => {
     expect(await loadMessages('does-not-exist')).toEqual([]);
   });
 });
+
+describe('image attachments', () => {
+  it('persists and restores imagePath alongside content', async () => {
+    const messages: ChatMessage[] = [
+      { id: 'u1', role: 'user', content: 'what is this?', imagePath: '/img/a.jpg' },
+      { id: 'a1', role: 'assistant', content: 'a cat', tokensPerSecond: 12 },
+    ];
+    const m = meta({ id: 'cimg' });
+    await saveConversation(m, messages);
+    const loaded = await loadMessages('cimg');
+    expect(loaded[0].imagePath).toBe('/img/a.jpg');
+    expect(loaded[1].imagePath).toBeUndefined();
+  });
+});

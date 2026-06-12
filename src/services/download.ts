@@ -5,6 +5,7 @@ import RNBlobUtil, {
 import { ModelInfo } from '../types';
 
 const MODELS_DIR = `${RNBlobUtil.fs.dirs.DocumentDir}/models`;
+const CHAT_IMAGES_DIR = `${RNBlobUtil.fs.dirs.DocumentDir}/chat-images`;
 
 export function modelFilePath(model: ModelInfo): string {
   // Derive a stable, filesystem-safe filename from the model id.
@@ -29,6 +30,21 @@ export async function ensureModelsDir(): Promise<void> {
   if (!exists) {
     await RNBlobUtil.fs.mkdir(MODELS_DIR);
   }
+}
+
+/**
+ * Copy a picked image into persistent app storage and return a bare filesystem
+ * path (no scheme) suitable for both `<Image>` display and llama.rn media_paths.
+ */
+export async function persistChatImage(srcUri: string, id: string): Promise<string> {
+  const exists = await RNBlobUtil.fs.exists(CHAT_IMAGES_DIR);
+  if (!exists) {
+    await RNBlobUtil.fs.mkdir(CHAT_IMAGES_DIR);
+  }
+  const src = srcUri.replace(/^file:\/\//, '');
+  const dest = `${CHAT_IMAGES_DIR}/${id}.jpg`;
+  await RNBlobUtil.fs.cp(src, dest);
+  return dest;
 }
 
 export async function fileSize(path: string): Promise<number> {

@@ -46,6 +46,7 @@ export async function saveConversation(
     id: m.id,
     role: m.role,
     content: m.content,
+    ...(m.imagePath != null ? { imagePath: m.imagePath } : {}),
     ...(m.tokensPerSecond != null ? { tokensPerSecond: m.tokensPerSecond } : {}),
   }));
   await AsyncStorage.setItem(blobKey(meta.id), JSON.stringify(clean));
