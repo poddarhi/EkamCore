@@ -180,3 +180,12 @@ DOES wrap it in `<KeyboardAvoidingView behavior={ios?'padding':undefined}>` and 
   None from app code; none affect the shipped app or App Store. User chose "keep sim +
   trim noise" over reverting to prebuilt (which would be ~16-20 warnings but re-break the
   iOS Simulator Debug build).
+
+## 2026-06-12 (close-out) — User-verified on devices
+- **Keyboard fix** ("Adapt to me" sheet rises above keyboard): VERIFIED by user on
+  device — closes the earlier "NOT verified (needs a device/sim run)" item.
+- **Title Case casing sweep**: VERIFIED on Android (screenshot) and iPhone (Release,
+  reinstalled via `devicectl` after a run-ios wireless tunnel hiccup `CoreDeviceError
+  4000`; the embedded jsbundle was confirmed to contain the new strings).
+- Both platforms running the latest build: physical iPhone (Release) + Android emulator
+  (Debug). Vision/multimodal feature is spec-only — NOT in any build yet.
