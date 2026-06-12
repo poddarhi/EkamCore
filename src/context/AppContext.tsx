@@ -655,7 +655,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const lastUser = messages[lastUserIdx];
     const base = messages.slice(0, lastUserIdx);
     setMessages(base);
-    await runSend(lastUser.content, base);
+    await runSend(lastUser.content, base, lastUser.imagePath);
   }, [isGenerating, messages, runSend]);
 
   // One-shot completion used by the AI Tools (email, summarizer, etc.).
