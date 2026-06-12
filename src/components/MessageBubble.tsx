@@ -1,6 +1,6 @@
 import Clipboard from '@react-native-clipboard/clipboard';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { useTheme } from '../context/ThemeContext';
 import { radius, spacing, type ThemeColors } from '../theme';
@@ -92,7 +92,23 @@ export function MessageBubble({
 
   const renderBody = () => {
     if (isUser) {
-      return <Text style={styles.userText}>{message.content}</Text>;
+      return (
+        <>
+          {message.imagePath && (
+            <Image
+              source={{ uri: `file://${message.imagePath}` }}
+              style={[
+                styles.messageImage,
+                message.content ? styles.messageImageSpaced : null,
+              ]}
+              resizeMode="cover"
+            />
+          )}
+          {message.content ? (
+            <Text style={styles.userText}>{message.content}</Text>
+          ) : null}
+        </>
+      );
     }
     if (message.streaming) {
       if (!message.content) {
@@ -230,6 +246,14 @@ const makeStyles = (colors: ThemeColors) =>
       fontSize: 11,
       marginTop: 2,
       fontFamily: fonts.body.medium,
+    },
+    messageImage: {
+      width: 200,
+      height: 200,
+      borderRadius: radius.md,
+    },
+    messageImageSpaced: {
+      marginBottom: spacing.xs,
     },
   });
 
