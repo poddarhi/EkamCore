@@ -4,6 +4,7 @@ import {
   Animated,
   Easing,
   FlatList,
+  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -18,6 +19,8 @@ import { DefaultModelSheet } from '../components/DefaultModelSheet';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
 import { MessageBubble } from '../components/MessageBubble';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { persistChatImage } from '../services/download';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { radius, shadows, spacing, type ThemeColors } from '../theme';
@@ -130,6 +133,7 @@ export function ChatScreen({
   } = useApp();
   const [text, setText] = useState('');
   const [plusOpen, setPlusOpen] = useState(false);
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [showJump, setShowJump] = useState(false);
   const [defaultSheetOpen, setDefaultSheetOpen] = useState(false);
   const listRef = useRef<FlatList>(null);
@@ -190,9 +194,28 @@ export function ChatScreen({
     listRef.current?.scrollToEnd({ animated: true });
   };
 
+  const onPickImage = async (source: 'library' | 'camera') => {
+    const opts = {
+      mediaType: 'photo' as const,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      quality: 0.8 as const,
+    };
+    const res =
+      source === 'camera'
+        ? await launchCamera(opts)
+        : await launchImageLibrary(opts);
+    if (res.didCancel || res.errorCode || !res.assets?.[0]?.uri) {
+      return;
+    }
+    const persisted = await persistChatImage(res.assets[0].uri, String(Date.now()));
+    setPendingImage(persisted);
+  };
+
   const send = (value: string) => {
     atBottomRef.current = true;
-    sendMessage(value);
+    sendMessage(value, pendingImage ?? undefined);
+    setPendingImage(null);
   };
 
   const onSend = () => {
@@ -308,6 +331,8 @@ export function ChatScreen({
     );
   }
 
+  const canSend = !!text.trim() || !!pendingImage;
+
   return (
     <View style={styles.container}>
       <AuroraBackground active={isGenerating} />
@@ -409,6 +434,17 @@ export function ChatScreen({
             ? { paddingBottom: keyboardHeight + spacing.sm }
             : null,
         ]}>
+        {pendingImage && (
+          <View style={styles.pendingImageRow}>
+            <Image
+              source={{ uri: `file://${pendingImage}` }}
+              style={styles.pendingThumb}
+            />
+            <Pressable onPress={() => setPendingImage(null)} hitSlop={8}>
+              <Icon name="close" size={16} color={colors.textDim} />
+            </Pressable>
+          </View>
+        )}
         <View style={styles.inputPill}>
           <Pressable
             style={styles.leadBtn}
@@ -444,13 +480,13 @@ export function ChatScreen({
             <Pressable
               style={({ pressed }) => [
                 styles.sendBtn,
-                !text.trim() && styles.sendDisabled,
-                pressed && !!text.trim() && styles.btnPressed,
+                !canSend && styles.sendDisabled,
+                pressed && canSend && styles.btnPressed,
               ]}
               accessibilityRole="button"
               accessibilityLabel="Send message"
               onPress={onSend}
-              disabled={!text.trim()}>
+              disabled={!canSend}>
               <Icon name="send" size={19} color={colors.onPrimary} />
             </Pressable>
           )}
@@ -468,6 +504,7 @@ export function ChatScreen({
         visible={plusOpen}
         onClose={() => setPlusOpen(false)}
         onGoToModels={onGoToModels}
+        onPickImage={onPickImage}
       />
     </View>
   );
@@ -682,5 +719,17 @@ const makeStyles = (colors: ThemeColors) =>
       fontSize: 12,
       marginTop: spacing.md,
       fontFamily: fonts.body.medium,
+    },
+    pendingImageRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.sm,
+    },
+    pendingThumb: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.sm,
     },
   });

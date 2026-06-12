@@ -67,5 +67,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>EkamCore uses the camera so your on-device AI can see photos you take. Images never leave your phone.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>EkamCore reads photos you choose so your on-device AI can describe them. Images never leave your phone.</string>
 </dict>
 </plist>
