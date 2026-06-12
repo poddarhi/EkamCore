@@ -52,7 +52,7 @@ export async function isModelDownloaded(model: ModelInfo): Promise<boolean> {
       return false;
     }
     // Base must be a few MB; an mmproj can be smaller but is still > 1 MB.
-    if ((await fileSize(path)) < 1_000_000) {
+    if ((await fileSize(path)) <= 1_000_000) {
       return false;
     }
   }
@@ -88,9 +88,8 @@ export async function listDownloadedModelIds(): Promise<string[]> {
 
 export async function deleteModel(model: ModelInfo): Promise<void> {
   for (const path of requiredFilesFor(model)) {
-    if (await RNBlobUtil.fs.exists(path)) {
-      await RNBlobUtil.fs.unlink(path);
-    }
+    await safeUnlink(path);
+    await safeUnlink(`${path}.part`);
   }
 }
 
