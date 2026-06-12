@@ -14,8 +14,10 @@ import {
   ensureModelsDir,
   isModelDownloaded,
   listDownloadedModelIds,
+  mmprojFilePath,
   modelFilePath,
   startDownload,
+  startMmprojDownload,
 } from '../services/download';
 import {
   generate,
@@ -98,7 +100,7 @@ interface AppState {
   addModel: (model: ModelInfo) => Promise<void>;
   load: (model: ModelInfo) => Promise<void>;
   unload: () => Promise<void>;
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, imagePath?: string) => Promise<void>;
   /** Re-run the last user message, replacing the assistant reply after it. */
   regenerate: () => Promise<void>;
   complete: (opts: CompleteOptions) => Promise<string>;
@@ -278,6 +280,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       handles.current[model.id] = handle;
       handle.task
         .then(async () => {
+          // Vision models need a second file (the mmproj projector). Fetch it
+          // before clearing progress or checking readiness — isModelDownloaded
+          // now requires BOTH files to be present on disk.
+          if (model.mmprojUrl) {
+            const mmprojHandle = startMmprojDownload(model, (received, total) => {
+              setDownloads(d => ({
+                ...d,
+                [model.id]: {
+                  received,
+                  total: total || model.mmprojSizeBytes || 0,
+                },
+              }));
+            });
+            handles.current[model.id] = mmprojHandle;
+            await mmprojHandle.task;
+          }
           clearDownloadState(model.id);
           // Re-verify against the filesystem so the UI reflects ground truth.
           const ok = await isModelDownloaded(model);
@@ -373,8 +391,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLoadingModelId(model.id);
       setLoadProgress(0);
       try {
-        await loadModel(model.id, modelFilePath(model), p =>
-          setLoadProgress(p),
+        await loadModel(
+          model.id,
+          modelFilePath(model),
+          p => setLoadProgress(p),
+          model.mmprojUrl ? mmprojFilePath(model) : undefined,
         );
         setLoadedModelId(model.id);
         setActiveRemote(null);
@@ -457,9 +478,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Shared send path: `base` is the history the new user turn appends to.
   // sendMessage passes the live message list; regenerate passes a truncated one.
   const runSend = useCallback(
-    async (text: string, base: ChatMessage[]) => {
+    async (text: string, base: ChatMessage[], imagePath?: string) => {
       const trimmed = text.trim();
-      if (!trimmed || isGenerating || (!loadedModelId && !activeRemote)) {
+      if ((!trimmed && !imagePath) || isGenerating || (!loadedModelId && !activeRemote)) {
         return;
       }
       let convId = activeConversationId;
@@ -472,6 +493,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         id: uid(),
         role: 'user',
         content: trimmed,
+        ...(imagePath ? { imagePath } : {}),
       };
       const assistantId = uid();
       const assistantMsg: ChatMessage = {
@@ -523,6 +545,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const result = await generate({
             systemPrompt: systemPrompt + buildMemoryBlock(memory),
             history,
+            imagePath,
             onToken: token => {
               target += token;
             },
@@ -617,7 +640,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const sendMessage = useCallback(
-    (text: string) => runSend(text, messages),
+    (text: string, imagePath?: string) => runSend(text, messages, imagePath),
     [runSend, messages],
   );
 
