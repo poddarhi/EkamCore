@@ -37,8 +37,12 @@ export interface ModelInfo {
   license?: string;
   /** ISO date the model was released (drives a "NEW" badge). */
   releasedAt?: string;
-  /** True if the model can understand images (not wired yet). */
+  /** True if the model can understand images (base GGUF + mmproj projector). */
   vision?: boolean;
+  /** Direct download URL for the multimodal projector (mmproj) file. Vision only. */
+  mmprojUrl?: string;
+  /** Approximate mmproj download size in bytes (for honest combined-size UI). */
+  mmprojSizeBytes?: number;
 }
 
 export interface DownloadProgress {
@@ -55,6 +59,8 @@ export interface ChatMessage {
   id: string;
   role: ChatRole;
   content: string;
+  /** Local filesystem path to an attached image (user turns only). */
+  imagePath?: string;
   /** transient flag while the assistant token stream is in flight */
   streaming?: boolean;
   /** tokens-per-second once generation finishes */
