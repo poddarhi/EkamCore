@@ -25,7 +25,7 @@ export function ChatPlusSheet({
 }: {
   visible: boolean;
   onClose: () => void;
-  onGoToModels: () => void;
+  onGoToModels: (category?: 'text' | 'image') => void;
   /** Called once a vision model is active; source picks the input. */
   onPickImage: (source: 'library' | 'camera') => void;
 }) {
@@ -110,7 +110,7 @@ export function ChatPlusSheet({
     }
     if (visionModels.length === 0) {
       onClose();
-      onGoToModels(); // route to Models to download a vision model
+      onGoToModels('image'); // route to Models → Image tab to download one
       return;
     }
     if (visionModels.length === 1) {

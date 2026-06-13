@@ -3,6 +3,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,7 +23,14 @@ import { ModelInfo } from '../types';
 import { formatBytes } from '../utils/format';
 import { fitOrder, rateModelFit, tierHeading } from '../utils/modelFit';
 
-export function ModelsScreen() {
+export function ModelsScreen({
+  category = 'text',
+  onCategoryChange,
+}: {
+  /** Which modality tab is active (controlled by the app shell). */
+  category?: 'text' | 'image';
+  onCategoryChange?: (category: 'text' | 'image') => void;
+}) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { models, addCustomModel, deviceProfile } = useApp();
@@ -84,6 +92,54 @@ export function ModelsScreen() {
           Download a model once, then run it fully offline. Everything stays on
           your device.
         </Text>
+
+        {/* Modality switcher — Text vs Image models, like two tabs. */}
+        <View style={styles.segment}>
+          <Pressable
+            style={[
+              styles.segmentBtn,
+              category === 'text' && styles.segmentBtnActive,
+            ]}
+            onPress={() => onCategoryChange?.('text')}>
+            <Icon
+              name="chat"
+              size={15}
+              color={category === 'text' ? colors.onPrimary : colors.textDim}
+            />
+            <Text
+              style={[
+                styles.segmentText,
+                category === 'text' && styles.segmentTextActive,
+              ]}>
+              Text Models
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.segmentBtn,
+              category === 'image' && styles.segmentBtnActive,
+            ]}
+            onPress={() => onCategoryChange?.('image')}>
+            <Icon
+              name="camera"
+              size={15}
+              color={category === 'image' ? colors.onPrimary : colors.textDim}
+            />
+            <Text
+              style={[
+                styles.segmentText,
+                category === 'image' && styles.segmentTextActive,
+              ]}>
+              Image Models
+            </Text>
+          </Pressable>
+        </View>
+        <Text style={styles.groupSub}>
+          {category === 'text'
+            ? 'Chat, reasoning and writing — text in, text out.'
+            : 'Attach a photo and ask about it — these models can see.'}
+        </Text>
+
         {deviceProfile?.totalMemoryBytes ? (
           <View style={styles.deviceBanner}>
             <Icon name="phone" size={18} color={colors.primary} />
@@ -98,51 +154,43 @@ export function ModelsScreen() {
             </View>
           </View>
         ) : null}
-        {sortedFeatured.length > 0 && (
+
+        {category === 'text' ? (
           <>
-            <Text style={styles.groupHeader}>Text Models</Text>
-            <Text style={styles.groupSub}>
-              Chat, reasoning and writing — text in, text out.
-            </Text>
             {featuredNodes}
+            {custom.length > 0 && (
+              <>
+                <Text style={styles.sectionHeader}>Your added models</Text>
+                {custom.map(m => (
+                  <ModelCard
+                    key={m.id}
+                    model={m}
+                    onPress={() => setDetailModel(m)}
+                  />
+                ))}
+              </>
+            )}
+            <Button
+              label="Browse Hugging Face"
+              icon="sparkles"
+              onPress={() => setShowBrowse(true)}
+              style={styles.addBtn}
+            />
+            <Button
+              label="Add from GGUF URL"
+              icon="plus"
+              variant="secondary"
+              onPress={() => setShowAdd(true)}
+              style={styles.addBtn}
+            />
           </>
+        ) : visionFeatured.length > 0 ? (
+          visionFeatured.map(m => (
+            <ModelCard key={m.id} model={m} onPress={() => setDetailModel(m)} />
+          ))
+        ) : (
+          <Text style={styles.groupSub}>No image models available yet.</Text>
         )}
-        {visionFeatured.length > 0 && (
-          <>
-            <Text style={styles.groupHeader}>Image Models</Text>
-            <Text style={styles.groupSub}>
-              Attach a photo and ask about it — these models can see.
-            </Text>
-            {visionFeatured.map(m => (
-              <ModelCard key={m.id} model={m} onPress={() => setDetailModel(m)} />
-            ))}
-          </>
-        )}
-        {custom.length > 0 && (
-          <>
-            <Text style={styles.sectionHeader}>Your added models</Text>
-            {custom.map(m => (
-              <ModelCard
-                key={m.id}
-                model={m}
-                onPress={() => setDetailModel(m)}
-              />
-            ))}
-          </>
-        )}
-        <Button
-          label="Browse Hugging Face"
-          icon="sparkles"
-          onPress={() => setShowBrowse(true)}
-          style={styles.addBtn}
-        />
-        <Button
-          label="Add from GGUF URL"
-          icon="plus"
-          variant="secondary"
-          onPress={() => setShowAdd(true)}
-          style={styles.addBtn}
-        />
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
 
@@ -240,20 +288,41 @@ const makeStyles = (colors: ThemeColors) =>
       marginTop: spacing.sm,
       marginBottom: spacing.sm,
     },
-    // Prominent top-level header that splits the catalog by modality
-    // (Text Models vs Image Models) — visually above the small tier sub-headers.
-    groupHeader: {
-      color: colors.text,
-      fontSize: 19,
-      fontFamily: fonts.body.extrabold,
-      marginTop: spacing.xl,
-      marginBottom: spacing.xs,
+    // Modality switcher (Text Models / Image Models) — two-segment toggle.
+    segment: {
+      flexDirection: 'row',
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: radius.lg,
+      padding: 4,
+      gap: 4,
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    segmentBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: spacing.sm + 2,
+      borderRadius: radius.md,
+    },
+    segmentBtnActive: {
+      backgroundColor: colors.primary,
+    },
+    segmentText: {
+      fontFamily: fonts.body.semibold,
+      fontSize: 14,
+      color: colors.textDim,
+    },
+    segmentTextActive: {
+      color: colors.onPrimary,
     },
     groupSub: {
       color: colors.textDim,
       fontSize: 13,
       fontFamily: fonts.body.regular,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.md,
     },
     addBtn: { marginTop: spacing.sm },
     modalRoot: { flex: 1, justifyContent: 'flex-end' },

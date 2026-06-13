@@ -55,6 +55,7 @@ function Shell({ navRef }: { navRef: React.MutableRefObject<((t: Tab) => void) |
   // Chat-first: the product is a chat app, so land on Chat. Its empty state
   // walks brand-new users to Models.
   const [tab, setTab] = useState<Tab>('chat');
+  const [modelsCategory, setModelsCategory] = useState<'text' | 'image'>('text');
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -78,6 +79,13 @@ function Shell({ navRef }: { navRef: React.MutableRefObject<((t: Tab) => void) |
     if (t !== 'tools') {
       setActiveTool(null);
     }
+  };
+
+  // Jump to the Models tab, optionally pre-selecting the Text/Image segment
+  // (the photo-attach gate routes here with 'image').
+  const goToModels = (modelsTab: 'text' | 'image' = 'text') => {
+    setModelsCategory(modelsTab);
+    selectTab('models');
   };
 
   useEffect(() => {
@@ -190,7 +198,7 @@ function Shell({ navRef }: { navRef: React.MutableRefObject<((t: Tab) => void) |
         ]}>
         {tab === 'chat' && (
           <ChatScreen
-            onGoToModels={() => selectTab('models')}
+            onGoToModels={goToModels}
             keyboardHeight={keyboardHeight}
           />
         )}
@@ -199,15 +207,20 @@ function Shell({ navRef }: { navRef: React.MutableRefObject<((t: Tab) => void) |
             <ToolRunnerScreen
               toolId={activeTool}
               keyboardHeight={keyboardHeight}
-              onGoToModels={() => selectTab('models')}
+              onGoToModels={() => goToModels()}
             />
           ) : (
             <ToolsListScreen
               onOpen={id => setActiveTool(id)}
-              onGoToModels={() => selectTab('models')}
+              onGoToModels={() => goToModels()}
             />
           ))}
-        {tab === 'models' && <ModelsScreen />}
+        {tab === 'models' && (
+          <ModelsScreen
+            category={modelsCategory}
+            onCategoryChange={setModelsCategory}
+          />
+        )}
         {tab === 'settings' && <SettingsScreen />}
       </Animated.View>
 

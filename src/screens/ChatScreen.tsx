@@ -109,7 +109,7 @@ export function ChatScreen({
   onGoToModels,
   keyboardHeight = 0,
 }: {
-  onGoToModels: () => void;
+  onGoToModels: (category?: 'text' | 'image') => void;
   keyboardHeight?: number;
 }) {
   const { colors } = useTheme();
@@ -322,7 +322,7 @@ export function ChatScreen({
             pressed && { transform: [{ scale: 0.97 }] },
           ]}
           accessibilityRole="button"
-          onPress={onGoToModels}>
+          onPress={() => onGoToModels()}>
           <Icon name="models" size={18} color={colors.onPrimary} />
           <Text style={styles.emptyBtnText}>Choose your model</Text>
         </Pressable>
