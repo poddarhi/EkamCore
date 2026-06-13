@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatMessage, ConversationMeta } from '../types';
+import { deleteChatImages } from './download';
 
 const INDEX_KEY = 'ekamcore.conversations.index.v1';
 const blobKey = (id: string) => `ekamcore.conversation.${id}.v1`;
@@ -56,9 +57,17 @@ export async function saveConversation(
 }
 
 export async function deleteConversation(id: string): Promise<void> {
+  // Collect attached image files BEFORE dropping the message blob, then unlink
+  // them — otherwise deleting a conversation leaks its images on disk forever.
+  const imagePaths = (await loadMessages(id))
+    .map(m => m.imagePath)
+    .filter((p): p is string => p != null);
   await AsyncStorage.removeItem(blobKey(id));
   const list = await listConversations();
   await writeIndex(list.filter(c => c.id !== id));
+  if (imagePaths.length > 0) {
+    await deleteChatImages(imagePaths);
+  }
 }
 
 export async function renameConversation(

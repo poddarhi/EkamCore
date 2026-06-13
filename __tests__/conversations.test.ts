@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import RNBlobUtil from 'react-native-blob-util';
 import {
   deleteConversation,
   deriveTitle,
@@ -101,5 +102,20 @@ describe('image attachments', () => {
     const loaded = await loadMessages('cimg');
     expect(loaded[0].imagePath).toBe('/img/a.jpg');
     expect(loaded[1].imagePath).toBeUndefined();
+  });
+
+  it('unlinks attached image files when the conversation is deleted', async () => {
+    const fs = (RNBlobUtil as any).fs;
+    (fs.exists as jest.Mock).mockResolvedValue(true); // pretend the image exists
+    (fs.unlink as jest.Mock).mockClear();
+
+    await saveConversation(meta({ id: 'cdel' }), [
+      { id: 'u1', role: 'user', content: 'pic', imagePath: '/img/del.jpg' },
+      { id: 'a1', role: 'assistant', content: 'ok' },
+    ]);
+    await deleteConversation('cdel');
+
+    expect(fs.unlink).toHaveBeenCalledWith('/img/del.jpg');
+    (fs.exists as jest.Mock).mockResolvedValue(false); // restore default
   });
 });

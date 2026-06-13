@@ -1,11 +1,67 @@
 import { initLlama, LlamaContext, RNLLAMA_MTMD_DEFAULT_MEDIA_MARKER } from 'llama.rn';
 import { Platform } from 'react-native';
+import DeviceInfo from 'react-native-device-info';
 import { ChatMessage } from '../types';
 
 export interface LoadedModel {
   context: LlamaContext;
   filePath: string;
   modelId: string;
+  /** Context window (tokens) the model was loaded with. */
+  nCtx: number;
+}
+
+const GiB = 1024 * 1024 * 1024;
+
+/**
+ * Pick a context window sized to the device's RAM. KV-cache memory grows with
+ * n_ctx, so low-RAM phones stay at the conservative 2048 while roomier devices
+ * get more headroom before the conversation has to slide. Pure + testable.
+ */
+export function pickContextSize(totalMemoryBytes: number): number {
+  if (totalMemoryBytes >= 8 * GiB) return 8192;
+  if (totalMemoryBytes >= 6 * GiB) return 6144;
+  if (totalMemoryBytes >= 4 * GiB) return 4096;
+  return 2048;
+}
+
+// Rough heuristic — llama.cpp tokenization isn't available before generation,
+// so we estimate ~4 chars/token plus a small per-message framing overhead. We'd
+// rather slightly over-count (drop a turn early) than overflow the real window.
+const CHARS_PER_TOKEN = 4;
+const PER_MESSAGE_OVERHEAD_TOKENS = 4;
+// Headroom reserved beyond the predicted response so the chat template, BOS, and
+// estimation error can't tip the prompt over n_ctx.
+const CONTEXT_SAFETY_MARGIN_TOKENS = 64;
+
+/** Approximate token cost of a single message's text. */
+export function estimateTokens(text: string): number {
+  return Math.ceil((text?.length ?? 0) / CHARS_PER_TOKEN) + PER_MESSAGE_OVERHEAD_TOKENS;
+}
+
+/**
+ * Turn-level sliding window: keep the most recent whole messages that fit within
+ * `budgetTokens`, dropping whole oldest turns first. Never splits a message, and
+ * always keeps at least the most recent message (the live user turn) even if it
+ * alone exceeds the budget — better a long final turn than an empty prompt.
+ * The caller pins the system prompt separately, so it is never dropped here.
+ */
+export function windowHistory(
+  history: ChatMessage[],
+  budgetTokens: number,
+): ChatMessage[] {
+  const nonSystem = history.filter(m => m.role !== 'system');
+  const kept: ChatMessage[] = [];
+  let used = 0;
+  for (let i = nonSystem.length - 1; i >= 0; i--) {
+    const cost = estimateTokens(nonSystem[i].content);
+    if (kept.length > 0 && used + cost > budgetTokens) {
+      break;
+    }
+    kept.unshift(nonSystem[i]);
+    used += cost;
+  }
+  return kept;
 }
 
 let current: LoadedModel | null = null;
@@ -26,6 +82,15 @@ export async function loadModel(
 ): Promise<LoadedModel> {
   await releaseModel();
 
+  // Size the context window to available RAM (falls back to 2048 on low-end
+  // devices or if the device-info probe fails).
+  let nCtx = 2048;
+  try {
+    nCtx = pickContextSize(await DeviceInfo.getTotalMemory());
+  } catch {
+    // keep the conservative default
+  }
+
   const context = await initLlama(
     {
       model: filePath,
@@ -34,7 +99,7 @@ export async function loadModel(
       // returns, which adds many seconds to startup; mmap keeps launch snappy.
       use_mlock: false,
       use_mmap: true,
-      n_ctx: 2048,
+      n_ctx: nCtx,
       // Offload to GPU on iOS (Metal). Keep CPU on Android for broad device support.
       n_gpu_layers: Platform.OS === 'ios' ? 99 : 0,
     },
@@ -56,7 +121,7 @@ export async function loadModel(
     }
   }
 
-  current = { context, filePath, modelId };
+  current = { context, filePath, modelId, nCtx };
   return current;
 }
 
@@ -99,7 +164,18 @@ export async function generate(
   const { systemPrompt, history, temperature = 0.7, maxTokens = 512, imagePath } =
     options;
 
-  const chatHistory = history.filter(m => m.role !== 'system');
+  // Slide a window over the history so a long chat can't silently overflow n_ctx.
+  // Budget = context window minus the pinned system prompt, the reserved response
+  // (n_predict), and a safety margin. Oldest whole turns are dropped first; the
+  // system prompt is re-added below and the latest user turn is always kept.
+  const budgetTokens = Math.max(
+    estimateTokens(''),
+    current.nCtx -
+      estimateTokens(systemPrompt) -
+      maxTokens -
+      CONTEXT_SAFETY_MARGIN_TOKENS,
+  );
+  const chatHistory = windowHistory(history, budgetTokens);
   const messages = [
     { role: 'system', content: systemPrompt },
     ...chatHistory.map((m, i) => {

@@ -111,6 +111,16 @@ export async function deleteModel(model: ModelInfo): Promise<void> {
   }
 }
 
+/**
+ * Best-effort delete of chat image files (bare filesystem paths). Called when a
+ * conversation is deleted so its attached images don't leak on disk forever.
+ */
+export async function deleteChatImages(paths: string[]): Promise<void> {
+  for (const path of paths) {
+    await safeUnlink(path);
+  }
+}
+
 export interface DownloadHandle {
   task: Promise<void>;
   cancel: () => void;
