@@ -82,18 +82,29 @@ Download a model, go offline, and chat. Your conversations never leave your devi
 
 ## Screenshots
 
-Raw device captures live in `docs/store-assets/screenshots/` (`ios/` at 1206×2622, `android/` at
-1080×2400). They cover the three hero screens: **the private hero state** (carries the "Runs Fully
-On-Device · Your Chats Stay Private" line), **the model catalog** (device-tailored size/speed
-estimates), and **a live chat exchange**.
+Raw device captures live in `docs/store-assets/screenshots/`:
 
-**Before upload (finish these):**
-- iOS App Store requires **6.9"** screenshots (1320×2868) — recapture on an **iPhone 17 Pro Max**
-  simulator (UI is identical; the iOS chat exchange is already seeded, just open it from the drawer).
-- Google Play wants ≥2 phone screenshots (we have 3) — the current 1080×2400 set is accepted as-is.
-- Optional polish: add short caption overlays ("Runs 100% on your phone", "No cloud. No account.",
-  "Pick a model that fits your phone") and a device frame. These raw shots are submission-ready
-  without it, but captions lift conversion.
+**iOS — `ios/` (1320×2868, the App Store 6.9" requirement):** 4 shots
+1. `01-hero` — private hero state ("Runs Fully On-Device · Your Chats Stay Private")
+2. `02-models` — model catalog with device-tailored size/speed estimates
+3. `03-settings` — privacy/personalization ("Adapt to me… stored only on this device") + "connect your own computer"
+4. `04-ai-tools` — on-device assistants (Email, Rewriter, Meeting Notes, Planner…)
+
+**Android — `android/` (1080×2400, Play-ready as-is):** 6 shots
+1. `01-hero` · 2. `02-models` · 3. `03-chat` (live Q&A exchange) · 4. `04-settings` ·
+5. `05-ai-tools` · 6. `06-history` (conversation management)
+
+This is a strong set (Play needs ≥2/max 8 → we have 6; Apple needs ≥1/max 10 → we have 4).
+
+**Optional finishes to push it to 6/platform:**
+- iOS **chat exchange** + **history** shots: the demo chat is already seeded on the Pro Max sim —
+  just tap the top-left drawer icon and the conversation to capture them at 6.9" (automation
+  couldn't reliably hit that small icon; a manual tap takes 5 seconds).
+- **Image/Vision models** tab shot (both platforms): tap the "Image Models" segment on the Models
+  screen (the segment toggle resisted automated taps; trivial by hand).
+- Optional polish: caption overlays ("Runs 100% on your phone", "No cloud. No account.", "Pick a
+  model that fits your phone") + device frames. The raw shots are submission-ready without it, but
+  captions lift conversion.
 
 ## Other assets still to produce (see store-submission-checklist.md)
 - **App icon** export: 1024×1024 (App Store), 512×512 (Play). Use the existing in-app shield icon.
