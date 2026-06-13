@@ -95,6 +95,6 @@ revise the "Effective date" above. Material changes will be reflected here.
 
 ## Contact
 
-Questions about this policy or your privacy: **‹CONTACT EMAIL›**
+Questions about this policy or your privacy: **ekamcore.ai@gmail.com**
 
 _This policy is hosted at: ‹PUBLIC URL WHERE YOU HOST THIS PAGE›_
