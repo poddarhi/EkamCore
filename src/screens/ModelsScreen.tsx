@@ -44,7 +44,11 @@ export function ModelsScreen({
   const featured = models.filter(m => !m.custom);
   const custom = models.filter(m => m.custom);
   const textFeatured = featured.filter(m => !m.vision);
-  const visionFeatured = featured.filter(m => m.vision);
+  // Vision models, smallest combined footprint (base + mmproj) first.
+  const combinedSize = (m: ModelInfo) => m.sizeBytes + (m.mmprojSizeBytes ?? 0);
+  const visionFeatured = featured
+    .filter(m => m.vision)
+    .sort((a, b) => combinedSize(a) - combinedSize(b));
 
   // Best-fitting first; within a tier, larger (more capable) first.
   const sortedFeatured = [...textFeatured].sort((a, b) => {
