@@ -17,7 +17,9 @@ import { useTheme } from '../context/ThemeContext';
 import {
   HfQuant,
   HfRepo,
+  listGgufRepo,
   listQuants,
+  pickMmproj,
   pickRecommended,
   searchGgufModels,
 } from '../services/huggingface';
@@ -36,14 +38,18 @@ function compact(n: number): string {
 export function HuggingFaceSearch({
   visible,
   onClose,
+  mode = 'text',
 }: {
   visible: boolean;
   onClose: () => void;
+  /** 'vision' restricts results to image models and pairs in the mmproj. */
+  mode?: 'text' | 'vision';
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { addModel, deviceProfile } = useApp();
   const ram = deviceProfile?.totalMemoryBytes ?? null;
+  const isVision = mode === 'vision';
 
   const [query, setQuery] = useState('');
   const [repos, setRepos] = useState<HfRepo[]>([]);
@@ -51,6 +57,7 @@ export function HuggingFaceSearch({
 
   const [repo, setRepo] = useState<HfRepo | null>(null);
   const [quants, setQuants] = useState<HfQuant[] | null>(null);
+  const [mmprojs, setMmprojs] = useState<HfQuant[]>([]);
   const [quantsLoading, setQuantsLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
@@ -61,12 +68,12 @@ export function HuggingFaceSearch({
     }
     setLoading(true);
     const t = setTimeout(async () => {
-      const r = await searchGgufModels(query);
+      const r = await searchGgufModels(query, isVision);
       setRepos(r);
       setLoading(false);
     }, 400);
     return () => clearTimeout(t);
-  }, [query, visible]);
+  }, [query, visible, isVision]);
 
   const fitColor: Record<FitTier, string> = {
     great: colors.success,
@@ -79,19 +86,32 @@ export function HuggingFaceSearch({
   const openRepo = async (r: HfRepo) => {
     setRepo(r);
     setQuants(null);
+    setMmprojs([]);
     setShowAll(false);
     setQuantsLoading(true);
-    setQuants(await listQuants(r.id));
+    if (isVision) {
+      const { quants: qs, mmprojs: mps } = await listGgufRepo(r.id);
+      setQuants(qs);
+      setMmprojs(mps);
+    } else {
+      setQuants(await listQuants(r.id));
+    }
     setQuantsLoading(false);
   };
 
   const closeRepo = () => {
     setRepo(null);
     setQuants(null);
+    setMmprojs([]);
   };
 
   const addQuant = (r: HfRepo, q: HfQuant) => {
     const shortName = r.id.split('/').pop() ?? r.id;
+    // Vision repos need a projector (mmproj) paired with the base quant.
+    const mmproj = isVision ? pickMmproj(mmprojs) : null;
+    if (isVision && !mmproj) {
+      return; // guarded by the UI, but never add a vision model without mmproj
+    }
     const model: ModelInfo = {
       id: `hf-${r.id}-${q.quant}`.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase(),
       name: `${shortName} · ${q.quant}`,
@@ -103,6 +123,13 @@ export function HuggingFaceSearch({
       sizeBytes: q.sizeBytes,
       url: q.url,
       custom: true,
+      ...(mmproj
+        ? {
+            vision: true,
+            mmprojUrl: mmproj.url,
+            mmprojSizeBytes: mmproj.sizeBytes,
+          }
+        : {}),
     };
     addModel(model);
     closeRepo();
@@ -112,14 +139,20 @@ export function HuggingFaceSearch({
   const recommended = quants ? pickRecommended(quants) : null;
   const others = quants?.filter(q => q !== recommended) ?? [];
 
+  // In vision mode the real download is base + projector; reflect that in
+  // the size/fit shown for each quant.
+  const mmprojExtra = isVision ? pickMmproj(mmprojs)?.sizeBytes ?? 0 : 0;
+
   const renderQuant = (q: HfQuant, isRec: boolean) => {
-    const fit = rateModelFit({ sizeBytes: q.sizeBytes } as ModelInfo, ram);
+    const total = q.sizeBytes + mmprojExtra;
+    const fit = rateModelFit({ sizeBytes: total } as ModelInfo, ram);
     return (
       <View key={q.filename} style={[styles.quantRow, isRec && styles.quantRec]}>
         <View style={{ flex: 1 }}>
           <Text style={styles.quantLabel}>{q.quant}</Text>
           <Text style={styles.quantMeta}>
-            {formatBytes(q.sizeBytes)}
+            {formatBytes(total)}
+            {isVision ? ' (with projector)' : ''}
             {fit.tier !== 'unknown' ? `  •  ${fit.label}` : ''}
           </Text>
         </View>
@@ -142,7 +175,11 @@ export function HuggingFaceSearch({
             <Icon name="arrowLeft" size={22} color={colors.text} />
           </Pressable>
           <Text style={styles.title} numberOfLines={1}>
-            {repo ? repo.id.split('/').pop() : 'Browse Hugging Face'}
+            {repo
+              ? repo.id.split('/').pop()
+              : isVision
+              ? 'Browse Vision Models'
+              : 'Browse Hugging Face'}
           </Text>
         </View>
 
@@ -151,7 +188,11 @@ export function HuggingFaceSearch({
             <View style={styles.searchWrap}>
               <TextInput
                 style={styles.search}
-                placeholder="Search models (e.g. gemma, qwen, phi)…"
+                placeholder={
+                  isVision
+                    ? 'Search vision models (e.g. llava, qwen vl)…'
+                    : 'Search models (e.g. gemma, qwen, phi)…'
+                }
                 placeholderTextColor={colors.textFaint}
                 value={query}
                 onChangeText={setQuery}
@@ -172,8 +213,9 @@ export function HuggingFaceSearch({
                 keyboardShouldPersistTaps="handled"
                 ListEmptyComponent={
                   <Text style={styles.empty}>
-                    No GGUF models found. Check your connection or try another
-                    search.
+                    {isVision
+                      ? 'No vision models found. Check your connection or try another search.'
+                      : 'No GGUF models found. Check your connection or try another search.'}
                   </Text>
                 }
                 renderItem={({ item }) => (
@@ -201,6 +243,11 @@ export function HuggingFaceSearch({
                 color={colors.primary}
                 style={{ marginTop: spacing.xl }}
               />
+            ) : isVision && mmprojs.length === 0 ? (
+              <Text style={styles.empty}>
+                This repo has no image projector (mmproj), so it can’t run as a
+                vision model. Try another from the list.
+              </Text>
             ) : !quants || quants.length === 0 ? (
               <Text style={styles.empty}>
                 No single-file GGUF quantizations found in this repo.

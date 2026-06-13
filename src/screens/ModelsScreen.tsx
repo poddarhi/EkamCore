@@ -41,12 +41,11 @@ export function ModelsScreen({
   const [showBrowse, setShowBrowse] = useState(false);
 
   const ram = deviceProfile?.totalMemoryBytes ?? null;
-  const featured = models.filter(m => !m.custom);
-  const custom = models.filter(m => m.custom);
-  const textFeatured = featured.filter(m => !m.vision);
-  // Vision models, smallest combined footprint (base + mmproj) first.
   const combinedSize = (m: ModelInfo) => m.sizeBytes + (m.mmprojSizeBytes ?? 0);
-  const visionFeatured = featured
+  const textFeatured = models.filter(m => !m.vision && !m.custom);
+  const textCustom = models.filter(m => !m.vision && m.custom);
+  // All vision models (curated + user-added), smallest combined footprint first.
+  const visionModels = models
     .filter(m => m.vision)
     .sort((a, b) => combinedSize(a) - combinedSize(b));
 
@@ -162,10 +161,10 @@ export function ModelsScreen({
         {category === 'text' ? (
           <>
             {featuredNodes}
-            {custom.length > 0 && (
+            {textCustom.length > 0 && (
               <>
                 <Text style={styles.sectionHeader}>Your added models</Text>
-                {custom.map(m => (
+                {textCustom.map(m => (
                   <ModelCard
                     key={m.id}
                     model={m}
@@ -188,12 +187,22 @@ export function ModelsScreen({
               style={styles.addBtn}
             />
           </>
-        ) : visionFeatured.length > 0 ? (
-          visionFeatured.map(m => (
-            <ModelCard key={m.id} model={m} onPress={() => setDetailModel(m)} />
-          ))
         ) : (
-          <Text style={styles.groupSub}>No image models available yet.</Text>
+          <>
+            {visionModels.map(m => (
+              <ModelCard
+                key={m.id}
+                model={m}
+                onPress={() => setDetailModel(m)}
+              />
+            ))}
+            <Button
+              label="Browse Vision Models"
+              icon="sparkles"
+              onPress={() => setShowBrowse(true)}
+              style={styles.addBtn}
+            />
+          </>
         )}
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
@@ -203,6 +212,7 @@ export function ModelsScreen({
       <HuggingFaceSearch
         visible={showBrowse}
         onClose={() => setShowBrowse(false)}
+        mode={category === 'image' ? 'vision' : 'text'}
       />
 
       <Modal
