@@ -10,13 +10,20 @@ Play Store. Items marked **🔴 BLOCKER** must be done before you can submit at 
 
 ## 0. Hard blockers to know up front
 
-| # | Blocker | Why | Store |
-|---|---------|-----|-------|
-| 1 | **🔴 Paid Apple Developer Program ($99/yr)** | Current iOS builds use a **free personal profile** (7-day expiry, 3-app limit). The App Store requires a paid membership. | Apple |
-| 2 | **🔴 Replace the Android signing key** | The release APK is currently signed with the **debug keystore** (`signingConfigs.debug`). Play **rejects** debug-signed uploads — you must generate a real upload keystore. | Google |
-| 3 | **🔴 Build an Android App Bundle (.aab)** | New Play apps must upload an **.aab**, not an APK. We've only built APKs so far. | Google |
-| 4 | **🔴 Public Privacy Policy URL** | **Both** stores require a hosted privacy policy URL. | Both |
-| 5 | **🔴 Google Play Developer account ($25 one-time)** | Required to publish on Play. | Google |
+| # | Blocker | Status | Store |
+|---|---------|--------|-------|
+| 1 | **Paid Apple Developer Program ($99/yr)** | 🔴 **TODO — you (purchase)**. Current iOS builds use a free profile (7-day/3-app). | Apple |
+| 2 | **Android upload keystore** | ✅ **DONE** — `android/app/upload-keystore.jks` (gitignored), wired via `keystore.properties`; release builds now sign with it (verified, not debug). | Google |
+| 3 | **Android App Bundle (.aab)** | ✅ **DONE** — `android/app/build/outputs/bundle/release/app-release.aab` (81 MB), upload-key-signed. Rebuild with `./gradlew :app:bundleRelease` (bump `versionCode` each release). | Google |
+| 4 | **Public Privacy Policy URL** | 🟡 **DRAFTED** — text at `docs/legal/privacy-policy.md`; **you** confirm 3 fields + host it at a public URL. | Both |
+| 5 | **Google Play Developer account ($25 one-time)** | 🔴 **TODO — you (purchase)**. | Google |
+
+**Automatable work is done (keystore, signing, .aab, policy draft).** Remaining blockers are
+account purchases + hosting the policy — actions only you can take.
+
+> 🔑 **The upload keystore password is NOT in git** (it's in the gitignored `keystore.properties`).
+> Back it up in a password manager. With Play App Signing enrolled, a lost upload key is resettable,
+> but don't rely on that.
 
 ---
 
