@@ -270,6 +270,14 @@ reclaims its image files; app is in TestFlight/store and the **repo is open-sour
 — both are **deliberately deferred to Phase 1**, where the memory corpus gets a real vector store +
 storage layer. Migrating storage now and again in Phase 1 is double work; do it **once**, in Phase 1.
 
+**Status (2026-06-13): code-complete + device-verified.** All three hardening fixes shipped
+(commit `cae0a8d`), unit-tested, and verified at runtime: on the **Android emulator** a ~7,200-token
+chat was sent as a **1,011-token capped prompt** (sliding window + `n_ctx` wiring) and a real image
+file was **unlinked on conversation delete**; the app **builds + launches clean on iOS** (sim) and the
+Release build is **deployed to the physical iPhone**. Remaining to actually publish: the store
+prerequisites in `docs/runbooks/store-submission-checklist.md` (paid Apple account, Android upload
+keystore + `.aab`, hosted privacy policy).
+
 > **Sequencing note (the parallel track):** Phase 0 is a **soft launch**, not the viral moment.
 > On-device chat is commodity (§1) — it will not break records on its own. Ship it now, open the
 > repo, warm up the dev/GitHub flywheel, and **build Phase 1 in parallel.** Reserve the
