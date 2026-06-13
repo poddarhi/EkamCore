@@ -250,17 +250,40 @@ ship the viral moment on the phone alone — **no Rust, no Tauri, no pairing, no
 spreading in weeks, and *then* the bridge becomes the irresistible Pro upgrade. We go viral before
 we ever have to learn Rust.
 
-### Phase 0 — Foundation _(shipping today)_
-On-device LLM chat, vision model catalog, Hugging Face browse, segmented Text/Image models.
-**DoD:** already met. **Role:** the seed the memory grows on.
+### Phase 0 — Foundation + Launch Hardening _(soft launch — ship now)_
+On-device LLM chat, vision model catalog, Hugging Face browse, segmented Text/Image models —
+**plus the launch-blocking robustness fixes** without which the foundation embarrasses us on first
+contact. These are not new scope; they are what makes Phase 0 actually shippable.
+
+- **🔴 Turn-level sliding window** in the message builder: keep the system prompt + last N turns
+  under a token budget, drop whole oldest tuples. Stops conversations silently breaking past the
+  current hardcoded `n_ctx=2048` + send-everything behavior. *(research rec #1)*
+- **🔴 Image cleanup on conversation delete:** unlink the `chat-images/` files so deletes don't
+  leak disk forever. *(research rec #3)*
+- **🟡 Device-adaptive `n_ctx`** (4k–8k where RAM allows), done alongside the window fix. *(rec #2)*
+
+**DoD:** long chats degrade gracefully (no silent break) on a real device; deleting a conversation
+reclaims its image files; app is in TestFlight/store and the **repo is open-sourced** (plant the
+"Own your intelligence" flag, start the GitHub/dev flywheel).
+**Role:** the seed the memory grows on — and a *soft* launch to build an audience.
+**NOT in this release:** ❌ the SQLite/MMKV storage rewrite and ❌ summarize-dropped-turns-into-memory
+— both are **deliberately deferred to Phase 1**, where the memory corpus gets a real vector store +
+storage layer. Migrating storage now and again in Phase 1 is double work; do it **once**, in Phase 1.
+
+> **Sequencing note (the parallel track):** Phase 0 is a **soft launch**, not the viral moment.
+> On-device chat is commodity (§1) — it will not break records on its own. Ship it now, open the
+> repo, warm up the dev/GitHub flywheel, and **build Phase 1 in parallel.** Reserve the
+> record-breaking *consumer* clip (the pharmacy aha) for the Phase 1 launch — don't spend your one
+> big first impression on the foundation.
 
 ### Phase 1 — **"The Memory"** _(THE LAUNCH — phone-only)_
 The viral hero. Everything runs on a single phone.
 - **Capture:** share-sheet "Send to my brain," opt-in camera-roll ingest, voice memo, manual
   quick-add. Per-source, revocable consent.
 - **Ingest:** on-device OCR / vision-extraction (reuse the existing vision models) + text
-  extraction → embeddings → a **local vector store**. Fix the known storage debts en route
-  (turn-level history window, image cleanup on delete, move off the O(n) AsyncStorage index).
+  extraction → embeddings → a **local vector store**. **Owns the storage migration** deferred from
+  Phase 0: build the memory corpus on SQLite (+ vector ext) / MMKV index and move chat off the
+  O(n) AsyncStorage index in the *same* pass — done once, not twice. *(research rec #5)*
 - **Recall:** plain-language Q&A over your captured life; the answer **plus the source artifact**
   (the photo it read it from) is shown — trust through provenance.
 - **Glass House:** a visible "0 bytes left this device" privacy indicator; published threat model.
@@ -304,8 +327,8 @@ heirloom model.
 ### Roadmap at a glance
 | Phase | Name | Needs new high-risk tech? | The clip | Status |
 |---|---|---|---|---|
-| 0 | Foundation | — | — | shipping |
-| **1** | **The Memory** | **No** (phone-only) | pharmacy aha | **next — the launch** |
+| 0 | Foundation + launch hardening | No (cheap robustness fixes) | — (soft launch) | **ship now, repo open** |
+| **1** | **The Memory** | **No** (phone-only) | pharmacy aha | **build in parallel — the launch** |
 | 1.x | Spread & harden | No | clip circulating | after 1 |
 | 2 | The Home Brain | Yes (Rust/Tauri/Noise) | "19× smarter, one scan" | bridge spec, re-sequenced |
 | 2.x | Remote + self-model | Yes (WebRTC) | — | after 2 |
