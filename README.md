@@ -1,57 +1,108 @@
 # EkamCore 🧠📱
 
-A bare **React Native (no Expo)** app that runs Large Language Models **fully
-on-device**. Download a small GGUF model once, then chat with it completely
-offline — your conversations never leave the phone.
+**EkamCore** is a proprietary, privacy-first AI assistant that runs Large
+Language Models **entirely on your device**. Download a model once, then chat,
+draft, summarize, and work with AI **fully offline** — your conversations,
+documents, and data never leave the phone.
 
-Inspired by [PocketPal AI](https://github.com/a-ghorbani/pocketpal-ai) and built
-on the same core engine, [`llama.rn`](https://github.com/mybigday/llama.rn)
-(llama.cpp bindings for React Native).
+No accounts. No servers. No cloud. Your intelligence stays yours.
+
+---
+
+## Why EkamCore
+
+- **Own your intelligence.** Inference happens locally — nothing is uploaded,
+  logged, or sent to a third party.
+- **Works anywhere.** Once a model is downloaded, the app needs no internet to
+  think, chat, or run tools.
+- **Fast on real hardware.** iOS uses Metal GPU acceleration; Android runs on an
+  optimized CPU path for broad device support.
+
+---
 
 ## Features
 
-- **100% offline inference** — powered by `llama.rn` / llama.cpp.
-- **Model manager** — download, track progress, load, unload, and delete models.
-- **Curated catalog** of tiny phone-friendly models (Qwen2.5, SmolLM2, Llama 3.2).
-- **Add any GGUF URL** (e.g. a Hugging Face `resolve` link).
-- **Streaming chat UI** with live token output and tokens/second metrics.
-- **Stop generation** mid-stream.
-- On-device storage of downloaded models and settings (no servers involved).
+- **On-device chat** — a streaming conversational assistant with live token
+  output and tokens/second metrics. Stop generation mid-stream at any time.
+- **Conversation history** — multiple saved conversations, persisted locally on
+  the device.
+- **AI Tools** — guided one-tap workflows built on the local model: email
+  generation, email replies, meeting summarization, and more.
+- **Vision / image input** — attach images to supported multimodal models.
+- **Model manager** — browse a curated catalog of phone-friendly models
+  (text and image), download with progress tracking, load, unload, and delete.
+- **Add any GGUF model** — paste a Hugging Face `resolve` URL, or search
+  Hugging Face directly from inside the app.
+- **Personalization & settings** — themes, default model, and assistant
+  preferences, all stored on-device.
+- **100% local persistence** — models, conversations, and settings live only on
+  the device. No backend is involved.
+
+---
+
+## App layout
+
+EkamCore is organized into four tabs:
+
+| Tab          | What it does                                                        |
+| ------------ | ------------------------------------------------------------------- |
+| **Chat**     | Talk to the loaded model; manage conversation history.              |
+| **Tools**    | Run guided AI workflows (email, summaries, etc.).                   |
+| **Models**   | Download, load, and manage text and image models.                   |
+| **Settings** | Personalization, themes, default model, and app preferences.        |
+
+---
 
 ## Tech stack
 
-| Concern              | Library                                  |
-| -------------------- | ---------------------------------------- |
-| Inference            | `llama.rn`                               |
-| Model downloads      | `react-native-blob-util`                 |
-| Persistence          | `@react-native-async-storage/async-storage` |
-| Safe areas           | `react-native-safe-area-context`         |
-| Framework            | React Native 0.85 (bare CLI)             |
+| Concern              | Library / technology                          |
+| -------------------- | --------------------------------------------- |
+| Framework            | React Native 0.85 (bare CLI), React 19, TS    |
+| On-device inference  | `llama.rn` (llama.cpp bindings)               |
+| Model downloads      | `react-native-blob-util`                      |
+| Persistence          | `@react-native-async-storage/async-storage`   |
+| Image input          | `react-native-image-picker`                   |
+| Markdown rendering    | `react-native-markdown-display`               |
+| Vector / SVG UI       | `react-native-svg`                            |
+| Device info           | `react-native-device-info`                    |
+| Safe areas            | `react-native-safe-area-context`              |
+
+> iOS inference is GPU-accelerated via Metal (`n_gpu_layers: 99`); Android runs
+> on CPU for broad device compatibility. These are tunable in
+> `src/services/llama.ts`.
+
+---
 
 ## Project structure
 
 ```
+App.tsx              custom bottom-tab shell (Chat · Tools · Models · Settings)
 src/
-  components/    Button, ProgressBar, ModelCard, MessageBubble
-  context/       AppContext.tsx  (global state: models + chat)
-  data/          models.ts       (curated GGUF catalog)
-  screens/       ModelsScreen, ChatScreen
-  services/      llama.ts (inference), download.ts, storage.ts
-  utils/         format.ts
-App.tsx          custom bottom-tab shell
+  components/        Button, ProgressBar, ModelCard, MessageBubble,
+                     HistoryPanel, Onboarding, SplashScreen, sheets, …
+  context/           AppContext.tsx (models + chat), ThemeContext.tsx
+  data/              models.ts (curated GGUF catalog), tools.ts (AI tools)
+  screens/           ChatScreen, ToolsListScreen, ToolRunnerScreen,
+                     ModelsScreen, HuggingFaceSearch, SettingsScreen
+  services/          llama.ts (inference), download.ts, storage.ts,
+                     conversations.ts, memory.ts, huggingface.ts,
+                     catalog.ts, capabilities.ts, device.ts, remote.ts
+  utils/             format.ts, modelFit.ts
+  theme.ts  typography.ts  applyFonts.ts  types.ts
+ios/  android/       native projects
 ```
 
 ---
 
 ## Prerequisites
 
-- **Node.js** 20+ and **npm**
+- **Node.js** `>= 22.11.0` and **npm**
 - **Watchman** (recommended on macOS): `brew install watchman`
-- **iOS:** Xcode + CocoaPods + Ruby bundler (`sudo gem install cocoapods bundler`)
+- **iOS:** Xcode + CocoaPods (`sudo gem install cocoapods`)
 - **Android:** Android Studio, an SDK + emulator (or a USB device), JDK 17
 
-> A physical device is recommended — LLM inference is CPU/GPU heavy and faster
-> on real hardware than on a simulator/emulator.
+> A physical device is recommended — LLM inference is CPU/GPU heavy and runs far
+> faster on real hardware than on a simulator/emulator.
 
 ---
 
@@ -60,16 +111,12 @@ App.tsx          custom bottom-tab shell
 From the project folder (`EkamCore/`):
 
 ```bash
-# 1. Install JS dependencies (already done if you cloned this folder)
+# 1. Install JS dependencies
 npm install
 
-# 2. iOS only: install native pods (uses your system CocoaPods)
+# 2. iOS only: install native pods
 cd ios && pod install && cd ..
 ```
-
-> If you prefer the bundled Ruby toolchain instead, run `bundle install` once
-> (to install the gems in `Gemfile`) and then `bundle exec pod install`. The
-> plain `pod install` above is simpler and avoids the bundler step.
 
 ---
 
@@ -81,7 +128,7 @@ Start the Metro bundler in one terminal:
 npm start
 ```
 
-Then in a second terminal, launch a platform:
+Then, in a second terminal, launch a platform:
 
 **Android** (emulator running or device connected):
 
@@ -102,11 +149,14 @@ npx react-native run-ios --device "Your iPhone"
 ## Using the app
 
 1. Open the **Models** tab.
-2. Tap **Download** on a model (start with *Qwen2.5 0.5B* — it's the smallest).
-   - Or tap **“+ Add model from GGUF URL”** to paste any `.gguf` link.
+2. Tap **Download** on a model (start with the smallest if you're unsure).
+   - Or use **Add model from GGUF URL** / **Search Hugging Face** to pull any
+     compatible `.gguf` model.
 3. Once downloaded, tap **Load** to load it into memory.
-4. Switch to the **Chat** tab and start chatting — **no internet needed**.
-5. Tap the ■ button to stop generation; **Clear** to reset the conversation.
+4. Switch to **Chat** and start talking — **no internet needed**.
+5. Explore the **Tools** tab for guided workflows like email drafting and
+   meeting summaries.
+6. Tap ■ to stop generation; manage saved chats from the history panel.
 
 ---
 
@@ -115,15 +165,28 @@ npx react-native run-ios --device "Your iPhone"
 - **First launch is heavy.** The native build (especially `llama.rn`) takes a
   while to compile the first time.
 - **iOS memory:** very large models may need the *Increased Memory Limit*
-  capability in Xcode (`Signing & Capabilities`). The bundled small models run
+  capability in Xcode (`Signing & Capabilities`). Bundled small models run
   within default limits on modern devices.
 - **Android memory:** `android:largeHeap="true"` is already set in the manifest.
 - **Downloads need internet (once).** Inference and chat are fully offline.
 - **Model URLs:** the catalog points at public Hugging Face GGUF files. If a URL
   ever moves, use **Add model from GGUF URL** with a current link.
-- **iOS GPU (Metal)** is enabled (`n_gpu_layers: 99`); Android runs on CPU for
-  broad device compatibility. Tune these in `src/services/llama.ts`.
+
+---
+
+## Commands
+
+- `npm start` — Metro bundler
+- `npm run ios` / `npm run android` — build & launch
+- `npm test` — Jest
+- `npm run lint` — ESLint
+- `cd ios && pod install` — install iOS pods
+
+---
 
 ## License
 
-MIT — for learning/demo purposes. Model files are subject to their own licenses.
+MIT. Third-party open-source components (including `llama.rn` / llama.cpp and
+the other libraries listed under *Tech stack*) remain subject to their own
+licenses, and downloaded model files are governed by their respective model
+licenses.
